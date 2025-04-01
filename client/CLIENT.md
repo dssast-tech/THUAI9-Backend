@@ -1,4 +1,4 @@
-## Server
+## Client
 
 The client part is more like a basic code framework that the contestants can use to implement their own game logic. Therefore, what we need to do is to provide the basic structure of controlling the game server, while the detailed implementation of the game logic is left to the contestants.
 
