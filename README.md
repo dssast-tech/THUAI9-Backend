@@ -12,4 +12,4 @@ thuai8/
             # (logic) requires.
 ```
 In such case it is convenient to use TCP/IP protocol to communicate between the clients (players) and the game server.
-It is reconmmended to refer to the demo when finishing the client-server part.
+It is reconmmended to refer to the demo when finishing the client-server part, and you can also use ApiFox for testing the APIs.
