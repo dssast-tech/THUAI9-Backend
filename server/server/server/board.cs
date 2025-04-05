@@ -17,7 +17,7 @@ namespace server
         int[,] height_map;
         //分界线待实现
 
-        int[,] validTarget(Point from, Point to, float movement)
+        public int[,] validTarget(Point from, Point to, float movement)
         {
             //返回一张mask图，以01标记所有能抵达的点，用于提交给client,以及env中的合法性判定
             //不一定要实现
@@ -25,7 +25,7 @@ namespace server
         }
 
 
-        bool movePiece(Piece p, Point to, float movement)
+        public bool movePiece(Piece p, Point to, float movement)
         {
             /*
              参数：要移动的棋子、终点、行动力
@@ -39,17 +39,17 @@ namespace server
            throw new NotImplementedException();
         }
 
-        bool isOccupied(Point p)
+        public bool isOccupied(Point p)
         {
             throw new NotImplementedException();
         }
 
-        bool getHeight(Point p)
+        public bool getHeight(Point p)
         {
             throw new NotImplementedException();
         }
 
-        void removePiece(Piece p)
+        public void removePiece(Piece p)
         {
             throw new NotImplementedException();
         }

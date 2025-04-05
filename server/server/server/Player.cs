@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 
 namespace server
 {
-    class Player
+    public class Player
     {
         int id;
         List<Piece> pieces; //持有的棋子
