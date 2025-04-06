@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 
 namespace server
 {
-    public class Player
+    class Player
     {
         int id;
         List<Piece> pieces; //持有的棋子
@@ -18,19 +18,17 @@ namespace server
         int dexterity_total;
         int intelligence_total;
 
-        void localInit()
+        initializationSet localInit()
         {
+            initializationSet init = input();
+
             //所有不涉及地图信息、对方信息的初始化在此进行
             //如力量、敏捷、智力分配，棋子武器、防具分配
-            throw new NotImplementedException();
+
+            //env环境会调用此函数，利用返回值初始化设计地图交互的其他信息（如棋子位置等）
+            return init;
         }
 
-        initializationSet envInit()
-        {
-            //初始化涉及地图信息的类，将需要初始化的内容打包为一个initializationSet（格式自定），env会调用该函数并处理具体逻辑
-            //如地图位置
-            throw new NotImplementedException();
-        }
 
         public actionSet getAction(Piece currentPiece)
         {
@@ -38,6 +36,11 @@ namespace server
             throw new NotImplementedException();
         }
 
+        initializationSet input()
+        {
+            //接收控制台或TCP输入，将信息解析为一个initializationSet（格式自定）
+            throw new NotImplementedException();
+        }
 
 
 

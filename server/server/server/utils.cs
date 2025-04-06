@@ -80,7 +80,7 @@ namespace server
         public DicePair damageValue;        // 伤害值（如3d6）
         public int healValue;               // 治疗量
         public int effectValue;             // 通用效果值（用于buff/debuff）
-        public bool isDelaySpell;     // 是否为延时法术
+        public bool isDelaySpell;     // 是否为延时法术    //瞬发改为延时1/延时0
         public int baseLifespan;      // 基础持续时间（回合数）
         public int spellLifespan;     // 剩余持续时间
         public bool isDamageSpell;    //是否为伤害法术
