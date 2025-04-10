@@ -393,8 +393,9 @@ namespace server
 
         //-----------------------------------------------------------------------------------------------------------------移动逻辑--------------------------------------------------------------------------------------//
 
-        void executeMove(Point move_target)
+        void executeMove(Piece cur_piece, Point move_target, float movement)
         {
+            movePiece(Piece cur_piece, Point move_target, float movement)
             //执行移动
         }
 

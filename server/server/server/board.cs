@@ -13,46 +13,167 @@ namespace server
     class Board
     {
         int width, height;
-        int[,] grid;  // 0: 空地, 1: 可行走, 2: 占据, -1: 禁止
+        int[,] grid;  // 0: 空地, 1: 可行走, 2: 占据, -1: 禁止 //不知道 0 的意义，实现没有用到 4/10
         int[,] height_map;
         //分界线待实现
 
-        public int[,] validTarget(Point from, Point to, float movement)
+        public int[,] validTarget(Piece p, Point from, Point to, float movement)
         {
             //返回一张mask图，以01标记所有能抵达的点，用于提交给client,以及env中的合法性判定
             //不一定要实现
-            throw new NotImplementedException();
+
+            //返回一张棋子的mask图，-1表示不可达，其他数字为到达该点的移动力消耗，如原地不动为0，需要遍历，时间开销比较大
+            int[,] mask = new int[width, height];
+            for (int x = 0; x < width; x++)
+            {
+                for (int y = 0; y < height; y++)
+                {
+                    mask[x, y] = -1;
+                }
+            }
+
+            for (int x = 0; x < width; x++)
+            {
+                for (int y = 0; y < height; y++)
+                {
+                    Point target = new Point(x, y);
+                    if (grip[x, y] == 1 && (Math.Abs(x - p.x) + Math.Abs(y - p.y) <= movement))
+                    {
+                        var (path, cost) = FindShortestPath(p, from, target, movement);
+                        if (path != null && cost <= movement)
+                        {
+                            mask[x, y] = (int)MathF.Ceiling(cost);
+                        }
+                    }
+                    
+                }
+            }
+
+            return mask;
         }
 
 
         public bool movePiece(Piece p, Point to, float movement)
         {
-            /*
-             参数：要移动的棋子、终点、行动力
-             返回值：是否移动成功
+            if (!isWithinBounds(to) || grid[to.x, to.y] != 1)
+            {
+                return false; // 终点超出地图大小、被占据、禁止到达
+            }
 
-            该函数负责移动合法性判定和移动执行
+            (List<Point> path, float cost) = FindShortestPath(p.position, to, movement);
+            if (path == null)
+            {
+                return false; //没有可达路径（沿途被阻挡）、行动力不足
+            }
 
-            按文档设计，移动合法性判定至少要覆盖：绕开敌人、高度差不能过大等判定
-            函数也可置于env中
-             */
-           throw new NotImplementedException();
+            p.movement -= cost;
+            grid[p.position.x, p.position.y] = 1; // 原位置状态更新
+            grid[to.x, to.y] = 2; // 目标位置状态更新
+            p.position = to; // 更新棋子的位置
+            p.height = height_map[to.x, to.y]; // 更新棋子的高度
+
+            return true;
         }
 
         public bool isOccupied(Point p)
         {
-            throw new NotImplementedException();
+            return grid[p.x, p.y] == 2; 
         }
 
-        public bool getHeight(Point p)
+        public int getHeight(Point p)
+        {
+            return height_map[p.x, p.y];
+        }
+
+        public void removePiece(Piece p) //
         {
             throw new NotImplementedException();
         }
 
-        public void removePiece(Piece p)
+        private bool isWithinBounds(Point p)// 目标位置需要在矩形棋盘内部
         {
-            throw new NotImplementedException();
+            return p.x >= 0 && p.x < width && p.y >= 0 && p.y < height;
         }
+
+        private List<Point> GetNeighbors(Point p)// 返回点p的所有可达邻点表
+        {
+            List<Point> neighbors = new List<Point>
+            {
+                new Point(p.x - 1, p.y),
+                new Point(p.x + 1, p.y),
+                new Point(p.x, p.y - 1),
+                new Point(p.x, p.y + 1)
+            };
+
+            return neighbors.Where(n => isWithinBounds(n) && grid[n.x, n.y] == 1).ToList();
+        }
+
+        private (List<Point> path, float cost) FindShortestPath(Piece p, Point start, Point goal, float movement)// 返回棋子移动的最短路径和需要消耗的行动力大小，如果需要显示路径可调用
+        {
+            Dictionary<Point, Point> cameFrom = new Dictionary<Point, Point>();
+            Dictionary<Point, float> costSoFar = new Dictionary<Point, float>();
+            PriorityQueue<Point, float> frontier = new PriorityQueue<Point, float>();
+
+            frontier.Enqueue(start, 0);
+            cameFrom[start] = start;
+            costSoFar[start] = 0;
+
+            while (frontier.Count > 0)
+            {
+                Point current = frontier.Dequeue();
+
+                if (current.Equals(goal))
+                {
+                    break;
+                }
+
+                foreach (var next in GetNeighbors(current))
+                {
+                    float heightDiff = height_map[next.x, next.y] - height_map[current.x, current.y];
+                    float moveCost = 1 + Math.Max(0, heightDiff); // 爬山消耗：1 + 高度差（下坡不增加）
+
+                    float val = 2;
+                    if (p.strength < val)
+                    {
+                        if (moveCost >= 3)//高度差大于2，且体力不足以支撑
+                        {
+                            continue;
+                        }
+                    }
+
+                    float newCost = costSoFar[current] + moveCost;
+
+                    if (newCost > movement)
+                        continue; // 超出可用行动力，不考虑这个点
+
+                    if (!costSoFar.ContainsKey(next) || newCost < costSoFar[next])
+                    {
+                        costSoFar[next] = newCost;
+                        frontier.Enqueue(next, newCost);
+                        cameFrom[next] = current;
+                    }
+                }
+            }
+
+            if (!cameFrom.ContainsKey(goal))
+            {
+                return (null, 0); // 不可达
+            }
+
+            List<Point> path = new List<Point>();
+            Point temp = goal;
+
+            while (!temp.Equals(start))
+            {
+                path.Add(temp);
+                temp = cameFrom[temp];
+            }
+
+            path.Reverse();
+
+            return (path, costSoFar[goal]); // 返回路径和行动力消耗
+        }
+
 
         void init()
         {
