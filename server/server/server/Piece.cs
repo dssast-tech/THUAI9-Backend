@@ -27,8 +27,8 @@ namespace server
         public int intelligence { get; private set; }
 
         // 实时项
-        public Point position { get; private set; }
-        public int height { get; private set; }
+        public Point position { get; set; }// 移动函数需要修改棋子坐标和高度
+        public int height { get; set; }
         public int attack_range { get; private set; }
         public List<Spell> spell_list { get; private set; }
 

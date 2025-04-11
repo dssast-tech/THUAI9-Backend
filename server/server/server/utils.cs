@@ -9,9 +9,9 @@ using System.Threading.Tasks;
 
 namespace server
 {
-    struct Point
+    struct Point(int x, int y)//添加构造函数
     {
-        public int x, y;
+        public int x = x, y = y;
     }
 
     struct actionSet
