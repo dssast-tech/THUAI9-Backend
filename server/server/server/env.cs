@@ -395,7 +395,7 @@ namespace server
 
         void executeMove(Piece cur_piece, Point move_target, float movement)
         {
-            movePiece(Piece cur_piece, Point move_target, float movement)
+            board.movePiece(cur_piece, move_target, movement);
             //执行移动
         }
 

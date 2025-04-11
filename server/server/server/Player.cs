@@ -20,7 +20,7 @@ namespace server
 
         initializationSet localInit()
         {
-            initializationSet init = input();
+            initializationSet init = initInput();
 
             //所有不涉及地图信息、对方信息的初始化在此进行
             //如力量、敏捷、智力分配，棋子武器、防具分配
@@ -36,7 +36,7 @@ namespace server
             throw new NotImplementedException();
         }
 
-        initializationSet input()
+        initializationSet initInput()
         {
             //接收控制台或TCP输入，将信息解析为一个initializationSet（格式自定）
             throw new NotImplementedException();
