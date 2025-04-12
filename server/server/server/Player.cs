@@ -49,7 +49,8 @@ namespace server
             
         }
 
-
+        public List<Piece> getPieces() {
+            return pieces;
 
     }
 }
