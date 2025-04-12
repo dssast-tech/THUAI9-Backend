@@ -44,6 +44,9 @@ namespace server
         public Piece()
         {
             spell_list = new List<Spell>();
+            is_alive = true;
+            is_dying = false;
+            is_in_turn = false;
         }
 
         // 方法
@@ -71,6 +74,46 @@ namespace server
             // 清晰的命名避免与属性冲突
             public void SetHealthTo(int value) => p.health = value;
             public void ChangeHealthBy(int delta) => p.health += delta;
+            public void SetMaxHealthTo(int value) => p.max_health = value;
+
+            public void SetPhysicalResistTo(int value) => p.physical_resist = value;
+            public void SetMagicResistTo(int value) => p.magic_resist = value;
+            public void SetPhysicalDamageTo(DicePair value) => p.physical_damage = value;
+            public void SetMagicDamageTo(DicePair value) => p.magic_damage = value;
+            public void SetMaxMovementTo(float value) => p.max_movement = value;
+            public void SetMaxMovementBy(float value) => p.max_movement += value;
+            public void SetMovementTo(float value) => p.movement = value;
+            public void SetAttackRangeTo(int value) => p.attack_range = value;
+            public void SetMaxActionPointsTo(int value) => p.max_action_points = value;
+            public void SetMaxSpellSlotsTo(int value) => p.max_spell_slots = value;
+
+
+            public void SetMaxActionPoints(){
+                if(p.strength<=13) p.SetMaxActionPointsTo(1);
+                else if(p.strength<=21) p.SetMaxActionPointsTo(2);
+                else p.SetMaxActionPointsTo(3);
+            }
+            public void SetMaxSpellSlots(){
+                if(p.intelligence<=3) p.SetMaxSpellSlotsTo(1);
+                else if(p.intelligence<=7) p.SetMaxSpellSlotsTo(2);
+                else if(p.intelligence<=12) p.SetMaxSpellSlotsTo(3);
+                else if(p.intelligence<=16) p.SetMaxSpellSlotsTo(5);
+                else if(p.intelligence<=21) p.SetMaxSpellSlotsTo(8);
+                else p.SetMaxSpellSlotsTo(9);
+            }
+
+            public void SetstrengthTo(int value){
+                if (value < 0) raise new ArgumentOutOfRangeException("Strength cannot be negative.");
+                else p.strength = value;
+            }
+            public void SetDexterityTo(int value){
+                if (value < 0) raise new ArgumentOutOfRangeException("Dexterity cannot be negative.");
+                else p.dexterity = value;
+            }
+            public void SetIntelligenceTo(int value){
+                if (value < 0) raise new ArgumentOutOfRangeException("Intelligence cannot be negative.");
+                else p.intelligence = value;
+            }
 
             public void SetActionPointsTo(int value) => p.action_points = value;
             public void ChangeActionPointsBy(int delta) => p.action_points += delta;
@@ -85,6 +128,12 @@ namespace server
 
             public void SetMagicResistBy(int value) => p.magic_resist -= value;
             public void SetPhysicResistBy(int value) => p.physical_resist -= value;
+
+            //调整值计算
+            public int StrengthAdjustment(){if(p.strength<=7) return 1; else if(p.strength<=13) return 2; else if(p.strength<=16) return 3; else return 4;}
+            public int DexterityAdjustment(){if(p.dexterity<=7) return 1; else if(p.dexterity<=13) return 2; else if(p.dexterity<=16) return 3; else return 4;}
+            public int IntelligenceAdjustment(){if(p.intelligence<=7) return 1; else if(p.intelligence<=13) return 2; else if(p.intelligence<=16) return 3; else return 4;}
+
         }
 
         // Env 专用访问接口
