@@ -123,7 +123,63 @@ namespace server
         public actionSet getAction(Piece currentPiece)
         {
             //控制台或AI逻辑
-            throw new NotImplementedException();
+            actionSet action= new actionSet();
+            while (true)
+            {
+                Console.WriteLine("请输入目标移动位置（格式：x y）：");
+                string input = Console.ReadLine();
+
+                try
+                {
+                    // 检查输入是否为两个用空格隔开的整数
+                    string[] inputs = input.Split(' ');
+                    if (inputs.Length != 2)
+                    {
+                        throw new Exception("输入格式错误，应为两个用空格隔开的整数。");
+                    }
+
+                    int x = int.Parse(inputs[0]);
+                    int y = int.Parse(inputs[1]);
+
+                    // 执行业务逻辑
+                    // 例如：设置棋子的目标位置
+                    action.move_target=new Point(x,y);
+
+                    // 退出循环
+                    break;
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"输入错误：{ex.Message}");
+                }
+            }
+            while(true)
+            {
+                Console.WriteLine("请输入要攻击的棋子编号（若不攻击，输入-1)");
+                string input = Console.ReadLine();
+                try
+                {
+                    int x = int.Parse(input);
+                    if(x == -1)
+                    {
+                        action.attack=false;
+                        break;
+                    }
+                    else
+                    {
+                        action.attack = true;
+                        action.attack_context.target = pieces[x];
+                        action.attack_context.attacker = currentPiece;
+                        // 其他攻击相关逻辑
+                        break;
+                    }
+                }
+                catch (Exception ex )
+                {
+                    Console.WriteLine($"输入错误：{ex.Message}");
+                }
+            }
+            
         }
 
         List<int> initInput()

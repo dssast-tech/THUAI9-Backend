@@ -65,7 +65,92 @@ namespace server
         actionSet getAction()
         {
             // 通过当前玩家对象获取行动决策（需具体实现）
-            throw new NotImplementedException();
+            actionSet action = new actionSet();
+            while (true)
+            {
+                Console.WriteLine("请输入目标移动位置（格式：x y）：");
+                string input = Console.ReadLine();
+
+                try
+                {
+                    // 检查输入是否为两个用空格隔开的整数
+                    string[] inputs = input.Split(' ');
+                    if (inputs.Length != 2)
+                    {
+                        throw new Exception("输入格式错误，应为两个用空格隔开的整数。");
+                    }
+
+                    int x = int.Parse(inputs[0]);
+                    int y = int.Parse(inputs[1]);
+
+                    // 执行业务逻辑
+                    // 例如：设置棋子的目标位置
+                    action.move_target = new Point(x, y);
+
+                    // 退出循环
+                    break;
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"输入错误：{ex.Message}");
+                }
+            }
+            while (true)
+            {
+                Console.WriteLine("请输入要攻击的棋子编号（若不攻击，输入-1)");
+                string input = Console.ReadLine();
+                try
+                {
+                    int x = int.Parse(input);
+                    if (x == -1)
+                    {
+                        action.attack = false;
+                        break;
+                    }
+                    else
+                    {
+                        action.attack = true;
+                        action.attack_context.attacker = current_piece;
+                        action.attack_context.target = action_queue[x];
+                        action.attack_context.attackPosition = current_piece.position;
+                        // 其他攻击相关逻辑
+                        break;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"输入错误：{ex.Message}");
+                }
+            }
+            if (action.attack == true)
+            {
+                while (true)
+                {
+                    Console.WriteLine("请输入要施加的法术id（若不攻击，输入None)");
+                    string input = Console.ReadLine();
+                    try
+                    {
+                        int x = int.Parse(input);
+                        if (x == -1)
+                        {
+                            action.spell = false;
+                            break;
+                        }
+                        else
+                        {
+                            action.spell = true;
+                            action.spell_context.caster = current_piece;
+                            action.spell_context.target = action_queue[x];
+                            // 其他法术相关逻辑
+                            break;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"输入错误：{ex.Message}");
+                    }
+                }
+            }
         }
 
         // 投掷骰子  
@@ -268,27 +353,6 @@ namespace server
         }
 
         // 应用法术效果（根据类型）
-        private void ApplySpellEffect(Piece target, SpellContext context)
-        {
-            // 1. 法术发动检定
-            int spellRoll = RollDice(20);
-            bool isSuccess = false;
-
-            // 非锁定类法术需要至少2.5倍法术强属性的投掷值
-            if (!context.isLockingSpell)
-            {
-                //case SpellEffectType.BuffDamage: // 伤害增益
-                //    target.physical_damage.AddBonus(context.effectValue);
-                //    break;
-                //case SpellEffectType.DebuffResist: // 抗性削弱
-                //    target.physical_resist -= context.effectValue;
-                //    target.magic_resist -= context.effectValue;
-                //    break;
-                //case SpellEffectType.Heal: // 生命恢复
-                //    target.health = Math.Min(target.health + context.effectValue, target.max_health);
-                //    break;
-            }
-        }
 
         private void ExecuteAreaSpell(SpellContext context)
         {
