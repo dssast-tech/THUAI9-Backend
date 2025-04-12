@@ -38,7 +38,13 @@ namespace server
             Random random = new Random();
             return random.Next(1, sides + 1);
         }
-
+        private int Step_Modified_Func(int num){
+            if(num<=10)num=1;
+            else if(num<=20)num=2;
+            else if(num<=30)num=3;
+            else num=4;
+            return num;
+        }
         //-----------------------------------------------------------------攻击逻辑------------------------------------------------------------//
         void executeAttack(AttackContext context)
         {
@@ -82,11 +88,11 @@ namespace server
             else
             {
                 int attackThrow = attackRoll +
-                                GetStrengthModifier(context.attacker.strength) +
+                                Step_Modified_Func(context.attacker.strength) +
                                 CalculateAdvantageValue(context.attacker, context.target);
 
                 int defenseValue = context.target.physical_resist +
-                                GetDexterityModifier(context.target.dexterity);
+                                Step_Modified_Func(context.target.dexterity);
 
                 isHit = attackThrow > defenseValue;
 
@@ -111,7 +117,9 @@ namespace server
             }
 
             // 5. 扣除行动点
-            context.attacker.action_points--;
+            var accessor = context.attacker.GetAccessor();
+            accessor.ChangeActionPointsBy(-1);
+            // context.attacker.action_points--;
         }
 
 
@@ -166,16 +174,20 @@ namespace server
         private void HandleDeathCheck(Piece target)
         {
             int deathRoll = RollDice(20);
-
+            var accessor=target.GetAccessor();
             if (deathRoll == 20)
             {
                 // 恢复至1滴血
-                target.health = 1;
+                accessor.SetHealthTo(1);
+                accessor.SetDying(false);
+                accessor.SetAlive(true);
+                //target.health = 1;
             }
             else if (deathRoll == 1)
             {
                 // 直接死亡
-                target.is_alive = false;
+                accessor.SetAlive(false);
+
                 board.removePiece(target);
                 action_queue.Remove(target);
 
@@ -185,7 +197,9 @@ namespace server
             else
             {
                 // 进入濒死状态
-                target.is_dying = true;
+                //target.is_dying = true;
+                accessor.SetDying(true);
+                accessor.SetAlive(true);
             }
         }
 
@@ -212,16 +226,14 @@ namespace server
             {
                 ExecuteSingleTargetSpell(context);
             }
-
-            context.caster.action_points--;
-            context.caster.spell_slots -= context.spellCost;
+            var accessor=context.caster.GetAccessor();
+            accessor.ChangeActionPointsBy(-1);
         }
-
 
         private void ExecuteDelaySpell(SpellContext context)
         {
             // 1. 法术发动检定
-            int spellRoll = RollD20();
+            int spellRoll = RollDice(20);
             bool isSuccess = false;
 
             // 非锁定类法术需要至少2.5倍法术强属性的投掷值
@@ -234,7 +246,7 @@ namespace server
             {
                 // 锁定类法术正常检定
                 int attackThrow = spellRoll +
-                                GetIntelligenceModifier(context.caster.intelligence) +
+                                Step_Modified_Func(context.caster.intelligence) +
                                 context.spellPower;
 
                 int defenseValue = context.target.magic_resist;
@@ -254,7 +266,7 @@ namespace server
             // 1. 法术发动检定
             int spellRoll = RollDice(20);
             int attackThrow = spellRoll +
-                            GetIntelligenceModifier(context.caster.intelligence) +
+                            Step_Modified_Func(context.caster.intelligence) +
                             context.spellPower;
 
             // 2. 获取范围内的所有目标
@@ -299,9 +311,9 @@ namespace server
             }
 
             // 2. 法术发动检定
-            int spellRoll = RollD20();
+            int spellRoll = RollDice(20);
             int attackThrow = spellRoll +
-                            GetIntelligenceModifier(context.caster.intelligence) +
+                            Step_Modified_Func(context.caster.intelligence) +
                             context.spellPower;
 
             int defenseValue = context.target.magic_resist;
@@ -331,6 +343,7 @@ namespace server
 
         private void ApplySpellEffect(Piece target, SpellContext context)
         {
+            var accessor= target.GetAccessor();
             // 根据法术类型应用不同效果
             switch (context.spellEffectType)
             {
@@ -338,13 +351,14 @@ namespace server
                     target.physical_damage.AddBonus(context.effectValue);
                     break;
                 case SpellEffectType.DebuffResist:
-                    target.physical_resist -= context.effectValue;
-                    target.magic_resist -= context.effectValue;
+                    accessor.SetPhysicResistBy(context.effectValue);
+                    //target.physical_resist -= context.effectValue;
+                    accessor.SetMagicResistBy(context.effectValue);
+                    //target.magic_resist -= context.effectValue;
                     break;
                 case SpellEffectType.Heal:
-                    target.health = Math.Min(target.health + context.effectValue, target.max_health);
+                    accessor.SetHealthTo(Math.Min(target.health + context.effectValue, target.max_health));
                     break;
-                    // 其他效果类型...
             }
         }
 

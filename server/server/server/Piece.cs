@@ -82,6 +82,9 @@ namespace server
             public void SetDying(bool value) => p.is_dying = value;
 
             public void SetPosition(Point newPos) => p.position = newPos;
+
+            public void SetMagicResistBy(int value) => p.magic_resist -= value;
+            public void SetPhysicResistBy(int value) => p.physical_resist -= value;
         }
 
         // Env 专用访问接口
