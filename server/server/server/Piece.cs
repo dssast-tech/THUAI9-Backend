@@ -11,15 +11,15 @@ namespace server
         public int health { get; private set; }
         public int max_health { get; private set; }
         public int physical_resist { get; private set; }
-        public int magic_resist { get; private set; }
+        public int magic_resist { get; private set; }//豁免值
         public DicePair physical_damage { get; private set; }
         public DicePair magic_damage { get; private set; }
         public int action_points { get; private set; }
-        public int max_action_points { get; private set; }
+        public int max_action_points { get; private set; }//行动位
         public int spell_slots { get; private set; }
-        public int max_spell_slots { get; private set; }
+        public int max_spell_slots { get; private set; }//法术位
         public float movement { get; private set; }
-        public float max_movement { get; private set; }
+        public float max_movement { get; private set; }//行动力
 
         // 属性项
         public int strength { get; private set; }
@@ -68,5 +68,39 @@ namespace server
         {
             return is_alive;
         }
+        // Env 专用修改器（只 Env 可通过 internal 方法调用）
+        public class Accessor
+        {
+            private Piece p;
+            internal Accessor(Piece piece)
+            {
+                this.p = piece;
+            }
+
+            // 清晰的命名避免与属性冲突
+            public void SetHealthTo(int value) => p.health = value;
+            public void ChangeHealthBy(int delta) => p.health += delta;
+
+            public void SetActionPointsTo(int value) => p.action_points = value;
+            public void ChangeActionPointsBy(int delta) => p.action_points += delta;
+
+            public void SetSpellSlotsTo(int value) => p.spell_slots = value;
+            public void ChangeSpellSlotsBy(int delta) => p.spell_slots += delta;
+
+            public void SetAlive(bool value) => p.is_alive = value;
+            public void SetDying(bool value) => p.is_dying = value;
+
+            public void SetPosition(Point newPos) => p.position = newPos;
+
+            public void SetMagicResistBy(int value) => p.magic_resist -= value;
+            public void SetPhysicResistBy(int value) => p.physical_resist -= value;
+        }
+
+        // Env 专用访问接口
+        internal Accessor GetAccessor()
+        {
+            return new Accessor(this);
+        }
+        
     }
 }

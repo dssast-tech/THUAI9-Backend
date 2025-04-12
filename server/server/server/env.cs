@@ -10,20 +10,55 @@ namespace server
 {
     class Env
     {
-        List<Piece> action_queue;       // 行动队列，按顺序存储待行动棋子
-        Piece current_piece;            // 当前正在执行行动的棋子
-        int round_number;               // 当前回合计数器
-        List<SpellContext> delayed_spells; // 延时生效的法术上下文列表
-        Player player1;                 // 玩家1实例
-        Player player2;                 // 玩家2实例
-        Board board;                    // 棋盘状态管理器
-        bool isGameOver;                // 游戏结束标志位
+        List<Piece> action_queue; // 棋子的行动队列
+        Piece current_piece; // 当前行动的棋子
+        int round_number; // 当前回合数
+        List<SpellContext> delayed_spells; // 延时法术列表
+        Player player1; // 玩家1
+        Player player2; // 玩家2
+        Board board; // 棋盘
+        bool isGameOver; // 游戏是否结束
 
-        // 游戏初始化方法
         void initialize()
         {
-            // 初始化玩家、棋盘状态，进行合法性校验
-            // 注意：需要先调用player的localInit进行本地初始化
+            //执行各类初始化
+            //注：对于player类，先调用player的localInit函数进行初始化，并根据Init返回值进行地图信息的初始化（需要进行各种合法性检查，如初始位置是否越过双方边界线）
+            player1 = new Player();
+            player2 = new Player();
+            player1.localInit();
+            player2.localInit();
+            player1.id = 1;
+            player2.id = 2;
+            // 初始化棋盘
+            action_queue = new List<Piece>();
+            delayed_spells = new List<SpellContext>();
+            board = new Board();
+            isGameOver = false;
+            round_number = 0;
+
+            // 初始化行动列表
+            action_queue = new List<Piece>();
+            
+            Dictionary<Piece, int> piecePriority = new Dictionary<Piece, int>();
+            
+            // 为每个棋子计算优先级
+            foreach (var piece in player1.pieces)
+            {
+                int priority = RollDice(1, 20) + piece.intelligenceAdjust;
+                piecePriority[piece] = priority;
+            }
+            
+            foreach (var piece in player2.pieces)
+            {
+                int priority = RollDice(1, 20) + piece.intelligenceAdjust;
+                piecePriority[piece] = priority;
+            }
+            
+            // 按优先级从大到小排序并添加到行动队列
+            action_queue = piecePriority
+                .OrderByDescending(pair => pair.Value)
+                .Select(pair => pair.Key)
+                .ToList();
         }
 
         // 获取当前棋子的行动指令集
@@ -33,106 +68,174 @@ namespace server
             throw new NotImplementedException();
         }
 
-        // 骰子投掷方法：生成指定面数的随机数
-        private int RollDice(int sides)
+        // 投掷骰子  
+        private int RollDice(int n, int sides) // n为投掷次数，sides为骰子面数
         {
             Random random = new Random();
-            return random.Next(1, sides + 1);  // 返回1到sides的闭区间随机值
+            return random.Next(1, sides + 1);
         }
-
+        private int Step_Modified_Func(int num){
+            if(num<=10)num=1;
+            else if(num<=20)num=2;
+            else if(num<=30)num=3;
+            else num=4;
+            return num;
+        }
         //-----------------------------------------------------------------攻击逻辑------------------------------------------------------------//
         // 执行攻击上下文
         void executeAttack(AttackContext context)
         {
-            // 行动点校验
+            if (context.attacker == null || context.target == null || !context.attacker.is_alive || !context.target.is_alive)
+                return;
+
+            // 1. 检查行动点
             if (context.attacker.action_points <= 0)
             {
-                return; // 无可用行动点，终止攻击流程
+                Console.WriteLine("[Attack] Failed: Not enough action points.");
+                return;
             }
 
-            // 攻击范围处理逻辑
+            // 2. 检查攻击范围
             if (!IsInAttackRange(context.attacker, context.target))
             {
-                // 路径计算与移动尝试
                 Point bestMovePos = CalculateBestMovePosition(context.attacker, context.target);
                 if (!board.movePiece(context.attacker, bestMovePos, context.attacker.movement))
                 {
-                    return; // 移动失败，终止攻击
+                    Console.WriteLine("[Attack] Failed: Out of range and movement failed.");
+                    return;
                 }
             }
 
-            // D20骰子攻击检定
+            // 3. 掷骰子命中判定
             int attackRoll = RollDice(20);
             bool isHit = false;
             bool isCritical = false;
 
-            // 特殊骰值处理
-            if (attackRoll == 1) // 大失败
+            if (attackRoll == 1)
             {
+                Console.WriteLine("[Attack] Natural 1 - Critical Miss.");
                 isHit = false;
             }
             else if (attackRoll == 20) // 大成功
             {
+                Console.WriteLine("[Attack] Natural 20 - Critical Hit!");
                 isHit = true;
                 isCritical = true;
             }
             else // 常规攻击计算
             {
-                // 优势值计算（地形+环境）
-                int advantageValue = CalculateAdvantageValue(context.attacker, context.target);
                 int attackThrow = attackRoll +
-                                GetStrengthModifier(context.attacker.strength) +
-                                advantageValue;
+                                Step_Modified_Func(context.attacker.strength) +
+                                CalculateAdvantageValue(context.attacker, context.target);
+
                 int defenseValue = context.target.physical_resist +
-                                GetDexterityModifier(context.target.dexterity);
+                                Step_Modified_Func(context.target.dexterity);
+
                 isHit = attackThrow > defenseValue;
+
+                Console.WriteLine($"[Attack] Roll: {attackRoll} → Total Attack: {attackThrow}, Defense: {defenseValue}, Hit: {isHit}");
             }
 
-            // 伤害处理逻辑
+            // 4. 命中后伤害处理
             if (isHit)
             {
                 int damage = context.attacker.physical_damage.Roll();
-                if (isCritical) damage *= 2; // 暴击伤害翻倍
+                if (isCritical)
+                    damage *= 2;
+
+                Console.WriteLine($"[Attack] Dealing {damage} {(isCritical ? "(Critical) " : "")}damage to target.");
+
                 context.target.receiveDamage(damage, "physical");
 
-                // 死亡状态处理
                 if (context.target.health <= 0)
                 {
                     HandleDeathCheck(context.target); // 执行死亡检定
                 }
             }
 
-            context.attacker.action_points--; // 消耗行动点
+            // 5. 扣除行动点
+            var accessor = context.attacker.GetAccessor();
+            accessor.ChangeActionPointsBy(-1);
+            // context.attacker.action_points--;
         }
 
-        // 判断攻击范围（欧几里得距离）
+
+        // 辅助函数
         private bool IsInAttackRange(Piece attacker, Piece target)
         {
             double distance = Math.Sqrt(
                 Math.Pow(attacker.position.x - target.position.x, 2) +
                 Math.Pow(attacker.position.y - target.position.y, 2)
             );
+
             return distance <= attacker.attack_range;
         }
 
-        // 死亡检定处理
+        private Point CalculateBestMovePosition(Piece attacker, Piece target)
+        {
+            // 简化的实现：寻找离目标最近的可移动位置
+            // 实际实现应考虑寻路算法和移动力限制
+            // 这里返回目标位置作为示例
+            return target.position;
+        }
+
+        private int CalculateAdvantageValue(Piece attacker, Piece target)
+        {
+            // 高低差优势: 2*(攻击者高度-受击者高度)
+            int heightAdvantage = 2 * (attacker.height - target.height);
+
+            // 环境优势: 3*(攻击者环境值-受击者环境值)
+            int attackerEnvValue = CalculateEnvironmentValue(attacker);
+            int targetEnvValue = CalculateEnvironmentValue(target);
+            int envAdvantage = 3 * (attackerEnvValue - targetEnvValue);
+
+            return heightAdvantage + envAdvantage;
+        }
+
+        private int CalculateEnvironmentValue(Piece piece)
+        {
+            // 遍历延时法术列表，计算环境值
+            int envValue = 0;
+            foreach (var spell in delayed_spells)
+            {
+                if (IsAffectedBySpell(piece, spell))
+                {
+                    // 处在伤害法术范围里为-1，处在buff效果中为1
+                    envValue += spell.isBuff ? 1 : -1;
+                }
+            }
+            return envValue;
+        }
+
         private void HandleDeathCheck(Piece target)
         {
             int deathRoll = RollDice(20);
-            if (deathRoll == 20) // 奇迹生还
+            var accessor=target.GetAccessor();
+            if (deathRoll == 20)
             {
-                target.health = 1;
+                // 恢复至1滴血
+                accessor.SetHealthTo(1);
+                accessor.SetDying(false);
+                accessor.SetAlive(true);
+                //target.health = 1;
             }
             else if (deathRoll == 1) // 立即死亡
             {
-                target.is_alive = false;
+                // 直接死亡
+                accessor.SetAlive(false);
+
                 board.removePiece(target);
                 action_queue.Remove(target);
-                CheckGameOver(); // 触发游戏结束检查
+
+                // 检查游戏是否结束
+                CheckGameOver();
             }
             else // 濒死状态
             {
-                target.is_dying = true;
+                // 进入濒死状态
+                //target.is_dying = true;
+                accessor.SetDying(true);
+                accessor.SetAlive(true);
             }
         }
 
@@ -140,35 +243,39 @@ namespace server
         // 执行法术上下文
         void executeSpell(SpellContext context)
         {
-            // 资源校验（行动点和法术位）
-            if (context.caster.action_points <= 0 || context.caster.spell_slots <= 0)
+            if (context.caster == null || context.caster.action_points <= 0 || context.caster.spell_slots < context.spellCost)
             {
-                return; // 资源不足终止施法
+                Console.WriteLine("[Spell] Failed: Not enough resources.");
+                return;
             }
 
-            // 法术类型分发处理
+            bool spellSuccess = false;
+
             if (context.isDelaySpell)
             {
-                ExecuteDelaySpell(context); // 延时法术处理
+                ExecuteDelaySpell(context);
             }
             else if (context.isAreaEffect)
             {
-                ExecuteAreaSpell(context); // 范围法术处理
+                ExecuteAreaSpell(context);
             }
             else
             {
-                ExecuteSingleTargetSpell(context); // 单体法术处理
+                ExecuteSingleTargetSpell(context);
             }
-
-            // 资源消耗
-            context.caster.action_points--;
-            context.caster.spell_slots -= context.spellCost;
+            var accessor=context.caster.GetAccessor();
+            accessor.ChangeActionPointsBy(-1);
         }
 
         // 应用法术效果（根据类型）
         private void ApplySpellEffect(Piece target, SpellContext context)
         {
-            switch (context.spellEffectType)
+            // 1. 法术发动检定
+            int spellRoll = RollDice(20);
+            bool isSuccess = false;
+
+            // 非锁定类法术需要至少2.5倍法术强属性的投掷值
+            if (!context.isLockingSpell)
             {
                 case SpellEffectType.BuffDamage: // 伤害增益
                     target.physical_damage.AddBonus(context.effectValue);
@@ -194,6 +301,7 @@ namespace server
             foreach (var piece in action_queue.Where(p => p.is_alive))
             {
                 piece.setActionPoints(piece.max_action_points);  // 从piece类获取最大值
+
             }
 
             //处理行动队列
