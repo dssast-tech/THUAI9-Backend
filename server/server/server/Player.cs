@@ -42,7 +42,8 @@ namespace server
             throw new NotImplementedException();
         }
 
-
+        public List<Piece> getPieces() {
+            return pieces;
 
     }
 }
