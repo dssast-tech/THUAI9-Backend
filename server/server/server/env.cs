@@ -277,17 +277,130 @@ namespace server
             // 非锁定类法术需要至少2.5倍法术强属性的投掷值
             if (!context.isLockingSpell)
             {
-                case SpellEffectType.BuffDamage: // 伤害增益
-                    target.physical_damage.AddBonus(context.effectValue);
-                    break;
-                case SpellEffectType.DebuffResist: // 抗性削弱
-                    target.physical_resist -= context.effectValue;
-                    target.magic_resist -= context.effectValue;
-                    break;
-                case SpellEffectType.Heal: // 生命恢复
-                    target.health = Math.Min(target.health + context.effectValue, target.max_health);
-                    break;
+                //case SpellEffectType.BuffDamage: // 伤害增益
+                //    target.physical_damage.AddBonus(context.effectValue);
+                //    break;
+                //case SpellEffectType.DebuffResist: // 抗性削弱
+                //    target.physical_resist -= context.effectValue;
+                //    target.magic_resist -= context.effectValue;
+                //    break;
+                //case SpellEffectType.Heal: // 生命恢复
+                //    target.health = Math.Min(target.health + context.effectValue, target.max_health);
+                //    break;
             }
+        }
+
+        private void ExecuteAreaSpell(SpellContext context)
+        {
+                // 1. 法术发动检定
+                int spellRoll = RollDice(20);
+                int attackThrow = spellRoll +
+                             Step_Modified_Func(context.caster.intelligence) +
+                             context.spellPower;
+ 
+                 // 2. 获取范围内的所有目标
+                List<Piece> targets = GetPiecesInArea(context.targetArea);
+
+                // 3. 对每个目标进行处理
+                foreach (var target in targets)
+                {
+                    // 范围法术不分敌我
+                    int defenseValue = target.magic_resist;
+                    bool isHit = attackThrow > defenseValue;
+
+                    if (isHit)
+                    {
+                        // 应用伤害或效果
+                        if (context.isDamageSpell)
+                        {
+                            int damage = context.spellDamage.Roll();
+                            target.receiveDamage(damage, "magic");
+
+                            // 死亡检定
+                            if (target.health <= 0)
+                            {
+                                HandleDeathCheck(target);
+                            }
+                        }
+                        else
+                        {
+                            // 应用buff/debuff效果
+                            ApplySpellEffect(target, context);
+                        }
+                    }
+                }
+        }
+
+        private void ExecuteSingleTargetSpell(SpellContext context)
+        {
+            // 1. 检查目标是否在施法范围内
+            if (!IsInSpellRange(context.caster, context.target))
+            {
+                return;
+            }
+
+            // 2. 法术发动检定
+            int spellRoll = RollDice(20);
+            int attackThrow = spellRoll +
+                            Step_Modified_Func(context.caster.intelligence) +
+                            context.spellPower;
+
+            int defenseValue = context.target.magic_resist;
+            bool isHit = attackThrow > defenseValue;
+        }
+
+
+        private void ApplySpellEffect(Piece target, SpellContext context)
+        {
+            var accessor = target.GetAccessor();
+            // 根据法术类型应用不同效果
+            switch (context.spellEffectType)
+                case SpellEffectType.BuffDamage:
+                target.physical_damage.AddBonus(context.effectValue);
+                break;
+            case SpellEffectType.DebuffResist:
+                accessor.SetPhysicResistBy(context.effectValue);
+                //target.physical_resist -= context.effectValue;
+                accessor.SetMagicResistBy(context.effectValue);
+                //target.magic_resist -= context.effectValue;
+                break;
+            case SpellEffectType.Heal:
+                accessor.SetHealthTo(Math.Min(target.health + context.effectValue, target.max_health));
+                break;
+            }
+        }
+
+
+        private List<Piece> GetPiecesInArea(Area targetArea)
+        {
+            // 获取区域内的所有棋子
+            List<Piece> piecesInArea = new List<Piece>();
+            foreach (var piece in action_queue)
+            {
+                if (piece.is_alive && targetArea.Contains(piece.position))
+                {
+                    piecesInArea.Add(piece);
+                }
+            }
+            return piecesInArea;
+        }
+
+        private bool IsInSpellRange(Piece caster, Piece target)
+        {
+            // 计算施法范围
+            // 这里可以使用与物理攻击相同的距离计算方式
+            double distance = Math.Sqrt(
+                Math.Pow(caster.position.x - target.position.x, 2) +
+                Math.Pow(caster.position.y - target.position.y, 2)
+            );
+            return distance <= caster.spell_range;
+        }
+
+        //-----------------------------------------------------------------------------------------------------------------移动逻辑--------------------------------------------------------------------------------------//
+        void executeMove(Piece cur_piece, Point move_target, float movement)
+        {
+            board.movePiece(cur_piece, move_target, movement);
+            //执行移动
         }
 
         //-----------------------------------------------------------------核心逻辑------------------------------------------------------------//

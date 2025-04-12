@@ -112,15 +112,15 @@ namespace server
             }
 
             public void SetstrengthTo(int value){
-                if (value < 0) raise new ArgumentOutOfRangeException("Strength cannot be negative.");
+                if (value < 0) throw new ArgumentOutOfRangeException("Strength cannot be negative.");
                 else p.strength = value;
             }
             public void SetDexterityTo(int value){
-                if (value < 0) raise new ArgumentOutOfRangeException("Dexterity cannot be negative.");
+                if (value < 0) throw new ArgumentOutOfRangeException("Dexterity cannot be negative.");
                 else p.dexterity = value;
             }
             public void SetIntelligenceTo(int value){
-                if (value < 0) raise new ArgumentOutOfRangeException("Intelligence cannot be negative.");
+                if (value < 0) throw new ArgumentOutOfRangeException("Intelligence cannot be negative.");
                 else p.intelligence = value;
             }
 
