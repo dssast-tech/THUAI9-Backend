@@ -11,19 +11,55 @@ namespace server
 {
     class Env
     {
-        List<Piece> action_queue;
-        Piece current_piece;
-        int round_number;
-        List<SpellContext> delayed_spells;
-        Player player1;
-        Player player2;
-        Board board;
-        bool isGameOver;
+        List<Piece> action_queue; // 棋子的行动队列
+        Piece current_piece; // 当前行动的棋子
+        int round_number; // 当前回合数
+        List<SpellContext> delayed_spells; // 延时法术列表
+        Player player1; // 玩家1
+        Player player2; // 玩家2
+        Board board; // 棋盘
+        bool isGameOver; // 游戏是否结束
 
         void initialize()
         {
             //执行各类初始化
             //注：对于player类，先调用player的localInit函数进行初始化，并根据Init返回值进行地图信息的初始化（需要进行各种合法性检查，如初始位置是否越过双方边界线）
+            player1 = new Player();
+            player2 = new Player();
+            player1.localInit();
+            player2.localInit();
+            player1.id = 1;
+            player2.id = 2;
+            // 初始化棋盘
+            action_queue = new List<Piece>();
+            delayed_spells = new List<SpellContext>();
+            board = new Board();
+            isGameOver = false;
+            round_number = 0;
+
+            // 初始化行动列表
+            action_queue = new List<Piece>();
+            
+            Dictionary<Piece, int> piecePriority = new Dictionary<Piece, int>();
+            
+            // 为每个棋子计算优先级
+            foreach (var piece in player1.pieces)
+            {
+                int priority = RollDice(1, 20) + piece.intelligenceAdjust;
+                piecePriority[piece] = priority;
+            }
+            
+            foreach (var piece in player2.pieces)
+            {
+                int priority = RollDice(1, 20) + piece.intelligenceAdjust;
+                piecePriority[piece] = priority;
+            }
+            
+            // 按优先级从大到小排序并添加到行动队列
+            action_queue = piecePriority
+                .OrderByDescending(pair => pair.Value)
+                .Select(pair => pair.Key)
+                .ToList();
         }
 
         actionSet getAction()
@@ -33,10 +69,17 @@ namespace server
         }
 
         // 投掷骰子  
-        private int RollDice(int sides)
+        private int RollDice(int n, int sides) // n为投掷次数，sides为骰子面数
         {
             Random random = new Random();
-            return random.Next(1, sides + 1);
+            int total = 0;
+        
+            for (int i = 0; i < n; i++)
+            {
+                total += random.Next(1, sides + 1);
+            }
+        
+            return total;
         }
 
         //-----------------------------------------------------------------攻击逻辑------------------------------------------------------------//
