@@ -11,15 +11,15 @@ namespace server
         public int health { get; private set; }
         public int max_health { get; private set; }
         public int physical_resist { get; private set; }
-        public int magic_resist { get; private set; }
+        public int magic_resist { get; private set; }//豁免值
         public DicePair physical_damage { get; private set; }
         public DicePair magic_damage { get; private set; }
         public int action_points { get; private set; }
-        public int max_action_points { get; private set; }
+        public int max_action_points { get; private set; }//行动位
         public int spell_slots { get; private set; }
-        public int max_spell_slots { get; private set; }
+        public int max_spell_slots { get; private set; }//法术位
         public float movement { get; private set; }
-        public float max_movement { get; private set; }
+        public float max_movement { get; private set; }//行动力
 
         // 属性项
         public int strength { get; private set; }
