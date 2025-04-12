@@ -31,6 +31,7 @@ namespace server
         public int height { get; set; }
         public int attack_range { get; private set; }
         public List<Spell> spell_list { get; private set; }
+        public int deathRound { get; set; } = -1;
 
         // 标识项
         public int team { get; private set; }
@@ -39,6 +40,14 @@ namespace server
         public bool is_in_turn { get; private set; }
         public bool is_dying { get; private set; } // 濒死状态
         public double spell_range { get; private set; }
+        public void setActionPoints(int action_points)
+        {
+            this.action_points = action_points;
+        }
+        public int getActionPoints()
+        {
+            return action_points;
+        }
 
         // 构造函数
         public Piece()
@@ -53,7 +62,7 @@ namespace server
 
         //前一版文档中将棋子攻击行为逻辑置于此处，为了避免棋子与棋子的直接交互，所有交互行为逻辑现在都由environment类处理，此处的方法仅用于维护内部状态（待定）
 
-        public void receiveDamage(int damage, string type)
+        public void receiveDamage(DicePair damage, string type)
         {
             //接收伤害。免伤逻辑应在env中处理完毕，此处直接进行扣血和死亡判定。
         }
