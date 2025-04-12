@@ -19,7 +19,7 @@ namespace server
         Player player2;
         Board board;
         bool isGameOver;
-        
+
         void initialize()
         {
             //执行各类初始化
@@ -33,108 +33,97 @@ namespace server
         }
 
         // 投掷骰子  
-        private int RollDice(int sides)  
-        {  
-            Random random = new Random();  
-            return random.Next(1, sides + 1);  
+        private int RollDice(int sides)
+        {
+            Random random = new Random();
+            return random.Next(1, sides + 1);
         }
 
         //-----------------------------------------------------------------攻击逻辑------------------------------------------------------------//
         void executeAttack(AttackContext context)
         {
-            // 1. 检查发起者是否有剩余行动位
+            if (context.attacker == null || context.target == null || !context.attacker.is_alive || !context.target.is_alive)
+                return;
+
+            // 1. 检查行动点
             if (context.attacker.action_points <= 0)
             {
-                // 驳回攻击，没有剩余行动位
+                Console.WriteLine("[Attack] Failed: Not enough action points.");
                 return;
             }
 
-            // 2. 检查目标是否在攻击范围内
-            // 2.1 如果不在范围内，尝试移动
+            // 2. 检查攻击范围
             if (!IsInAttackRange(context.attacker, context.target))
             {
-                // 计算最佳移动位置
                 Point bestMovePos = CalculateBestMovePosition(context.attacker, context.target);
-                
-                // 尝试移动
                 if (!board.movePiece(context.attacker, bestMovePos, context.attacker.movement))
                 {
-                    // 移动失败，返回攻击失败
+                    Console.WriteLine("[Attack] Failed: Out of range and movement failed.");
                     return;
                 }
             }
-            
-            // 3. 命中检定
-            int attackRoll = RollDice(20);//掷骰函数
+
+            // 3. 掷骰子命中判定
+            int attackRoll = RollDice(20);
             bool isHit = false;
             bool isCritical = false;
 
-            // 特殊骰子结果处理
             if (attackRoll == 1)
             {
-                // 大失败，直接未命中
+                Console.WriteLine("[Attack] Natural 1 - Critical Miss.");
                 isHit = false;
             }
             else if (attackRoll == 20)
             {
-                // 大成功，直接命中
+                Console.WriteLine("[Attack] Natural 20 - Critical Hit!");
                 isHit = true;
                 isCritical = true;
             }
             else
             {
-                // 正常命中计算
-                // 计算优势值
-                int advantageValue = CalculateAdvantageValue(context.attacker, context.target);
-                
-                // 攻击投掷 = 1d20 + 力量调整值 + 优势值
-                int attackThrow = attackRoll + 
-                                GetStrengthModifier(context.attacker.strength) + 
-                                advantageValue;
-                
-                // 防御值 = 物理豁免值 + 敏捷调整值
-                int defenseValue = context.target.physical_resist + 
+                int attackThrow = attackRoll +
+                                GetStrengthModifier(context.attacker.strength) +
+                                CalculateAdvantageValue(context.attacker, context.target);
+
+                int defenseValue = context.target.physical_resist +
                                 GetDexterityModifier(context.target.dexterity);
-                
+
                 isHit = attackThrow > defenseValue;
+
+                Console.WriteLine($"[Attack] Roll: {attackRoll} → Total Attack: {attackThrow}, Defense: {defenseValue}, Hit: {isHit}");
             }
 
-            // 4. 如果命中，计算伤害
+            // 4. 命中后伤害处理
             if (isHit)
             {
-                // 计算伤害值（物理伤害）
                 int damage = context.attacker.physical_damage.Roll();
-                
-                // 如果是暴击，伤害翻倍
                 if (isCritical)
-                {
                     damage *= 2;
-                }
-                
-                // 应用伤害
+
+                Console.WriteLine($"[Attack] Dealing {damage} {(isCritical ? "(Critical) " : "")}damage to target.");
+
                 context.target.receiveDamage(damage, "physical");
-                
-                // 死亡检定
+
                 if (context.target.health <= 0)
                 {
                     HandleDeathCheck(context.target);
                 }
             }
 
-            // 5. 减少发起者行动位
+            // 5. 扣除行动点
             context.attacker.action_points--;
-            
         }
+
 
         // 辅助函数
         private bool IsInAttackRange(Piece attacker, Piece target)
         {
             // 计算两点之间的距离
             double distance = Math.Sqrt(
-                Math.Pow(attacker.position.x - target.position.x, 2) + 
+                Math.Pow(attacker.position.x - target.position.x, 2) +
                 Math.Pow(attacker.position.y - target.position.y, 2)
             );
-            
+
             return distance <= attacker.attack_range;
         }
 
@@ -150,12 +139,12 @@ namespace server
         {
             // 高低差优势: 2*(攻击者高度-受击者高度)
             int heightAdvantage = 2 * (attacker.height - target.height);
-            
+
             // 环境优势: 3*(攻击者环境值-受击者环境值)
             int attackerEnvValue = CalculateEnvironmentValue(attacker);
             int targetEnvValue = CalculateEnvironmentValue(target);
             int envAdvantage = 3 * (attackerEnvValue - targetEnvValue);
-            
+
             return heightAdvantage + envAdvantage;
         }
 
@@ -177,7 +166,7 @@ namespace server
         private void HandleDeathCheck(Piece target)
         {
             int deathRoll = RollDice(20);
-            
+
             if (deathRoll == 20)
             {
                 // 恢复至1滴血
@@ -189,7 +178,7 @@ namespace server
                 target.is_alive = false;
                 board.removePiece(target);
                 action_queue.Remove(target);
-                
+
                 // 检查游戏是否结束
                 CheckGameOver();
             }
@@ -203,35 +192,31 @@ namespace server
         //法术攻击
         void executeSpell(SpellContext context)
         {
-            // 1. 检查发起者是否有剩余行动位和法术位
-            if (context.caster.action_points <= 0 || context.caster.spell_slots <= 0)
+            if (context.caster == null || context.caster.action_points <= 0 || context.caster.spell_slots < context.spellCost)
             {
-                // 驳回法术，没有剩余行动位或法术位
+                Console.WriteLine("[Spell] Failed: Not enough resources.");
                 return;
             }
 
-            // 2. 检查法术类型并执行相应逻辑
+            bool spellSuccess = false;
+
             if (context.isDelaySpell)
             {
-                // 延时类法术处理
                 ExecuteDelaySpell(context);
             }
             else if (context.isAreaEffect)
             {
-                // 范围效果法术处理
                 ExecuteAreaSpell(context);
             }
             else
             {
-                // 单体目标法术处理
                 ExecuteSingleTargetSpell(context);
             }
 
-            // 3. 减少发起者行动位和法术位
             context.caster.action_points--;
-            context.caster.spell_slots -= context.spellCost; // spellCost根据法术强度决定
-
+            context.caster.spell_slots -= context.spellCost;
         }
+
 
         private void ExecuteDelaySpell(SpellContext context)
         {
@@ -248,10 +233,10 @@ namespace server
             else
             {
                 // 锁定类法术正常检定
-                int attackThrow = spellRoll + 
-                                GetIntelligenceModifier(context.caster.intelligence) + 
+                int attackThrow = spellRoll +
+                                GetIntelligenceModifier(context.caster.intelligence) +
                                 context.spellPower;
-                
+
                 int defenseValue = context.target.magic_resist;
                 isSuccess = attackThrow > defenseValue;
             }
@@ -268,8 +253,8 @@ namespace server
         {
             // 1. 法术发动检定
             int spellRoll = RollDice(20);
-            int attackThrow = spellRoll + 
-                            GetIntelligenceModifier(context.caster.intelligence) + 
+            int attackThrow = spellRoll +
+                            GetIntelligenceModifier(context.caster.intelligence) +
                             context.spellPower;
 
             // 2. 获取范围内的所有目标
@@ -289,7 +274,7 @@ namespace server
                     {
                         int damage = context.spellDamage.Roll();
                         target.receiveDamage(damage, "magic");
-                        
+
                         // 死亡检定
                         if (target.health <= 0)
                         {
@@ -315,10 +300,10 @@ namespace server
 
             // 2. 法术发动检定
             int spellRoll = RollD20();
-            int attackThrow = spellRoll + 
-                            GetIntelligenceModifier(context.caster.intelligence) + 
+            int attackThrow = spellRoll +
+                            GetIntelligenceModifier(context.caster.intelligence) +
                             context.spellPower;
-            
+
             int defenseValue = context.target.magic_resist;
             bool isHit = attackThrow > defenseValue;
 
@@ -329,7 +314,7 @@ namespace server
                 {
                     int damage = context.spellDamage.Roll();
                     context.target.receiveDamage(damage, "magic");
-                    
+
                     // 死亡检定
                     if (context.target.health <= 0)
                     {
@@ -359,7 +344,7 @@ namespace server
                 case SpellEffectType.Heal:
                     target.health = Math.Min(target.health + context.effectValue, target.max_health);
                     break;
-                // 其他效果类型...
+                    // 其他效果类型...
             }
         }
 
@@ -367,7 +352,7 @@ namespace server
         {
             // 获取区域内的所有棋子
             List<Piece> piecesInArea = new List<Piece>();
-            
+
             foreach (var piece in action_queue)
             {
                 if (piece.is_alive && targetArea.Contains(piece.position))
@@ -375,7 +360,7 @@ namespace server
                     piecesInArea.Add(piece);
                 }
             }
-            
+
             return piecesInArea;
         }
 
@@ -384,11 +369,11 @@ namespace server
             // 计算施法范围
             // 这里可以使用与物理攻击相同的距离计算方式
             double distance = Math.Sqrt(
-                Math.Pow(caster.position.x - target.position.x, 2) + 
+                Math.Pow(caster.position.x - target.position.x, 2) +
                 Math.Pow(caster.position.y - target.position.y, 2)
             );
-            
-            return distance <= caster.spell_range; 
+
+            return distance <= caster.spell_range;
         }
 
         //-----------------------------------------------------------------------------------------------------------------移动逻辑--------------------------------------------------------------------------------------//

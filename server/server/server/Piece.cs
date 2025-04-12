@@ -59,5 +59,36 @@ namespace server
         {
             return is_alive;
         }
+        // Env 专用修改器（只 Env 可通过 internal 方法调用）
+        public class Accessor
+        {
+            private Piece p;
+            internal Accessor(Piece piece)
+            {
+                this.p = piece;
+            }
+
+            // 清晰的命名避免与属性冲突
+            public void SetHealthTo(int value) => p.health = value;
+            public void ChangeHealthBy(int delta) => p.health += delta;
+
+            public void SetActionPointsTo(int value) => p.action_points = value;
+            public void ChangeActionPointsBy(int delta) => p.action_points += delta;
+
+            public void SetSpellSlotsTo(int value) => p.spell_slots = value;
+            public void ChangeSpellSlotsBy(int delta) => p.spell_slots += delta;
+
+            public void SetAlive(bool value) => p.is_alive = value;
+            public void SetDying(bool value) => p.is_dying = value;
+
+            public void SetPosition(Point newPos) => p.position = newPos;
+        }
+
+        // Env 专用访问接口
+        internal Accessor GetAccessor()
+        {
+            return new Accessor(this);
+        }
+        
     }
 }
