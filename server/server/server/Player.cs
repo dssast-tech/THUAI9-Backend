@@ -7,8 +7,6 @@ using System.Threading.Tasks;
 
 //client和server的交互应通过player类进行，所有函数均应该能够与通信类交互（待定）
 
-
-
 namespace server
 {
     class Player
@@ -17,17 +15,18 @@ namespace server
         List<Piece> pieces; //持有的棋子
         int feature_total=30;
 
-        void SetWeapon(int weapon,piece node)
+        void SetWeapon(int weapon, Piece node)
         {
-            //设置武器
-            //weapon: 1~长剑 2~短剑 3~弓 4~法杖
-            /*武器:         物伤值      法伤值     范围
+            // 设置武器
+            // weapon: 1~长剑 2~短剑 3~弓 4~法杖
+            /* 武器:         物伤值      法伤值     范围
                     1~长剑       18           0         5
                     2~短剑       24           0         3
                     3~弓         16           0         9
                     4~法杖        0           22        12
-                */
-            switch(weapon){
+            */
+            switch (weapon)
+            {
                 case 1:
                     node.SetPhysicalDamageTo(18);
                     node.SetMagicDamageTo(0);
@@ -49,19 +48,20 @@ namespace server
                     node.SetRangeTo(12);
                     break;
                 default:
-                    raise new Exception("weapon error!");
-                    break;
+                    throw new Exception("weapon error!");
             }
         }
-        void SetArmor(int armor,piece node)
+        
+        void SetArmor(int armor, Piece node)
         {
-            //设置装备
-            /*防具:         物豁免值      法豁免值   行动力影响movement
+            // 设置装备
+            /* 防具:         物豁免值      法豁免值   行动力影响movement
                 1~轻甲         8            10        +3
                 2~中甲         15           13        0
                 3~重甲         23           17        -3
             */
-            switch(armor){
+            switch (armor)
+            {
                 case 1:
                     node.SetPhysicalResistTo(8);
                     node.SetMagicResistTo(10);
@@ -77,8 +77,7 @@ namespace server
                     node.SetRangeTo(-3);
                     break;
                 default:
-                    raise new Exception("armor error!");
-                    break;
+                    throw new Exception("armor error!");
             }
         }
         void localInit()

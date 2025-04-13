@@ -100,7 +100,18 @@ namespace server
     public enum DamageType { Fire, Ice, Lightning, Physical, Pure }//技能仅示例，有待完善
 
     //注：任何类调用任何攻击行为时，参数最好都应该封装在context包中进行传递，不应产生额外的独立参数，这样可以避免参数过多导致的函数调用混乱，也有利于向前端传递的日志输出
+    class Area
+    {
+        public int x { get; set; }
+        public int y { get; set; }
+        public int radius { get; set; }
 
+        public bool Contains(Point point)
+        {
+            double distance = Math.Sqrt(Math.Pow(point.x - x, 2) + Math.Pow(point.y - y, 2));
+            return distance <= radius;
+        }
+    }
 
     struct Spell
     {

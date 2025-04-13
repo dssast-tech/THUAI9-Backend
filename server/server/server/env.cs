@@ -420,18 +420,20 @@ namespace server
             var accessor = target.GetAccessor();
             // 根据法术类型应用不同效果
             switch (context.spellEffectType)
+            {
                 case SpellEffectType.BuffDamage:
-                target.physical_damage.AddBonus(context.effectValue);
-                break;
-            case SpellEffectType.DebuffResist:
-                accessor.SetPhysicResistBy(context.effectValue);
-                //target.physical_resist -= context.effectValue;
-                accessor.SetMagicResistBy(context.effectValue);
-                //target.magic_resist -= context.effectValue;
-                break;
-            case SpellEffectType.Heal:
-                accessor.SetHealthTo(Math.Min(target.health + context.effectValue, target.max_health));
-                break;
+                    target.physical_damage.AddBonus(context.effectValue);
+                    break;
+                case SpellEffectType.DebuffResist:
+                    accessor.SetPhysicResistBy(context.effectValue);
+                    //target.physical_resist -= context.effectValue;
+                    accessor.SetMagicResistBy(context.effectValue);
+                    //target.magic_resist -= context.effectValue;
+                    break;
+                case SpellEffectType.Heal:
+                    accessor.SetHealthTo(Math.Min(target.health + context.effectValue, target.max_health));
+                    break;
+
             }
         }
 
