@@ -18,6 +18,7 @@ namespace server
         Player player2; // 玩家2
         Board board; // 棋盘
         bool isGameOver; // 游戏是否结束
+        GameData logdata;
 
         void initialize()
         {
@@ -44,13 +45,13 @@ namespace server
             // 为每个棋子计算优先级
             foreach (var piece in player1.pieces)
             {
-                int priority = RollDice(1, 20) + piece.intelligenceAdjust;
+                int priority = RollDice(1, 20) + piece.intelligence;
                 piecePriority[piece] = priority;
             }
             
             foreach (var piece in player2.pieces)
             {
-                int priority = RollDice(1, 20) + piece.intelligenceAdjust;
+                int priority = RollDice(1, 20) + piece.dexterity;
                 piecePriority[piece] = priority;
             }
             
@@ -225,7 +226,7 @@ namespace server
             // 4. 命中后伤害处理
             if (isHit)
             {
-                int damage = context.attacker.physical_damage.Roll();
+                int damage = context.attacker.physical_damage;
                 if (isCritical)
                     damage *= 2;
 
@@ -284,10 +285,11 @@ namespace server
             int envValue = 0;
             foreach (var spell in delayed_spells)
             {
-                if (IsAffectedBySpell(piece, spell))
+                if (spell.targetArea.Contains(piece.position))
                 {
                     // 处在伤害法术范围里为-1，处在buff效果中为1
-                    envValue += spell.isBuff ? 1 : -1;
+                    if (spell.effectType == SpellEffectType.BuffDamage) envValue += 1;
+                    if (spell.effectType == SpellEffectType.Damage) envValue -= 1;
                 }
             }
             return envValue;
@@ -313,8 +315,6 @@ namespace server
                 board.removePiece(target);
                 action_queue.Remove(target);
 
-                // 检查游戏是否结束
-                CheckGameOver();
             }
             else // 濒死状态
             {
@@ -337,11 +337,13 @@ namespace server
 
             bool spellSuccess = false;
 
-            if (context.isDelaySpell)
+            if (context.isDelaySpell && context.baseLifespan==context.spellLifespan)
             {
-                ExecuteDelaySpell(context);
+                ExecuteDelaySpell(context); //若是第一次,进行初始化，下一轮才开始处理效果
+                return;
             }
-            else if (context.isAreaEffect)
+
+            if (context.isAreaEffect)
             {
                 ExecuteAreaSpell(context);
             }
@@ -409,7 +411,7 @@ namespace server
                         // 应用伤害或效果
                         if (context.isDamageSpell)
                         {
-                            int damage = context.spellDamage.Roll();
+                            int damage = context.damageValue;
                             target.receiveDamage(damage, "magic");
 
                             // 死亡检定
@@ -450,10 +452,11 @@ namespace server
         {
             var accessor = target.GetAccessor();
             // 根据法术类型应用不同效果
-            switch (context.spellEffectType)
+            switch (context.effectType)
             {
                 case SpellEffectType.BuffDamage:
-                    target.physical_damage.AddBonus(context.effectValue);
+                    //target.physical_damage.AddBonus(context.effectValue);
+                    accessor.SetPhysicalDamageTo(target.physical_damage + context.effectValue);
                     break;
                 case SpellEffectType.DebuffResist:
                     accessor.SetPhysicResistBy(context.effectValue);
@@ -570,30 +573,34 @@ namespace server
                 spell.spellLifespan--;
 
                 // 触发到期法术
-                if (spell.spellLifespan <= 0)
+                if (spell.spellLifespan >= 0)
                 {
                     // 根据法术类型处理
-                    if (spell.isDamageSpell)
-                    {
-                        spell.target.receiveDamage(spell.damageValue, "magic");
-                        if (spell.target.health <= 0) HandleDeathCheck(spell.target);
-                    }
+                    //if (spell.isDamageSpell)
+                    //{
+                    //    spell.target.receiveDamage(spell.damageValue, "magic");
+                    //    if (spell.target.health <= 0) HandleDeathCheck(spell.target);
+                    //}
+                    //delayed_spells.RemoveAt(i);
+                    executeSpell(spell);
+                }
+                else
+                {
                     delayed_spells.RemoveAt(i);
                 }
             }
-
-
+            //！移除操作已由攻击组完成
             // 移除死亡单位
-            var deadPieces = action_queue.Where(p => !p.is_alive).ToList();
-            foreach (var dead in deadPieces)
-            {
-                board.removePiece(dead);
-                action_queue.Remove(dead);
-            }
+            //var deadPieces = action_queue.Where(p => !p.is_alive).ToList();
+            //foreach (var dead in deadPieces)
+            //{
+            //    board.removePiece(dead);
+            //    action_queue.Remove(dead);
+            //}
 
             // 游戏结束检查
-            isGameOver = !player1.getPieces().Any(p => p.is_alive) ||
-              !player2.getPieces().Any(p => p.is_alive);
+            isGameOver = !player1.pieces.Any(p => p.is_alive) ||
+              !player2.pieces.Any(p => p.is_alive);
 
             log(0);
         }
@@ -619,6 +626,7 @@ namespace server
             }
 
             // 死亡单位简报
+            //！！！！该模块应该无法正常工作，运行到log时p已经被移除
             var newDead = action_queue.Where(p => !p.is_alive && p.deathRound == round_number);
             if (newDead.Any())
             {

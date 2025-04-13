@@ -11,9 +11,9 @@ namespace server
 {
     class Player
     {
-        int id;
-        List<Piece> pieces; //持有的棋子
-        int feature_total=30;
+        public int id;
+        public List<Piece> pieces; //持有的棋子
+        public int feature_total=30;
 
         void SetWeapon(int weapon, Piece node)
         {
@@ -24,31 +24,32 @@ namespace server
                     2~短剑       24           0         3
                     3~弓         16           0         9
                     4~法杖        0           22        12
-            */
-            switch (weapon)
-            {
+                */
+            var accessor=node.GetAccessor();
+            switch(weapon){
                 case 1:
-                    node.SetPhysicalDamageTo(18);
-                    node.SetMagicDamageTo(0);
-                    node.SetRangeTo(5);
+                    accessor.SetPhysicalDamageTo(18);
+                    accessor.SetMagicDamageTo(0);
+                    accessor.SetRangeTo(5);
                     break;
                 case 2:
-                    node.SetPhysicalDamageTo(24);
-                    node.SetMagicDamageTo(0);
-                    node.SetRangeTo(3);
+                    accessor.SetPhysicalDamageTo(24);
+                    accessor.SetMagicDamageTo(0);
+                    accessor.SetRangeTo(3);
                     break;
                 case 3:
-                    node.SetPhysicalDamageTo(16);
-                    node.SetMagicDamageTo(0);
-                    node.SetRangeTo(9);
+                    accessor.SetPhysicalDamageTo(16);
+                    accessor.SetMagicDamageTo(0);
+                    accessor.SetRangeTo(9);
                     break;
                 case 4:
-                    node.SetPhysicalDamageTo(0);
-                    node.SetMagicDamageTo(22);
-                    node.SetRangeTo(12);
+                    accessor.SetPhysicalDamageTo(0);
+                    accessor.SetMagicDamageTo(22);
+                    accessor.SetRangeTo(12);
                     break;
                 default:
-                    throw new Exception("weapon error!");
+                    throw new ArgumentException("wrong weapon type!");
+                    break;
             }
         }
         
@@ -60,59 +61,59 @@ namespace server
                 2~中甲         15           13        0
                 3~重甲         23           17        -3
             */
-            var accessor = node.GetAccessor();
-            switch (armor)
-            {
+            var accessor=node.GetAccessor();
+            switch(armor){
                 case 1:
-                    node.SetPhysicalResistTo(8);
-                    node.SetMagicResistTo(10);
-                    node.SetMaxMovementBy(3);
+                    accessor.SetPhysicalResistTo(8);
+                    accessor.SetMagicResistTo(10);
+                    accessor.SetMaxMovementBy(3);
                     break;
                 case 2:
-                    node.SetPhysicalResistTo(15);
-                    node.SetMagicResistTo(13);
+                    accessor.SetPhysicalResistTo(15);
+                    accessor.SetMagicResistTo(13);
                     break;
                 case 3:
-                    node.SetPhysicalDamageTo(23);
-                    node.SetMagicDamageTo(17);
-                    node.SetRangeTo(-3);
+                    accessor.SetPhysicalDamageTo(23);
+                    accessor.SetMagicDamageTo(17);
+                    accessor.SetRangeTo(-3);
                     break;
                 default:
-                    throw new Exception("armor error!");
+                    throw new ArgumentException("wrong armor type!");
+                    break;
             }
         }
-        void localInit()
+        public void localInit()
         {
             //所有不涉及地图信息、对方信息的初始化在此进行
             //如力量、敏捷、智力分配，棋子武器、防具分配
             //env环境会调用此函数，利用返回值初始化设计地图交互的其他信息（如棋子位置等）
-
             for(int i=0;i<3;i++){
                 pieces.Add(new Piece());
                 //没有初始化piece所在的高度 后面记得写
-                pieces[i].team = id;
+                var accessor=pieces[i].GetAccessor();
+                accessor.SetTeamTo(id);
                 List<int> feature = initInput();
                 int strength = feature[0];int dexterity = feature[1];int intelligence = feature[2];
-                pieces[i].SetStrengthTo(strength);pieces[i].SetDexterityTo(dexterity);pieces[i].SetIntelligenceTo(intelligence);
+                accessor.SetStrengthTo(strength);accessor.SetDexterityTo(dexterity);accessor.SetIntelligenceTo(intelligence);
                 int weapon = feature[4];int armor = feature[7];
 
-                pieces[i].SetMaxHealthTo(30+strength*2);
-                pieces[i].SetHealthTo(pieces[i].max_health);
+                accessor.SetMaxHealthTo(30+strength*2);
+                accessor.SetHealthTo(pieces[i].max_health);
 
-                pieces[i].SetMaxActionPoints();
-                pieces[i].SetActionPointsTo(pieces[i].max_action_points);
+                accessor.SetMaxActionPoints();
+                accessor.SetActionPointsTo(pieces[i].max_action_points);
 
-                pieces[i].SetMaxSpellSlots();
-                pieces[i].SetSpellSlotsTo(pieces[i].max_spell_slots);
+                accessor.SetMaxSpellSlots();
+                accessor.SetSpellSlotsTo(pieces[i].max_spell_slots);
 
-                pieces[i].SetMaxMovementTo(dexterity+0.5*strength+10);
-                pieces[i].SetMovementTo(pieces[i].max_movement);
+                accessor.SetMaxMovementTo(dexterity+(float)0.5*strength+10);
+                accessor.SetMovementTo(pieces[i].max_movement);
 
                 SetWeapon(weapon,pieces[i]);
                 SetArmor(armor,pieces[i]);
                 
                 Point t=new Point();t.x=feature[5];t.y=feature[6];
-                pieces[i].SetPositionTo(t);
+                accessor.SetPosition(t);
             
             }
             
@@ -124,7 +125,7 @@ namespace server
         {
             //控制台或AI逻辑
             
-
+            throw new NotImplementedException();
         }
 
         List<int> initInput()

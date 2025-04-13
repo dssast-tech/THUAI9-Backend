@@ -77,7 +77,7 @@ namespace server
         public float spellRange;      // 施法最大距离
         public SpellEffectType effectType;  // 效果类型（伤害/治疗/buff等）
         public DamageType damageType;       // 伤害类型（火焰/冰霜等）
-        public DicePair damageValue;        // 伤害值（如3d6）
+        public int damageValue;        // 伤害值（如3d6）
         public int healValue;               // 治疗量
         public int effectValue;             // 通用效果值（用于buff/debuff）
         public bool isDelaySpell;     // 是否为延时法术    //瞬发改为延时1/延时0
