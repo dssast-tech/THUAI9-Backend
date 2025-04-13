@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace server
 {
-    abstract class Piece
+    class Piece
     {
         public int health { get; private set; }
         public int max_health { get; private set; }
@@ -97,29 +97,34 @@ namespace server
             public void SetMaxSpellSlotsTo(int value) => p.max_spell_slots = value;
 
 
-            public void SetMaxActionPoints(){
-                if(p.strength<=13) p.SetMaxActionPointsTo(1);
-                else if(p.strength<=21) p.SetMaxActionPointsTo(2);
+            public void SetMaxActionPoints()
+            {
+                if (p.strength <= 13) p.SetMaxActionPointsTo(1);
+                else if (p.strength <= 21) p.SetMaxActionPointsTo(2);
                 else p.SetMaxActionPointsTo(3);
             }
-            public void SetMaxSpellSlots(){
-                if(p.intelligence<=3) p.SetMaxSpellSlotsTo(1);
-                else if(p.intelligence<=7) p.SetMaxSpellSlotsTo(2);
-                else if(p.intelligence<=12) p.SetMaxSpellSlotsTo(3);
-                else if(p.intelligence<=16) p.SetMaxSpellSlotsTo(5);
-                else if(p.intelligence<=21) p.SetMaxSpellSlotsTo(8);
+            public void SetMaxSpellSlots()
+            {
+                if (p.intelligence <= 3) p.SetMaxSpellSlotsTo(1);
+                else if (p.intelligence <= 7) p.SetMaxSpellSlotsTo(2);
+                else if (p.intelligence <= 12) p.SetMaxSpellSlotsTo(3);
+                else if (p.intelligence <= 16) p.SetMaxSpellSlotsTo(5);
+                else if (p.intelligence <= 21) p.SetMaxSpellSlotsTo(8);
                 else p.SetMaxSpellSlotsTo(9);
             }
 
-            public void SetstrengthTo(int value){
+            public void SetstrengthTo(int value)
+            {
                 if (value < 0) throw new ArgumentOutOfRangeException("Strength cannot be negative.");
                 else p.strength = value;
             }
-            public void SetDexterityTo(int value){
+            public void SetDexterityTo(int value)
+            {
                 if (value < 0) throw new ArgumentOutOfRangeException("Dexterity cannot be negative.");
                 else p.dexterity = value;
             }
-            public void SetIntelligenceTo(int value){
+            public void SetIntelligenceTo(int value)
+            {
                 if (value < 0) throw new ArgumentOutOfRangeException("Intelligence cannot be negative.");
                 else p.intelligence = value;
             }
@@ -139,9 +144,9 @@ namespace server
             public void SetPhysicResistBy(int value) => p.physical_resist -= value;
 
             //调整值计算
-            public int StrengthAdjustment(){if(p.strength<=7) return 1; else if(p.strength<=13) return 2; else if(p.strength<=16) return 3; else return 4;}
-            public int DexterityAdjustment(){if(p.dexterity<=7) return 1; else if(p.dexterity<=13) return 2; else if(p.dexterity<=16) return 3; else return 4;}
-            public int IntelligenceAdjustment(){if(p.intelligence<=7) return 1; else if(p.intelligence<=13) return 2; else if(p.intelligence<=16) return 3; else return 4;}
+            public int StrengthAdjustment() { if (p.strength <= 7) return 1; else if (p.strength <= 13) return 2; else if (p.strength <= 16) return 3; else return 4; }
+            public int DexterityAdjustment() { if (p.dexterity <= 7) return 1; else if (p.dexterity <= 13) return 2; else if (p.dexterity <= 16) return 3; else return 4; }
+            public int IntelligenceAdjustment() { if (p.intelligence <= 7) return 1; else if (p.intelligence <= 13) return 2; else if (p.intelligence <= 16) return 3; else return 4; }
 
         }
 
@@ -150,6 +155,6 @@ namespace server
         {
             return new Accessor(this);
         }
-        
+
     }
 }

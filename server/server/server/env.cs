@@ -193,7 +193,7 @@ namespace server
             }
 
             // 3. 掷骰子命中判定
-            int attackRoll = RollDice(20);
+            int attackRoll = RollDice(1, 20);
             bool isHit = false;
             bool isCritical = false;
 
@@ -295,7 +295,7 @@ namespace server
 
         private void HandleDeathCheck(Piece target)
         {
-            int deathRoll = RollDice(20);
+            int deathRoll = RollDice(1,20);
             var accessor=target.GetAccessor();
             if (deathRoll == 20)
             {
@@ -355,10 +355,41 @@ namespace server
 
         // 应用法术效果（根据类型）
 
+        private void ExecuteDelaySpell(SpellContext context)
+        {
+            // 1. 法术发动检定
+            int spellRoll = RollDice(1,20);
+            bool isSuccess = false;
+
+            // 非锁定类法术需要至少2.5倍法术强属性的投掷值
+            if (!context.isLockingSpell)
+            {
+                int requiredRoll = (int)(2.5 * context.spellPower);
+                isSuccess = spellRoll >= requiredRoll;
+            }
+            else
+            {
+                // 锁定类法术正常检定
+                int attackThrow = spellRoll +
+                                Step_Modified_Func(context.caster.intelligence) +
+                                context.spellPower;
+
+                int defenseValue = context.target.magic_resist;
+                isSuccess = attackThrow > defenseValue;
+            }
+
+            // 2. 如果成功，加入延时法术列表
+            if (isSuccess)
+            {
+                delayed_spells.Add(context);
+                context.spellLifespan = context.baseLifespan;
+            }
+        }
+
         private void ExecuteAreaSpell(SpellContext context)
         {
                 // 1. 法术发动检定
-                int spellRoll = RollDice(20);
+                int spellRoll = RollDice(1,20);
                 int attackThrow = spellRoll +
                              Step_Modified_Func(context.caster.intelligence) +
                              context.spellPower;
@@ -405,7 +436,7 @@ namespace server
             }
 
             // 2. 法术发动检定
-            int spellRoll = RollDice(20);
+            int spellRoll = RollDice(1,20);
             int attackThrow = spellRoll +
                             Step_Modified_Func(context.caster.intelligence) +
                             context.spellPower;

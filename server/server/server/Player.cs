@@ -60,6 +60,7 @@ namespace server
                 2~中甲         15           13        0
                 3~重甲         23           17        -3
             */
+            var accessor = node.GetAccessor();
             switch (armor)
             {
                 case 1:
