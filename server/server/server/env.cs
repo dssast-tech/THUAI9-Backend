@@ -151,6 +151,7 @@ namespace server
                     }
                 }
             }
+            return action;
         }
 
         // 投掷骰子  
