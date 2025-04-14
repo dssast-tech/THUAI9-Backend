@@ -21,6 +21,8 @@ namespace server
         public float movement { get; private set; }
         public float max_movement { get; private set; }//行动力
 
+        public int id; //专属id，由初始行动序列分配，有棋子死亡时不重新分配
+
         // 属性项
         public int strength { get; private set; }
         public int dexterity { get; private set; }

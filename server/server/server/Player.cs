@@ -87,6 +87,7 @@ namespace server
             //所有不涉及地图信息、对方信息的初始化在此进行
             //如力量、敏捷、智力分配，棋子武器、防具分配
             //env环境会调用此函数，利用返回值初始化设计地图交互的其他信息（如棋子位置等）
+            pieces= new List<Piece>();
             for(int i=0;i<3;i++){
                 pieces.Add(new Piece());
                 //没有初始化piece所在的高度 后面记得写
@@ -95,7 +96,7 @@ namespace server
                 List<int> feature = initInput();
                 int strength = feature[0];int dexterity = feature[1];int intelligence = feature[2];
                 accessor.SetStrengthTo(strength);accessor.SetDexterityTo(dexterity);accessor.SetIntelligenceTo(intelligence);
-                int weapon = feature[4];int armor = feature[7];
+                int weapon = feature[3];int armor = feature[4];
 
                 accessor.SetMaxHealthTo(30+strength*2);
                 accessor.SetHealthTo(pieces[i].max_health);
@@ -166,7 +167,7 @@ namespace server
                     }
                 }
                 // 检查输入的角色属性总和是否等于30
-                if (initializationSet[0] + initializationSet[1] + initializationSet[2] + initializationSet[3] != 30)
+                if (initializationSet[0] + initializationSet[1] + initializationSet[2]  != 30)  //！几个参数？
                 {
                     throw new Exception("输入的整数之和不等于30！");
                 }

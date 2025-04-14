@@ -60,6 +60,11 @@ namespace server
                 .OrderByDescending(pair => pair.Value)
                 .Select(pair => pair.Key)
                 .ToList();
+
+            for (int i = 0; i < action_queue.Count(); i++)
+            {
+                action_queue[i].id = i;
+            }
         }
 
         // 获取当前棋子的行动指令集
@@ -511,6 +516,8 @@ namespace server
             //回合初始化
             round_number++;  // 回合计数器递增
 
+ 
+
             // 重置所有存活棋子的行动点
             foreach (var piece in action_queue.Where(p => p.is_alive))
             {
@@ -520,51 +527,56 @@ namespace server
 
             //处理行动队列
             int processedCount = 0;  // 已处理棋子计数器
-            while (processedCount < action_queue.Count)
-            {
-                current_piece = action_queue[0];  // 取队列第一个
-                action_queue.RemoveAt(0);
+            current_piece = action_queue[0];  // 取队列第一个
+            action_queue.RemoveAt(0);
+            // 将棋子放回队列末尾  !!!!!!实现有误
+            action_queue.Add(current_piece);
+            processedCount++;
 
-                // 跳过死亡/非己方回合单位
-                if (!current_piece.is_alive || current_piece.team != (round_number % 2 + 1))
-                {
-                    action_queue.Add(current_piece);
-                    processedCount++;
-                    continue;
-                }
+            log(0);
+            //// 跳过死亡/非己方回合单位
+            //if (!current_piece.is_alive || current_piece.team != (round_number % 2 + 1))
+            //{
+            //    action_queue.Add(current_piece);
+            //    processedCount++;
+            //    continue;
+            //}
+
+            var action = getAction();
 
                 // 移动阶段
-                if (current_piece.action_points > 0)
+            if (current_piece.action_points > 0)
+            {
+                // 从玩家获取移动目标（需实现getAction）
+                var moveAction = action.move_target;
+                // 调用棋盘移动验证
+                bool moveSuccess = board.movePiece(
+                    current_piece,
+                    moveAction,
+                    current_piece.movement  // 使用piece类的movement属性
+                );
+                if (moveSuccess)
                 {
-                    // 从玩家获取移动目标（需实现getAction）
-                    var moveAction = getAction().move_target;
-                    // 调用棋盘移动验证
-                    bool moveSuccess = board.movePiece(
-                        current_piece,
-                        moveAction,
-                        current_piece.movement  // 使用piece类的movement属性
-                    );
-                    if (moveSuccess) current_piece.setActionPoints(current_piece.getActionPoints()-1);
+                    current_piece.setActionPoints(current_piece.getActionPoints() - 1);
+                    var accessor = current_piece.GetAccessor();
+                    accessor.SetPosition(moveAction);
                 }
-
-                // 攻击阶段
-                while (current_piece.action_points > 0)  // 可执行多次攻击
-                {
-                    var attack_context = getAction().attack_context;
-                    executeAttack(attack_context);  // 内部会消耗action_points
-                }
-
-                // 法术阶段
-                if (current_piece.spell_slots > 0 && current_piece.action_points > 0)
-                {
-                    var spell_context = getAction().spell_context;
-                    executeSpell(spell_context);  // 内部会消耗spell_slots和action_points
-                }
-
-                // 将棋子放回队列末尾
-                action_queue.Add(current_piece);
-                processedCount++;
             }
+
+            // 攻击阶段
+            if (current_piece.action_points > 0)  // 可执行多次攻击
+            {
+                var attack_context = action.attack_context;
+                executeAttack(attack_context);  // 内部会消耗action_points
+            }
+
+            // 法术阶段
+            if (current_piece.spell_slots > 0 && current_piece.action_points > 0)
+            {
+                var spell_context = action.spell_context;
+                executeSpell(spell_context);  // 内部会消耗spell_slots和action_points
+            }
+
 
             // 延时法术处理
             for (int i = delayed_spells.Count - 1; i >= 0; i--)
@@ -602,7 +614,6 @@ namespace server
             isGameOver = !player1.pieces.Any(p => p.is_alive) ||
               !player2.pieces.Any(p => p.is_alive);
 
-            log(0);
         }
 
         void log(int mode)
@@ -612,6 +623,7 @@ namespace server
             // 回合基础信息
             Console.WriteLine($"\n===== 回合 {round_number} 日志 =====");
 
+            Console.WriteLine($"\n[当前行动棋子id]: {current_piece.id}");
             // 行动队列状态
             Console.WriteLine($"\n[行动队列] 剩余单位: {action_queue.Count(p => p.is_alive)}活 / {action_queue.Count(p => !p.is_alive)}亡");
 
@@ -619,7 +631,7 @@ namespace server
             Console.WriteLine("\n[存活单位]");
             foreach (var piece in action_queue.Where(p => p.is_alive))
             {
-                Console.WriteLine($"├─ {piece.GetType().Name} #{piece.GetHashCode() % 1000:000}");
+                Console.WriteLine($"├─ {piece.GetType().Name} #{piece.id}");
                 Console.WriteLine($"│  所属: 玩家{piece.team} 位置: ({piece.position.x},{piece.position.y})");
                 Console.WriteLine($"│  生命: {piece.health}/{piece.max_health} 行动点: {piece.action_points}");
                 Console.WriteLine($"└─ 法术位: {piece.spell_slots}/{piece.max_spell_slots}");
