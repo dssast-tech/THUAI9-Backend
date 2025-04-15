@@ -15,6 +15,7 @@ namespace server
         int width, height;
         int[,] grid;  // 0: 空地, 1: 可行走, 2: 占据, -1: 禁止 //不知道 0 的意义，实现没有用到 4/10
         int[,] height_map;
+        int boarder;
         //分界线待实现
 
         public int[,] validTarget(Piece p, float movement)// 接受参数棋子和行动力，返回该棋子的mask图，-1表示不可达，其他数字为到达该点的移动力消耗，如原地不动为0，需要遍历，时间开销比较大
@@ -173,10 +174,74 @@ namespace server
             return (path, costSoFar[goal]); // 返回路径和行动力消耗
         }
 
-
-        void init()
+        public void init(string filePath, List<Piece> player1_pieces, List<Piece> player2_pieces)// 接受参数txt文件case，case格式参见 server/BoardCase/case1.txt
         {
-            //棋盘初始化（形状、地形等）
+            string[] lines = File.ReadAllLines(filePath);
+            string[] dimensions = lines[0].Split(' ');
+            int width = int.Parse(dimensions[0]);
+            int height = int.Parse(dimensions[1]);
+
+            // 加载地图数据
+            int[,] grid = new int[width, height];
+            int[,] height_map = new int[width, height];
+            boarder = height / 2; // 设定分界线为height的一半
+
+            int lineIndex = 2; // 跳过第一行和空行
+
+            // 读取grid
+            for (int y = 0; y < height; y++)
+            {
+                var values = lines[lineIndex].Split(',');
+                for (int x = 0; x < width; x++)
+                {
+                    grid[x, y] = int.Parse(values[x].Trim());
+                }
+                lineIndex++;
+            }
+
+            lineIndex++; // 跳过grid和height_map之间的空行
+
+            // 读取height_map
+            for (int y = 0; y < height; y++)
+            {
+                var values = lines[lineIndex].Split(',');
+                for (int x = 0; x < width; x++)
+                {
+                    height_map[x, y] = int.Parse(values[x].Trim());
+                }
+                lineIndex++;
+            }
+
+            // 处理玩家棋子处在不同侧的错误情况
+            bool player1_pieces_ontop = player1_pieces.All(piece => piece.position.y < boarder);
+            bool player1_pieces_below = player1_pieces.All(piece => piece.position.y > boarder);
+            if (!(player1_pieces_ontop || player1_pieces_below))
+            {
+                throw new InvalidOperationException("Player 1's chess pieces are placed on both sides of the board.");
+            }
+
+            bool player2_pieces_ontop = player2_pieces.All(piece => piece.position.y < boarder);
+            bool player2_pieces_below = player2_pieces.All(piece => piece.position.y >= boarder);
+            if (!(player2_pieces_ontop || player2_pieces_below))
+            {
+                throw new InvalidOperationException("Player 2's chess pieces are placed on both sides of the board.");
+            }
+
+            // 确保两个玩家的棋子不在同一侧
+            if ((player1_pieces_ontop && player2_pieces_ontop) || (player1_pieces_below && player2_pieces_below))
+            {
+                throw new InvalidOperationException("Both players' chess pieces are placed on the same side of the board.");
+            }
+
+            // 所有棋子的坐标grid初始化为2
+            foreach (var piece in player1_pieces)
+            {
+                grid[piece.position.x, piece.position.y] = 2;
+            }
+            foreach (var piece in player2_pieces)
+            {
+                grid[piece.position.x, piece.position.y] = 2;
+            }
         }
     }
 }

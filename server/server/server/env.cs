@@ -66,6 +66,11 @@ namespace server
             {
                 action_queue[i].id = i;
             }
+
+            // 初始化棋盘
+            board = new Board();
+            string filePath = "BoardCase/case1.txt";
+            board.init(filePath, player1.pieces, player2.pieces);
         }
 
         // 获取当前棋子的行动指令集
