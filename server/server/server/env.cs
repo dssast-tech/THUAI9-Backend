@@ -26,10 +26,11 @@ namespace server
             //注：对于player类，先调用player的localInit函数进行初始化，并根据Init返回值进行地图信息的初始化（需要进行各种合法性检查，如初始位置是否越过双方边界线）
             player1 = new Player();
             player2 = new Player();
-            player1.localInit();
-            player2.localInit();
             player1.id = 1;
             player2.id = 2;
+            player1.localInit();
+            player2.localInit();
+            
             // 初始化棋盘
             action_queue = new List<Piece>();
             delayed_spells = new List<SpellContext>();
