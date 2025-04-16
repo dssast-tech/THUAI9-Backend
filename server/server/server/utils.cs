@@ -96,8 +96,8 @@ namespace server
 
     // 配套枚举类型
     public enum TargetType { Single, Area, Self, Chain }
-    public enum SpellEffectType { Damage, Heal, BuffDamage, DebuffResist }
-    public enum DamageType { Fire, Ice, Lightning, Physical, Pure }//技能仅示例，有待完善
+    public enum SpellEffectType { Damage, Heal, Buff, Debuff, Move}
+    public enum DamageType { Fire, Ice, Lightning, Physical, Pure, None}//技能仅示例，有待完善
 
     //注：任何类调用任何攻击行为时，参数最好都应该封装在context包中进行传递，不应产生额外的独立参数，这样可以避免参数过多导致的函数调用混乱，也有利于向前端传递的日志输出
     class Area
@@ -113,10 +113,140 @@ namespace server
         }
     }
 
-    struct Spell
+    public struct Spell
+{
+    public int id;                      // 法术ID
+    public string name;                 // 法术名称
+    public string description;          // 法术描述
+    public SpellEffectType effectType;  // 法术效果类型
+    public DamageType damageType;       // 伤害类型
+    public int baseValue;               // 基础伤害/治疗/效果值
+    public int range;                   // 施法距离
+    public int areaRadius;              // 作用半径（0为单体）
+    public int spellCost;               // 法术位消耗
+    public int baseLifespan;            // 持续回合数（0为瞬发）
+    public bool isAreaEffect;           // 是否为范围法术
+    public bool isDelaySpell;           // 是否为延时法术
+    public bool isLockingSpell;         // 是否为锁定类法术
+
+    // 可根据需要继续扩展
+}
+
+/*
+调用法术的一般流程：
+1.确定效果属性：
+若为Damage或Debuff，施法目标应当为敌方单位。
+若为Heal或Buff，施法目标应当为友方单位。
+若为Move，施法目标应当为施法者。
+2.确定施法范围：
+若为非锁定法术，则应该在施法者周围施法范围内选择地图区域进行施法。
+若为锁定法术，则应该在施法者周围施法范围内选择目标进行施法。
+3.施法：
+若为非延时法术，则立即结算
+若为延时法术，则将施法信息存在一个列表中，每回合查看这个列表进行施法
+*/
+
+
+
+
+
+
+public static class SpellFactory
+{
+    public static List<Spell> GetAllSpells()
     {
-        //法术属性打包在此（如法术名称、法术范围）
+        var spells = new List<Spell>
+        {
+            new Spell
+            {
+                id = 1,
+                name = "Fireball",
+                description = "对范围内敌人造成火焰伤害",
+                effectType = SpellEffectType.Damage,
+                damageType = DamageType.Fire,
+                baseValue = 30,
+                range = 2,
+                areaRadius = 5,
+                spellCost = 1,
+                baseLifespan = 0,
+                isAreaEffect = true,
+                isDelaySpell = false,
+                isLockingSpell = false
+            },
+            new Spell
+            {
+                id = 2,
+                name = "Heal",
+                description = "治疗友方单位",
+                effectType = SpellEffectType.Heal,
+                damageType = DamageType.None,
+                baseValue = 20,
+                range = 1,
+                areaRadius = 4,
+                spellCost = 1,
+                baseLifespan = 0,
+                isAreaEffect = false,
+                isDelaySpell = false,
+                isLockingSpell = true
+            },
+            new Spell
+            {
+                id = 3,
+                name = "teleport",
+                description = "瞬间移动一段位置",
+                effectType = SpellEffectType.Move,
+                damageType = DamageType.Physical,
+                baseValue = 0,
+                range = 1,
+                areaRadius = 10,
+                spellCost = 1,
+                baseLifespan = 0,
+                isAreaEffect = false,
+                isDelaySpell = false,
+                isLockingSpell = false
+            },
+            new Spell
+            {
+                id = 4,
+                name = "arrowHit",
+                description = "箭击",
+                effectType = SpellEffectType.Damage,
+                damageType = DamageType.Physical,
+                baseValue = 30,
+                range = 1,
+                areaRadius = 7,
+                spellCost = 1,
+                baseLifespan = 0,
+                isAreaEffect = false,
+                isDelaySpell = false,
+                isLockingSpell = true
+            },
+            new Spell
+            {
+                id = 4,
+                name = "trap",
+                description = "陷阱",
+                effectType = SpellEffectType.Damage,
+                damageType = DamageType.Physical,
+                baseValue = 30,
+                range = 1,
+                areaRadius = 0,
+                spellCost = 1,
+                baseLifespan = 0,
+                isAreaEffect = false,
+                isDelaySpell = true,
+                isLockingSpell = false
+            }
+            
+            
+            
+            // 可继续添加更多法术
+        };
+        return spells;
     }
+}
+
+
 
     //应该区分spell和spellcontext，后者可理解为一个已经打出的法术，包含目标信息，主要用于env类；前者是法术本身的属性，主要用于棋子类中标记该棋子可用的法术
 }
