@@ -11,4 +11,10 @@
     <Folder Include="BoardCase\" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Update="BoardCase\case1.txt">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
 </Project>
