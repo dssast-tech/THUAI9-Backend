@@ -15,8 +15,18 @@ namespace server
         int width, height;
         int[,] grid;  // 0: 空地, 1: 可行走, 2: 占据, -1: 禁止 //不知道 0 的意义，实现没有用到 4/10
         int[,] height_map;
-        int boarder;
+        int boarder; 
         //分界线待实现
+
+        public int getWidth()
+        {
+            return width;
+        }
+
+        public int getHeight()
+        {
+            return height;
+        }
 
         public int[,] validTarget(Piece p, float movement)// 接受参数棋子和行动力，返回该棋子的mask图，-1表示不可达，其他数字为到达该点的移动力消耗，如原地不动为0，需要遍历，时间开销比较大
         {
