@@ -13,9 +13,9 @@ namespace server
     class Board
     {
         int width, height;
-        int[,] grid;  // 0: 空地, 1: 可行走, 2: 占据, -1: 禁止 //不知道 0 的意义，实现没有用到 4/10
-        int[,] height_map;
-        int boarder; 
+        public int[,] grid { get; private set; }  // 0: 空地, 1: 可行走, 2: 占据, -1: 禁止 //不知道 0 的意义，实现没有用到 4/10
+        public int[,] height_map { get; private set; }
+        int boarder;
         //分界线待实现
 
         public int getWidth()
@@ -184,7 +184,7 @@ namespace server
             return (path, costSoFar[goal]); // 返回路径和行动力消耗
         }
 
-        public void init(string filePath, List<Piece> player1_pieces, List<Piece> player2_pieces)// 接受参数txt文件case，case格式参见 server/BoardCase/case1.txt
+        public void init(string filePath)// 接受参数txt文件case，case格式参见 server/BoardCase/case1.txt
         {
             string[] lines = File.ReadAllLines(filePath);
             string[] dimensions = lines[0].Split(' ');
@@ -221,7 +221,9 @@ namespace server
                 }
                 lineIndex++;
             }
-
+        }
+            public void init_pieces_location(List<Piece> player1_pieces, List<Piece> player2_pieces)
+        {
             // 处理玩家棋子处在不同侧的错误情况
             bool player1_pieces_ontop = player1_pieces.All(piece => piece.position.y < boarder);
             bool player1_pieces_below = player1_pieces.All(piece => piece.position.y > boarder);
