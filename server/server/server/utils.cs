@@ -113,10 +113,70 @@ namespace server
         }
     }
 
-    struct Spell
+    public struct Spell
+{
+    public int id;                      // 法术ID
+    public string name;                 // 法术名称
+    public string description;          // 法术描述
+    public SpellEffectType effectType;  // 法术效果类型
+    public DamageType damageType;       // 伤害类型
+    public int baseValue;               // 基础伤害/治疗/效果值
+    public int range;                   // 施法距离
+    public int areaRadius;              // 作用半径（0为单体）
+    public int spellCost;               // 法术位消耗
+    public int baseLifespan;            // 持续回合数（0为瞬发）
+    public bool isAreaEffect;           // 是否为范围法术
+    public bool isDelaySpell;           // 是否为延时法术
+    public bool isLockingSpell;         // 是否为锁定类法术
+
+    // 可根据需要继续扩展
+}
+
+public static class SpellFactory
+{
+    public static List<Spell> GetAllSpells()
     {
-        //法术属性打包在此（如法术名称、法术范围）
+        var spells = new List<Spell>
+        {
+            new Spell
+            {
+                id = 1,
+                name = "Fireball",
+                description = "对范围内敌人造成火焰伤害",
+                effectType = SpellEffectType.Damage,
+                damageType = DamageType.Fire,
+                baseValue = 30,
+                range = 5,
+                areaRadius = 2,
+                spellCost = 1,
+                baseLifespan = 0,
+                isAreaEffect = true,
+                isDelaySpell = false,
+                isLockingSpell = false
+            },
+            new Spell
+            {
+                id = 2,
+                name = "Heal",
+                description = "治疗友方单位",
+                effectType = SpellEffectType.Heal,
+                damageType = DamageType.Pure,
+                baseValue = 20,
+                range = 4,
+                areaRadius = 0,
+                spellCost = 1,
+                baseLifespan = 0,
+                isAreaEffect = false,
+                isDelaySpell = false,
+                isLockingSpell = false
+            }
+            // 可继续添加更多法术
+        };
+        return spells;
     }
+}
+
+
 
     //应该区分spell和spellcontext，后者可理解为一个已经打出的法术，包含目标信息，主要用于env类；前者是法术本身的属性，主要用于棋子类中标记该棋子可用的法术
 }
