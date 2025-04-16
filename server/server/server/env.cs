@@ -24,17 +24,22 @@ namespace server
         {
             //执行各类初始化
             //注：对于player类，先调用player的localInit函数进行初始化，并根据Init返回值进行地图信息的初始化（需要进行各种合法性检查，如初始位置是否越过双方边界线）
+            board = new Board();
+            string filePath = filePath.Combine(AppDomain.CurrentDomain.BaseDirectory, "BoardCase","case1.txt");
+            board.init(filePath);
+            
             player1 = new Player();
             player2 = new Player();
             player1.id = 1;
             player2.id = 2;
-            player1.localInit();
-            player2.localInit();
+            player1.localInit(board,player1.id);
+            player2.localInit(board,player2.id);
             
+            board.init_pieces_location(player1.pieces, player2.pieces);
             // 初始化棋盘
             action_queue = new List<Piece>();
             delayed_spells = new List<SpellContext>();
-            board = new Board();
+            
             isGameOver = false;
             round_number = 0;
 
