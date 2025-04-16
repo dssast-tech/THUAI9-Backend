@@ -18,6 +18,16 @@ namespace server
         int boarder;
         //分界线待实现
 
+        public int getWidth()
+        {
+            return width;
+        }
+
+        public int getHeight()
+        {
+            return height;
+        }
+
         public int[,] validTarget(Piece p, float movement)// 接受参数棋子和行动力，返回该棋子的mask图，-1表示不可达，其他数字为到达该点的移动力消耗，如原地不动为0，需要遍历，时间开销比较大
         {
             //返回一张mask图，以01标记所有能抵达的点，用于提交给client,以及env中的合法性判定

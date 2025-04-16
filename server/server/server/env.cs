@@ -18,6 +18,8 @@ namespace server
         Player player2; // 玩家2
         Board board; // 棋盘
         bool isGameOver; // 游戏是否结束
+        List<Piece> newDeadThisRound; // 记录本回合新死亡的棋子列表
+        List<Piece> lastRoundDeadPieces;
         GameData logdata;
 
         void initialize()
@@ -37,6 +39,7 @@ namespace server
             board = new Board();
             isGameOver = false;
             round_number = 0;
+            newDeadThisRound = new List<Piece>();
 
             // 初始化行动列表
             action_queue = new List<Piece>();
@@ -325,7 +328,8 @@ namespace server
 
                 board.removePiece(target);
                 action_queue.Remove(target);
-
+                newDeadThisRound.Add(target);
+                target.deathRound = round_number; 
             }
             else // 濒死状态
             {
@@ -522,12 +526,10 @@ namespace server
             //回合初始化
             round_number++;  // 回合计数器递增
 
- 
-
             // 重置所有存活棋子的行动点
             foreach (var piece in action_queue.Where(p => p.is_alive))
             {
-                piece.setActionPoints(piece.max_action_points);  // 从piece类获取最大值
+                piece.setActionPoints(piece.max_action_points);  
 
             }
 
@@ -535,7 +537,7 @@ namespace server
             int processedCount = 0;  // 已处理棋子计数器
             current_piece = action_queue[0];  // 取队列第一个
             action_queue.RemoveAt(0);
-            // 将棋子放回队列末尾  !!!!!!实现有误
+            // 将棋子放回队列末尾
             action_queue.Add(current_piece);
             processedCount++;
 
@@ -553,7 +555,7 @@ namespace server
                 // 移动阶段
             if (current_piece.action_points > 0)
             {
-                // 从玩家获取移动目标（需实现getAction）
+                // 从玩家获取移动目标
                 var moveAction = action.move_target;
                 // 调用棋盘移动验证
                 bool moveSuccess = board.movePiece(
@@ -631,7 +633,7 @@ namespace server
 
             Console.WriteLine($"\n[当前行动棋子id]: {current_piece.id}");
             // 行动队列状态
-            Console.WriteLine($"\n[行动队列] 剩余单位: {action_queue.Count(p => p.is_alive)}活 / {action_queue.Count(p => !p.is_alive)}亡");
+            Console.WriteLine($"\n[行动队列] 剩余单位: {action_queue.Count(p => p.is_alive)}存活 / {action_queue.Count(p => !p.is_alive)}阵亡");
 
             // 存活单位详细信息
             Console.WriteLine("\n[存活单位]");
@@ -645,13 +647,18 @@ namespace server
 
             // 死亡单位简报
             //！！！！该模块应该无法正常工作，运行到log时p已经被移除
-            var newDead = action_queue.Where(p => !p.is_alive && p.deathRound == round_number);
-            if (newDead.Any())
+            if (lastRoundDeadPieces.Any())
             {
-                Console.WriteLine("\n[本回合阵亡]");
-                foreach (var dead in newDead)
-                    Console.WriteLine($"▣ {dead.GetType().Name} #{dead.GetHashCode() % 1000:000} 原属玩家{dead.team}");
+                Console.WriteLine("\n[上一回合阵亡]");
+                foreach (var piece in lastRoundDeadPieces)
+                {
+                    Console.WriteLine($"棋子ID: {piece.queue_index}, 死亡回合: {round_number - 1}");
+                }
             }
+
+            //清空本回合死亡棋子列表，以便下回合使用
+            lastRoundDeadPieces = new List<Piece>(newDeadThisRound);
+            newDeadThisRound.Clear();
 
             // 游戏状态概要
             Console.WriteLine($"\n[游戏状态] {(isGameOver ? "已结束" : "进行中")}");
