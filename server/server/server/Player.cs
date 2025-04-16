@@ -14,7 +14,7 @@ namespace server
         public int id;
         public List<Piece> pieces; //持有的棋子
         public int feature_total=30;
-
+        public int piece_num=0;
         void SetWeapon(int weapon, Piece node)
         {
             // 设置武器
@@ -82,19 +82,21 @@ namespace server
                     break;
             }
         }
-        public void localInit()
+        public void localInit(Board* board,int id)
         {
             //所有不涉及地图信息、对方信息的初始化在此进行
             //如力量、敏捷、智力分配，棋子武器、防具分配
             //env环境会调用此函数，利用返回值初始化设计地图交互的其他信息（如棋子位置等）
             pieces= new List<Piece>();
+
             for(int i=0;i<3;i++){
                 Console.WriteLine($"现在为棋手 {this.id} 的第 {i + 1} 个棋子初始化");
                 pieces.Add(new Piece());
                 //没有初始化piece所在的高度 后面记得写
                 var accessor=pieces[i].GetAccessor();
                 accessor.SetTeamTo(id);
-                List<int> feature = initInput();
+                List<int> feature = initInput(Board* board,id);
+                piece_num++;
                 int strength = feature[0];int dexterity = feature[1];int intelligence = feature[2];
                 accessor.SetStrengthTo(strength);accessor.SetDexterityTo(dexterity);accessor.SetIntelligenceTo(intelligence);
                 int weapon = feature[3];int armor = feature[4];
@@ -130,11 +132,10 @@ namespace server
             throw new NotImplementedException();
         }
 
-        List<int> initInput()
+        List<int> initInput(Board* board,int id)
         {
             // 接收控制台输入，将信息解析为一个initializationSet
             List<int> initializationSet = new List<int>();
-            
             try
             {
                 bool inputcorrect=false;
@@ -203,7 +204,10 @@ namespace server
 
                 inputcorrect=false;
                 do{
-                    Console.WriteLine("现在输入棋子初始坐标，格式为：x y,不超过20*20");
+                    int rows=board->grid.GetLength(0);int cols=board->grid.GetLength(1);
+                    int boarder=board->boarder;
+                    //TODO给用户显示地图信息
+                    Console.WriteLine("现在输入棋子初始坐标，格式为：x y");
                     string input = Console.ReadLine();
                     if (!string.IsNullOrEmpty(input))
                     {
@@ -214,14 +218,22 @@ namespace server
                             Console.WriteLine("输入的整数不是2个");
                             continue;
                         }
-                        if(nums[0] < 0 || nums[1] < 0){
-                            Console.WriteLine("输入的整数不能为负数！");
-                            continue;
-                        }
-                        if(nums[0] > 20 || nums[1] > 20){
+                        if(nums[0]<0||nums[1]< id==1? 0: boarder||nums[0]>cols-1||nums[1]> id==1?boarder:rows-1){
                             Console.WriteLine("输入的整数超过范围！");
                             continue;
                         }
+                        if(board->grid[nums[0],nums[1]]!=1){
+                            Console.WriteLine("输入的坐标状态为不可占据!");
+                            continue;
+                        }
+                        bool is_vaild=true;
+                        for(int i=0;i<piece_num;i++){
+                            if(nums[0]==pieces[i].position.x && nums[1]==pieces[i].position.y){
+                                Console.WriteLine("输入的坐标与已有棋子重合！");
+                                is_vaild=false;
+                            }
+                        }
+                        if(!is_vaild) continue; 
                         for(int i = 0; i < nums.Length; i++) initializationSet.Add(nums[i]);
                         inputcorrect=true;
                     }
