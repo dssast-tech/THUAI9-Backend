@@ -23,6 +23,7 @@ namespace server
         List<Piece> lastRoundDeadPieces;
         LogConverter logdata;
 
+
         void initialize()
         {
             //执行各类初始化
@@ -42,7 +43,6 @@ namespace server
             // 初始化棋盘
             action_queue = new List<Piece>();
             delayed_spells = new List<SpellContext>();
-
             isGameOver = false;
             round_number = 0;
             newDeadThisRound = new List<Piece>();
@@ -77,6 +77,7 @@ namespace server
             }
 
             logdata.init(action_queue, board);
+
         }
 
         // 获取当前棋子的行动指令集

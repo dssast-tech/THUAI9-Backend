@@ -82,6 +82,7 @@ namespace server
                     break;
             }
         }
+      
         public void localInit(Board board,int id)
         {
             //所有不涉及地图信息、对方信息的初始化在此进行
@@ -95,6 +96,7 @@ namespace server
                 //没有初始化piece所在的高度 后面记得写
                 var accessor=pieces[i].GetAccessor();
                 accessor.SetTeamTo(id);
+              
                 List<int> feature = initInput(board,id);
                 piece_num++;
                 int strength = feature[0];int dexterity = feature[1];int intelligence = feature[2];
@@ -131,6 +133,7 @@ namespace server
             
             throw new NotImplementedException();
         }
+
 
         List<int> initInput(Board board,int id)
         {
@@ -204,6 +207,7 @@ namespace server
 
                 inputcorrect=false;
                 do{
+
                     int rows=board.height;int cols=board.width;
                     int boarder=board.boarder;
                     //TODO给用户显示地图信息
@@ -218,6 +222,7 @@ namespace server
                             Console.WriteLine("输入的整数不是2个");
                             continue;
                         }
+
                         if (nums[0]<0||nums[0]>cols-1||nums[1]> rows - 1 || nums[1]<0){
                             Console.WriteLine("输入的整数超过范围！");
                             continue;
