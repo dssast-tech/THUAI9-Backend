@@ -209,14 +209,18 @@ namespace server
             // 2. 检查攻击范围
             if (!IsInAttackRange(context.attacker, context.target))
             {
-                Point bestMovePos = CalculateBestMovePosition(context.attacker, context.target);
-                List<Vector3Serializable> movePath = new List<Vector3Serializable>();
-                if (!board.movePiece(context.attacker, bestMovePos, context.attacker.movement, out movePath))
-                {
-                    Console.WriteLine("[Attack] Failed: Out of range and movement failed.");
-                    return;
-                }
-                logdata.addMove(context.attacker, movePath);
+                //Point bestMovePos = CalculateBestMovePosition(context.attacker, context.target);
+                //List<Vector3Serializable> movePath = new List<Vector3Serializable>();
+                //if (!board.movePiece(context.attacker, bestMovePos, context.attacker.movement, out movePath))
+                //{
+                //    Console.WriteLine("[Attack] Failed: Out of range and movement failed.");
+                //    return;
+                //}
+                //logdata.addMove(context.attacker, movePath);
+
+                //删除在攻击时移动的功能，以减少代码复杂性
+                Console.WriteLine("[Attack] Failed: Out of range.");
+                return;
             }
 
             // 3. 掷骰子命中判定
@@ -286,13 +290,13 @@ namespace server
             return distance <= attacker.attack_range;
         }
 
-        private Point CalculateBestMovePosition(Piece attacker, Piece target)
-        {
-            // 简化的实现：寻找离目标最近的可移动位置
-            // 实际实现应考虑寻路算法和移动力限制
-            // 这里返回目标位置作为示例
-            return target.position;
-        }
+        //private Point CalculateBestMovePosition(Piece attacker, Piece target)
+        //{
+        //    // 简化的实现：寻找离目标最近的可移动位置
+        //    // 实际实现应考虑寻路算法和移动力限制
+        //    // 这里返回目标位置作为示例
+        //    return target.position;
+        //}
 
         private int CalculateAdvantageValue(Piece attacker, Piece target)
         {
