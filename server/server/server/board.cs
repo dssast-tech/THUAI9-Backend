@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics.Tracing;
 using System.Linq;
+using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
@@ -12,11 +14,12 @@ namespace server
 
     class Board
     {
-        int width, height;
-        public int[,] grid { get; private set; }  // 0: 空地, 1: 可行走, 2: 占据, -1: 禁止 //不知道 0 的意义，实现没有用到 4/10
+        public int width { get; private set; }
+        public int height { get; private set; }
+        public int[,] grid { get; private set; }// 0: 空地, 1: 可行走, 2: 占据, -1: 禁止 //不知道 0 的意义，实现没有用到 4/10
         public int[,] height_map { get; private set; }
-        int boarder;
-        //分界线待实现
+        
+        public int boarder { get; private set; } // 分界线
 
         public int getWidth()
         {
@@ -63,19 +66,26 @@ namespace server
         }
 
 
-        public bool movePiece(Piece p, Point to, float movement)
+        public bool movePiece(Piece p, Point to, float movement, out List<Vector3> Vec_path)
         {
             if (!IsWithinBounds(to) || grid[to.x, to.y] != 1)
             {
+                Vec_path = null;
                 return false; // 终点超出地图大小、被占据、禁止到达
             }
 
             (List<Point>? path, float cost) = FindShortestPath(p, p.position, to, movement);
             if (path == null)
             {
+                Vec_path = null;
                 return false; //没有可达路径（沿途被阻挡）、行动力不足
             }
 
+            List<Vector3> vectorPath = path.
+                Where(point => point.x >= 0 && point.x < width && point.y >= 0 && point.y < height)
+                .Select(point => new Vector3((float)point.x, (float)point.y, (float)height_map[point.x, point.y]))
+                .ToList();
+            Vec_path = vectorPath;
             // p.movement -= cost;
             grid[p.position.x, p.position.y] = 1; // 原位置状态更新
             grid[to.x, to.y] = 2; // 目标位置状态更新
@@ -188,12 +198,13 @@ namespace server
         {
             string[] lines = File.ReadAllLines(filePath);
             string[] dimensions = lines[0].Split(' ');
-            int width = int.Parse(dimensions[0]);
-            int height = int.Parse(dimensions[1]);
+            width = int.Parse(dimensions[0]);
+            height = int.Parse(dimensions[1]);
+            Console.WriteLine($"Width: {width}, Height: {height}");
 
             // 加载地图数据
-            int[,] grid = new int[width, height];
-            int[,] height_map = new int[width, height];
+            grid = new int[width, height];
+            height_map = new int[width, height];
             boarder = height / 2; // 设定分界线为height的一半
 
             int lineIndex = 2; // 跳过第一行和空行

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
 using System.Text;
 using System.Threading.Tasks;
 using System.Xml.Serialization;
@@ -20,14 +21,15 @@ namespace server
         bool isGameOver; // 游戏是否结束
         List<Piece> newDeadThisRound; // 记录本回合新死亡的棋子列表
         List<Piece> lastRoundDeadPieces;
-        GameData logdata;
+        LogConverter logdata;
+
 
         void initialize()
         {
             //执行各类初始化
             //注：对于player类，先调用player的localInit函数进行初始化，并根据Init返回值进行地图信息的初始化（需要进行各种合法性检查，如初始位置是否越过双方边界线）
             board = new Board();
-            string filePath = filePath.Combine(AppDomain.CurrentDomain.BaseDirectory, "BoardCase","case1.txt");
+            string filePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "BoardCase","case1.txt");
             board.init(filePath);
             
             player1 = new Player();
@@ -41,7 +43,6 @@ namespace server
             // 初始化棋盘
             action_queue = new List<Piece>();
             delayed_spells = new List<SpellContext>();
-            
             isGameOver = false;
             round_number = 0;
             newDeadThisRound = new List<Piece>();
@@ -75,10 +76,8 @@ namespace server
                 action_queue[i].id = i;
             }
 
-            // 初始化棋盘
-            board = new Board();
-            string filePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "BoardCase", "case1.txt");
-            board.init(filePath);
+            logdata.init(action_queue, board);
+
         }
 
         // 获取当前棋子的行动指令集
@@ -205,11 +204,13 @@ namespace server
             if (!IsInAttackRange(context.attacker, context.target))
             {
                 Point bestMovePos = CalculateBestMovePosition(context.attacker, context.target);
-                if (!board.movePiece(context.attacker, bestMovePos, context.attacker.movement))
+                List<Vector3> movePath = new List<Vector3>();
+                if (!board.movePiece(context.attacker, bestMovePos, context.attacker.movement, out movePath))
                 {
                     Console.WriteLine("[Attack] Failed: Out of range and movement failed.");
                     return;
                 }
+                logdata.addMove(context.attacker, movePath);
             }
 
             // 3. 掷骰子命中判定
@@ -252,6 +253,8 @@ namespace server
                 Console.WriteLine($"[Attack] Dealing {damage} {(isCritical ? "(Critical) " : "")}damage to target.");
 
                 context.target.receiveDamage(damage, "physical");
+                context.damageDealt = damage; // 记录实际造成的伤害
+
 
                 if (context.target.health <= 0)
                 {
@@ -271,7 +274,7 @@ namespace server
         {
             double distance = Math.Sqrt(
                 Math.Pow(attacker.position.x - target.position.x, 2) +
-                Math.Pow(attacker.position.y - target.position.y, 2)
+                Math.Pow(attacker.position.y - target.position.y, 2) 
             );
 
             return distance <= attacker.attack_range;
@@ -307,7 +310,7 @@ namespace server
                 if (spell.targetArea.Contains(piece.position))
                 {
                     // 处在伤害法术范围里为-1，处在buff效果中为1
-                    if (spell.effectType == SpellEffectType.BuffDamage) envValue += 1;
+                    if (spell.effectType == SpellEffectType.Buff) envValue += 1;
                     if (spell.effectType == SpellEffectType.Damage) envValue -= 1;
                 }
             }
@@ -474,11 +477,11 @@ namespace server
             // 根据法术类型应用不同效果
             switch (context.effectType)
             {
-                case SpellEffectType.BuffDamage:
+                case SpellEffectType.Buff:
                     //target.physical_damage.AddBonus(context.effectValue);
                     accessor.SetPhysicalDamageTo(target.physical_damage + context.effectValue);
                     break;
-                case SpellEffectType.DebuffResist:
+                case SpellEffectType.Debuff:
                     accessor.SetPhysicResistBy(context.effectValue);
                     //target.physical_resist -= context.effectValue;
                     accessor.SetMagicResistBy(context.effectValue);
@@ -517,13 +520,6 @@ namespace server
             return distance <= caster.spell_range;
         }
 
-        //-----------------------------------------------------------------------------------------------------------------移动逻辑--------------------------------------------------------------------------------------//
-        void executeMove(Piece cur_piece, Point move_target, float movement)
-        {
-            board.movePiece(cur_piece, move_target, movement);
-            //执行移动
-        }
-
         //-----------------------------------------------------------------核心逻辑------------------------------------------------------------//
         // 单回合步进逻辑
         void step()
@@ -546,6 +542,7 @@ namespace server
             action_queue.Add(current_piece);
             processedCount++;
 
+            logdata.addRound(round_number);
             log(0);
             //// 跳过死亡/非己方回合单位
             //if (!current_piece.is_alive || current_piece.team != (round_number % 2 + 1))
@@ -563,24 +560,29 @@ namespace server
                 // 从玩家获取移动目标
                 var moveAction = action.move_target;
                 // 调用棋盘移动验证
+                List<Vector3> movePath = new List<Vector3>();
                 bool moveSuccess = board.movePiece(
                     current_piece,
                     moveAction,
-                    current_piece.movement  // 使用piece类的movement属性
+                    current_piece.movement, // 使用piece类的movement属性
+                    out movePath
                 );
                 if (moveSuccess)
                 {
                     current_piece.setActionPoints(current_piece.getActionPoints() - 1);
                     var accessor = current_piece.GetAccessor();
                     accessor.SetPosition(moveAction);
+                    logdata.addMove(current_piece, movePath);
                 }
             }
 
             // 攻击阶段
-            if (current_piece.action_points > 0)  // 可执行多次攻击
+            if (current_piece.action_points > 0)  
             {
                 var attack_context = action.attack_context;
+                attack_context.damageDealt = 0; // 初始化伤害值
                 executeAttack(attack_context);  // 内部会消耗action_points
+                logdata.addAttack(attack_context); // 记录攻击日志
             }
 
             // 法术阶段
