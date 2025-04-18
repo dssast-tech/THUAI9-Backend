@@ -12,9 +12,11 @@ namespace server
 
     class Board
     {
-        int width, height;
-        int[,] grid;  // 0: 空地, 1: 可行走, 2: 占据, -1: 禁止 //不知道 0 的意义，实现没有用到 4/10
-        int[,] height_map;
+        public int width { get; private set; }
+        public int height { get; private set; }
+        public int[,] grid { get; private set; }// 0: 空地, 1: 可行走, 2: 占据, -1: 禁止 //不知道 0 的意义，实现没有用到 4/10
+        public int[,] height_map { get; private set; }
+        
         int boarder;
         //分界线待实现
 

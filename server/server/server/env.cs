@@ -35,6 +35,7 @@ namespace server
             action_queue = new List<Piece>();
             delayed_spells = new List<SpellContext>();
             board = new Board();
+            //board.init("./BoardCase/case1.txt",player1.pieces, player2.pieces);
             isGameOver = false;
             round_number = 0;
 
@@ -263,7 +264,7 @@ namespace server
         {
             double distance = Math.Sqrt(
                 Math.Pow(attacker.position.x - target.position.x, 2) +
-                Math.Pow(attacker.position.y - target.position.y, 2)
+                Math.Pow(attacker.position.y - target.position.y, 2) 
             );
 
             return distance <= attacker.attack_range;
