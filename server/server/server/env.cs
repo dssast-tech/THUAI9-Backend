@@ -75,8 +75,9 @@ namespace server
             {
                 action_queue[i].id = i;
             }
-
+            logdata=new LogConverter();
             logdata.init(action_queue, board);
+            lastRoundDeadPieces = new List<Piece>();
 
         }
 
@@ -116,7 +117,7 @@ namespace server
             }
             while (true)
             {
-                Console.WriteLine("请输入要攻击的棋子编号（若不攻击，输入-1)");
+                Console.WriteLine("请输入要攻击的棋子id编号（若不攻击，输入-1)");
                 string input = Console.ReadLine();
                 try
                 {
@@ -130,7 +131,12 @@ namespace server
                     {
                         action.attack = true;
                         action.attack_context.attacker = current_piece;
-                        action.attack_context.target = action_queue[x];
+                        Piece foundPiece = action_queue.FirstOrDefault(p => p.id == x);
+                        if (foundPiece == null)
+                        {
+                            throw new Exception("未找到指定的棋子。");
+                        }
+                        action.attack_context.target = foundPiece;
                         action.attack_context.attackPosition = current_piece.position;
                         // 其他攻击相关逻辑
                         break;
@@ -145,7 +151,7 @@ namespace server
             {
                 while (true)
                 {
-                    Console.WriteLine("请输入要施加的法术id（若不攻击，输入None)");
+                    Console.WriteLine("请输入要施加的法术id（若不攻击，输入-1)");
                     string input = Console.ReadLine();
                     try
                     {
@@ -204,7 +210,7 @@ namespace server
             if (!IsInAttackRange(context.attacker, context.target))
             {
                 Point bestMovePos = CalculateBestMovePosition(context.attacker, context.target);
-                List<Vector3> movePath = new List<Vector3>();
+                List<Vector3Serializable> movePath = new List<Vector3Serializable>();
                 if (!board.movePiece(context.attacker, bestMovePos, context.attacker.movement, out movePath))
                 {
                     Console.WriteLine("[Attack] Failed: Out of range and movement failed.");
@@ -524,6 +530,19 @@ namespace server
         // 单回合步进逻辑
         void step()
         {
+
+            //***ForDebug***//
+            //手动结束游戏
+            Console.WriteLine("输入exit结束游戏：");
+            string input = Console.ReadLine();
+            if (input == "exit")
+            {
+                isGameOver = true;
+                return;
+            }
+
+            //**************//
+
             //回合初始化
             round_number++;  // 回合计数器递增
 
@@ -537,13 +556,15 @@ namespace server
             //处理行动队列
             int processedCount = 0;  // 已处理棋子计数器
             current_piece = action_queue[0];  // 取队列第一个
+
+            logdata.addRound(round_number, action_queue);
+            log(0);
+
             action_queue.RemoveAt(0);
             // 将棋子放回队列末尾
             action_queue.Add(current_piece);
             processedCount++;
 
-            logdata.addRound(round_number);
-            log(0);
             //// 跳过死亡/非己方回合单位
             //if (!current_piece.is_alive || current_piece.team != (round_number % 2 + 1))
             //{
@@ -560,7 +581,7 @@ namespace server
                 // 从玩家获取移动目标
                 var moveAction = action.move_target;
                 // 调用棋盘移动验证
-                List<Vector3> movePath = new List<Vector3>();
+                List<Vector3Serializable> movePath = new List<Vector3Serializable>();
                 bool moveSuccess = board.movePiece(
                     current_piece,
                     moveAction,
@@ -574,10 +595,14 @@ namespace server
                     accessor.SetPosition(moveAction);
                     logdata.addMove(current_piece, movePath);
                 }
+                else
+                {
+                    Console.WriteLine("[Move] Failed: Out of Range");
+                }
             }
 
             // 攻击阶段
-            if (current_piece.action_points > 0)  
+            if (current_piece.action_points > 0 && action.attack)  
             {
                 var attack_context = action.attack_context;
                 attack_context.damageDealt = 0; // 初始化伤害值
@@ -586,7 +611,7 @@ namespace server
             }
 
             // 法术阶段
-            if (current_piece.spell_slots > 0 && current_piece.action_points > 0)
+            if (current_piece.spell_slots > 0 && current_piece.action_points > 0 && action.spell)
             {
                 var spell_context = action.spell_context;
                 executeSpell(spell_context);  // 内部会消耗spell_slots和action_points
@@ -642,6 +667,9 @@ namespace server
             // 行动队列状态
             Console.WriteLine($"\n[行动队列] 剩余单位: {action_queue.Count(p => p.is_alive)}存活 / {action_queue.Count(p => !p.is_alive)}阵亡");
 
+            Console.WriteLine("\n[地图]:\n");
+            VisualizeArray(board.grid);
+
             // 存活单位详细信息
             Console.WriteLine("\n[存活单位]");
             foreach (var piece in action_queue.Where(p => p.is_alive))
@@ -672,11 +700,40 @@ namespace server
 
         }
 
+
+        public void VisualizeArray(int[,] array)
+        {
+            // 遍历二维数组的每一行
+            for (int i = 0; i < array.GetLength(0); i++)
+            {
+                // 遍历当前行的每一列
+                for (int j = 0; j < array.GetLength(1); j++)
+                {
+                    if (array[i, j] == 2)
+                    {
+                        Console.ForegroundColor = ConsoleColor.Red; // 设置为红色
+                    }
+                    else
+                    {
+                        Console.ResetColor(); // 恢复默认颜色
+                    }
+                    // 输出每个数字，固定占位 2 格，用空格隔开
+                    Console.Write($"{array[i, j],2} ");
+                }
+
+                // 换行
+                Console.WriteLine();
+            }
+        }
+
         // 游戏主循环
         public void run()
         {
             initialize(); // 初始化游戏
+            Console.WriteLine("游戏初始化完成，开始游戏！");
+            VisualizeArray(board.grid);
             while (!isGameOver) step(); // 回合制循环
+            logdata.save();
         }
     }
 }

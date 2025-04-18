@@ -29,7 +29,28 @@ namespace server
 
         List<MapRow> ConvertHeightMapToRows(Board board)
         {
-            throw new NotImplementedException(); 
+            List<MapRow> rows = new List<server.MapRow>();
+
+            // 遍历二维数组的每一行
+            for (int i = 0; i < board.height_map.GetLength(0); i++)
+            {
+                MapRow mapRow = new MapRow
+                {
+                    row = new List<int>()
+                };
+
+                // 遍历当前行的每一列
+                for (int j = 0; j < board.height_map.GetLength(1); j++)
+                {
+                    // 将高度值+1后添加到MapRow
+                    mapRow.row.Add(board.height_map[i, j] + 1);
+                }
+
+                // 将MapRow添加到列表
+                rows.Add(mapRow);
+            }
+
+            return rows;
         }
 
         List<SoldierData> ConvertPieceToSoldier(List<Piece> pieces)
@@ -40,7 +61,7 @@ namespace server
                 SoldierData temp = new SoldierData();
                 temp.ID = piece.id;
                 temp.camp = piece.team == 0 ? "Red" : "Blue";
-                temp.position = new Vector3(piece.position.x, piece.position.y, piece.height);
+                temp.position = new Vector3Serializable(piece.position.x, piece.position.y, piece.height );
                 temp.stats = new SoldierStats();
                 temp.stats.health = piece.health;
                 temp.stats.strength = piece.strength;
@@ -50,13 +71,34 @@ namespace server
             return soldiers;
         }
 
-        public void addRound(int roundCnt)
+        public void addRound(int roundCnt,List<Piece> pieces)
         {
             gamedata.gameRounds.Add(new GameRound());
-            gamedata.gameRounds[gamedata.gameRounds.Count - 1].roundNumber = roundCnt;
+            var curRound = gamedata.gameRounds[gamedata.gameRounds.Count - 1];
+            curRound.roundNumber = roundCnt;
+            curRound.actions = new List<BattleAction>();
+            curRound.initialState = new InitialState();
+            curRound.initialState.soldiers = new List<SoldierData>(gamedata.soldiersData.soldiers);
+            foreach (SoldierData i in curRound.initialState.soldiers)
+            {
+                i.stats.health = 0;
+            }
+
+            foreach(Piece piece in pieces)
+            {
+                SoldierData temp = new SoldierData();
+                temp.ID = piece.id;
+                temp.camp = piece.team == 0 ? "Red" : "Blue";
+                temp.position = new Vector3Serializable(piece.position.x, piece.position.y, piece.height);
+                temp.stats = new SoldierStats();
+                temp.stats.health = piece.health;
+                temp.stats.strength = piece.strength;
+                temp.stats.mana = piece.intelligence;
+                curRound.initialState.soldiers[temp.ID] = temp;
+            }
         }
 
-        public void addMove(Piece p, List<Vector3> path)
+        public void addMove(Piece p, List<Vector3Serializable> path)
         {
             BattleAction temp = new BattleAction();
             temp.actionType = "Movement";
@@ -85,6 +127,9 @@ namespace server
         public void save()
         {
             // 将类对象序列化为JSON
+
+            Console.WriteLine(gamedata.soldiersData.soldiers[1].ID);
+
             string json = JsonSerializer.Serialize(gamedata, new JsonSerializerOptions { WriteIndented = true });
 
             // 获取当前目录
@@ -97,6 +142,8 @@ namespace server
             File.WriteAllText(filePath, json);
 
             Console.WriteLine($"JSON已保存到: {filePath}");
+            Console.WriteLine("按下回车键继续...");
+            Console.ReadLine();
         }
     }
 }
