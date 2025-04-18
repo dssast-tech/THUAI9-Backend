@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
 using System.Text;
 using System.Threading.Tasks;
 using System.Xml.Serialization;
@@ -18,26 +19,33 @@ namespace server
         Player player2; // 玩家2
         Board board; // 棋盘
         bool isGameOver; // 游戏是否结束
-        GameData logdata;
+        List<Piece> newDeadThisRound; // 记录本回合新死亡的棋子列表
+        List<Piece> lastRoundDeadPieces;
+        LogConverter logdata;
 
         void initialize()
         {
             //执行各类初始化
             //注：对于player类，先调用player的localInit函数进行初始化，并根据Init返回值进行地图信息的初始化（需要进行各种合法性检查，如初始位置是否越过双方边界线）
+            board = new Board();
+            string filePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "BoardCase","case1.txt");
+            board.init(filePath);
+            
             player1 = new Player();
             player2 = new Player();
             player1.id = 1;
             player2.id = 2;
-            player1.localInit();
-            player2.localInit();
+            player1.localInit(board,player1.id);
+            player2.localInit(board,player2.id);
             
+            board.init_pieces_location(player1.pieces, player2.pieces);
             // 初始化棋盘
             action_queue = new List<Piece>();
             delayed_spells = new List<SpellContext>();
-            board = new Board();
-            //board.init("./BoardCase/case1.txt",player1.pieces, player2.pieces);
+
             isGameOver = false;
             round_number = 0;
+            newDeadThisRound = new List<Piece>();
 
             // 初始化行动列表
             action_queue = new List<Piece>();
@@ -68,10 +76,7 @@ namespace server
                 action_queue[i].id = i;
             }
 
-            // 初始化棋盘
-            board = new Board();
-            string filePath = "BoardCase/case1.txt";
-            board.init(filePath, player1.pieces, player2.pieces);
+            logdata.init(action_queue, board);
         }
 
         // 获取当前棋子的行动指令集
@@ -198,11 +203,13 @@ namespace server
             if (!IsInAttackRange(context.attacker, context.target))
             {
                 Point bestMovePos = CalculateBestMovePosition(context.attacker, context.target);
-                if (!board.movePiece(context.attacker, bestMovePos, context.attacker.movement))
+                List<Vector3> movePath = new List<Vector3>();
+                if (!board.movePiece(context.attacker, bestMovePos, context.attacker.movement, out movePath))
                 {
                     Console.WriteLine("[Attack] Failed: Out of range and movement failed.");
                     return;
                 }
+                logdata.addMove(context.attacker, movePath);
             }
 
             // 3. 掷骰子命中判定
@@ -245,6 +252,8 @@ namespace server
                 Console.WriteLine($"[Attack] Dealing {damage} {(isCritical ? "(Critical) " : "")}damage to target.");
 
                 context.target.receiveDamage(damage, "physical");
+                context.damageDealt = damage; // 记录实际造成的伤害
+
 
                 if (context.target.health <= 0)
                 {
@@ -300,7 +309,7 @@ namespace server
                 if (spell.targetArea.Contains(piece.position))
                 {
                     // 处在伤害法术范围里为-1，处在buff效果中为1
-                    if (spell.effectType == SpellEffectType.BuffDamage) envValue += 1;
+                    if (spell.effectType == SpellEffectType.Buff) envValue += 1;
                     if (spell.effectType == SpellEffectType.Damage) envValue -= 1;
                 }
             }
@@ -326,7 +335,8 @@ namespace server
 
                 board.removePiece(target);
                 action_queue.Remove(target);
-
+                newDeadThisRound.Add(target);
+                target.deathRound = round_number; 
             }
             else // 濒死状态
             {
@@ -466,11 +476,11 @@ namespace server
             // 根据法术类型应用不同效果
             switch (context.effectType)
             {
-                case SpellEffectType.BuffDamage:
+                case SpellEffectType.Buff:
                     //target.physical_damage.AddBonus(context.effectValue);
                     accessor.SetPhysicalDamageTo(target.physical_damage + context.effectValue);
                     break;
-                case SpellEffectType.DebuffResist:
+                case SpellEffectType.Debuff:
                     accessor.SetPhysicResistBy(context.effectValue);
                     //target.physical_resist -= context.effectValue;
                     accessor.SetMagicResistBy(context.effectValue);
@@ -509,13 +519,6 @@ namespace server
             return distance <= caster.spell_range;
         }
 
-        //-----------------------------------------------------------------------------------------------------------------移动逻辑--------------------------------------------------------------------------------------//
-        void executeMove(Piece cur_piece, Point move_target, float movement)
-        {
-            board.movePiece(cur_piece, move_target, movement);
-            //执行移动
-        }
-
         //-----------------------------------------------------------------核心逻辑------------------------------------------------------------//
         // 单回合步进逻辑
         void step()
@@ -523,12 +526,10 @@ namespace server
             //回合初始化
             round_number++;  // 回合计数器递增
 
- 
-
             // 重置所有存活棋子的行动点
             foreach (var piece in action_queue.Where(p => p.is_alive))
             {
-                piece.setActionPoints(piece.max_action_points);  // 从piece类获取最大值
+                piece.setActionPoints(piece.max_action_points);  
 
             }
 
@@ -536,10 +537,11 @@ namespace server
             int processedCount = 0;  // 已处理棋子计数器
             current_piece = action_queue[0];  // 取队列第一个
             action_queue.RemoveAt(0);
-            // 将棋子放回队列末尾  !!!!!!实现有误
+            // 将棋子放回队列末尾
             action_queue.Add(current_piece);
             processedCount++;
 
+            logdata.addRound(round_number);
             log(0);
             //// 跳过死亡/非己方回合单位
             //if (!current_piece.is_alive || current_piece.team != (round_number % 2 + 1))
@@ -554,27 +556,32 @@ namespace server
                 // 移动阶段
             if (current_piece.action_points > 0)
             {
-                // 从玩家获取移动目标（需实现getAction）
+                // 从玩家获取移动目标
                 var moveAction = action.move_target;
                 // 调用棋盘移动验证
+                List<Vector3> movePath = new List<Vector3>();
                 bool moveSuccess = board.movePiece(
                     current_piece,
                     moveAction,
-                    current_piece.movement  // 使用piece类的movement属性
+                    current_piece.movement, // 使用piece类的movement属性
+                    out movePath
                 );
                 if (moveSuccess)
                 {
                     current_piece.setActionPoints(current_piece.getActionPoints() - 1);
                     var accessor = current_piece.GetAccessor();
                     accessor.SetPosition(moveAction);
+                    logdata.addMove(current_piece, movePath);
                 }
             }
 
             // 攻击阶段
-            if (current_piece.action_points > 0)  // 可执行多次攻击
+            if (current_piece.action_points > 0)  
             {
                 var attack_context = action.attack_context;
+                attack_context.damageDealt = 0; // 初始化伤害值
                 executeAttack(attack_context);  // 内部会消耗action_points
+                logdata.addAttack(attack_context); // 记录攻击日志
             }
 
             // 法术阶段
@@ -632,7 +639,7 @@ namespace server
 
             Console.WriteLine($"\n[当前行动棋子id]: {current_piece.id}");
             // 行动队列状态
-            Console.WriteLine($"\n[行动队列] 剩余单位: {action_queue.Count(p => p.is_alive)}活 / {action_queue.Count(p => !p.is_alive)}亡");
+            Console.WriteLine($"\n[行动队列] 剩余单位: {action_queue.Count(p => p.is_alive)}存活 / {action_queue.Count(p => !p.is_alive)}阵亡");
 
             // 存活单位详细信息
             Console.WriteLine("\n[存活单位]");
@@ -646,13 +653,18 @@ namespace server
 
             // 死亡单位简报
             //！！！！该模块应该无法正常工作，运行到log时p已经被移除
-            var newDead = action_queue.Where(p => !p.is_alive && p.deathRound == round_number);
-            if (newDead.Any())
+            if (lastRoundDeadPieces.Any())
             {
-                Console.WriteLine("\n[本回合阵亡]");
-                foreach (var dead in newDead)
-                    Console.WriteLine($"▣ {dead.GetType().Name} #{dead.GetHashCode() % 1000:000} 原属玩家{dead.team}");
+                Console.WriteLine("\n[上一回合阵亡]");
+                foreach (var piece in lastRoundDeadPieces)
+                {
+                    Console.WriteLine($"棋子ID: {piece.queue_index}, 死亡回合: {round_number - 1}");
+                }
             }
+
+            //清空本回合死亡棋子列表，以便下回合使用
+            lastRoundDeadPieces = new List<Piece>(newDeadThisRound);
+            newDeadThisRound.Clear();
 
             // 游戏状态概要
             Console.WriteLine($"\n[游戏状态] {(isGameOver ? "已结束" : "进行中")}");
