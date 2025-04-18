@@ -28,11 +28,6 @@ namespace server
         //用于棋子初始化的信息，具体内容待定
     }
 
-    struct DicePair
-    {
-
-    }
-
     struct Message
     {
         //通信预留转接类

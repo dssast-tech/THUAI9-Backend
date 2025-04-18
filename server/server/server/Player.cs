@@ -1,4 +1,5 @@
-﻿using System;
+﻿
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
@@ -7,10 +8,12 @@ using System.Threading.Tasks;
 
 //client和server的交互应通过player类进行，所有函数均应该能够与通信类交互（待定）
 
+
 namespace server
 {
     class Player
     {
+        const int PIECECNT = 2;
         public int id;
         public List<Piece> pieces; //持有的棋子
         public int feature_total=30;
@@ -89,7 +92,7 @@ namespace server
             //env环境会调用此函数，利用返回值初始化设计地图交互的其他信息（如棋子位置等）
             pieces= new List<Piece>();
 
-            for(int i=0;i<3;i++){
+            for(int i=0;i<PIECECNT;i++){
                 Console.WriteLine($"现在为棋手 {this.id} 的第 {i + 1} 个棋子初始化");
                 pieces.Add(new Piece());
                 //没有初始化piece所在的高度 后面记得写

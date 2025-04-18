@@ -66,7 +66,7 @@ namespace server
         }
 
 
-        public bool movePiece(Piece p, Point to, float movement, out List<Vector3> Vec_path)
+        public bool movePiece(Piece p, Point to, float movement, out List<Vector3Serializable> Vec_path)
         {
             if (!IsWithinBounds(to) || grid[to.x, to.y] != 1)
             {
@@ -81,9 +81,9 @@ namespace server
                 return false; //没有可达路径（沿途被阻挡）、行动力不足
             }
 
-            List<Vector3> vectorPath = path.
+            List<Vector3Serializable> vectorPath = path.
                 Where(point => point.x >= 0 && point.x < width && point.y >= 0 && point.y < height)
-                .Select(point => new Vector3((float)point.x, (float)point.y, (float)height_map[point.x, point.y]))
+                .Select(point => new Vector3Serializable(point.x, point.y, height_map[point.x, point.y]))
                 .ToList();
             Vec_path = vectorPath;
             // p.movement -= cost;
