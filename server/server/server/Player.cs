@@ -13,7 +13,7 @@ namespace server
 {
     class Player
     {
-        const int PIECECNT = 2;
+        const int PIECECNT = 1; //此处进行了一次修改
         public int id;
         public List<Piece> pieces; //持有的棋子
         public int feature_total=30;
@@ -230,8 +230,7 @@ namespace server
                             Console.WriteLine("输入的整数超过范围！");
                             continue;
                         }
-
-                        if(board.grid[nums[0],nums[1]]!=1){
+                        if(board.grid[nums[0],nums[1]].state!=1){
                             Console.WriteLine("输入的坐标状态为不可占据!");
                             continue;
                         }
