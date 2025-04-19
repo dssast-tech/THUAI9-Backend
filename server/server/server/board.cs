@@ -11,12 +11,26 @@ using static System.Runtime.InteropServices.JavaScript.JSType;
 //仅维护信息
 namespace server
 {
+    public struct Cell
+    {
+        public int state; // 0: 空地, 1: 可行走, 2: 占据, -1: 禁止
+        public int playerId; // 0: 无人, 1: 玩家1, 2: 玩家2
+        public int pieceId;
+
+        public Cell(int state_, int playerId_ = -1, int pieceId_ = -1)
+        {
+            state = state_;
+            playerId = playerId_;
+            pieceId = pieceId_;
+        }
+    }
+
 
     class Board
     {
         public int width { get; private set; }
         public int height { get; private set; }
-        public int[,] grid { get; private set; }// 0: 空地, 1: 可行走, 2: 占据, -1: 禁止 //不知道 0 的意义，实现没有用到 4/10
+        public Cell[,] grid { get; private set; }// 0: 空地, 1: 可行走, 2: 占据, -1: 禁止 //不知道 0 的意义，实现没有用到 4/10
         public int[,] height_map { get; private set; }
         
         public int boarder { get; private set; } // 分界线
@@ -50,7 +64,7 @@ namespace server
                 for (int y = 0; y < height; y++)
                 {
                     Point target = new Point(x, y);
-                    if (grid[x, y] == 1 && (Math.Abs(x - target.x) + Math.Abs(y - target.y) <= movement))
+                    if (grid[x, y].state == 1 && (Math.Abs(x - target.x) + Math.Abs(y - target.y) <= movement))
                     {
                         var (path, cost) = FindShortestPath(p, p.position, target, movement);
                         if (path != null && cost <= movement)
@@ -68,7 +82,7 @@ namespace server
 
         public bool movePiece(Piece p, Point to, float movement, out List<Vector3Serializable> Vec_path)
         {
-            if (!IsWithinBounds(to) || grid[to.x, to.y] != 1)
+            if (!IsWithinBounds(to) || grid[to.x, to.y].state != 1)
             {
                 Vec_path = null;
                 return false; // 终点超出地图大小、被占据、禁止到达
@@ -87,8 +101,12 @@ namespace server
                 .ToList();
             Vec_path = vectorPath;
             // p.movement -= cost;
-            grid[p.position.x, p.position.y] = 1; // 原位置状态更新
-            grid[to.x, to.y] = 2; // 目标位置状态更新
+            grid[p.position.x, p.position.y].state = 1; // 原位置状态更新
+            grid[p.position.x, p.position.y].playerId = -1; // 原位置玩家ID更新
+            grid[p.position.x, p.position.y].pieceId = -1; // 原位置棋子ID更新
+            grid[to.x, to.y].state = 2; // 目标位置状态更新
+            grid[to.x, to.y].playerId = p.team; // 目标位置玩家ID更新
+            grid[to.x, to.y].pieceId = p.id; // 目标位置棋子ID更新
             p.position = to; // 更新棋子的位置
             p.height = height_map[to.x, to.y]; // 更新棋子的高度
 
@@ -97,7 +115,7 @@ namespace server
 
         public bool isOccupied(Point p)
         {
-            return grid[p.x, p.y] == 2; 
+            return grid[p.x, p.y].state == 2; 
         }
 
         public int getHeight(Point p)
@@ -125,7 +143,7 @@ namespace server
                 new Point(p.x, p.y + 1)
             };
 
-            return neighbors.Where(n => IsWithinBounds(n) && grid[n.x, n.y] == 1).ToList();
+            return neighbors.Where(n => IsWithinBounds(n) && grid[n.x, n.y].state == 1).ToList();
         }
 
         private (List<Point>? path, float cost) FindShortestPath(Piece p, Point start, Point goal, float movement)// 返回棋子移动的最短路径和需要消耗的行动力大小，如果需要显示路径可调用
@@ -203,7 +221,7 @@ namespace server
             Console.WriteLine($"Width: {width}, Height: {height}");
 
             // 加载地图数据
-            grid = new int[width, height];
+            grid = new Cell[width, height];
             height_map = new int[width, height];
             boarder = height / 2; // 设定分界线为height的一半
 
@@ -215,12 +233,30 @@ namespace server
                 var values = lines[lineIndex].Split(',');
                 for (int x = 0; x < width; x++)
                 {
-                    grid[x, y] = int.Parse(values[x].Trim());
+                    grid[x, y].state = int.Parse(values[x].Trim());
                 }
                 lineIndex++;
             }
 
-            lineIndex++; // 跳过grid和height_map之间的空行
+            lineIndex++;
+
+            // 初始化棋盘上所有格子的playerID为-1
+            for (int x = 0; x < width; ++x)
+            {
+                for (int y = 0; y < height; ++y)
+                {
+                    grid[x, y].playerId = -1;
+                }
+            }
+
+            // 初始化棋盘上所有格子的pieceID为-1
+            for (int x = 0; x < width; ++x)
+            {
+                for (int y = 0; y < height; ++y)
+                {
+                    grid[x, y].pieceId = -1;
+                }
+            }
 
             // 读取height_map
             for (int y = 0; y < height; y++)
@@ -259,11 +295,15 @@ namespace server
             // 所有棋子的坐标grid初始化为2
             foreach (var piece in player1_pieces)
             {
-                grid[piece.position.x, piece.position.y] = 2;
+                grid[piece.position.x, piece.position.y].state = 2;
+                grid[piece.position.x, piece.position.y].playerId = piece.team; // 玩家1的棋子
+                grid[piece.position.x, piece.position.y].pieceId = piece.id;
             }
             foreach (var piece in player2_pieces)
             {
-                grid[piece.position.x, piece.position.y] = 2;
+                grid[piece.position.x, piece.position.y].state = 2;
+                grid[piece.position.x, piece.position.y].playerId = piece.team; // 玩家2的棋子
+                grid[piece.position.x, piece.position.y].pieceId = piece.id;
             }
         }
     }

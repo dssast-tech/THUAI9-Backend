@@ -38,8 +38,8 @@ namespace server
             player2.id = 2;
             player1.localInit(board,player1.id);
             player2.localInit(board,player2.id);
-            
-            board.init_pieces_location(player1.pieces, player2.pieces);
+
+            //board.init_pieces_location(player1.pieces, player2.pieces);
             // 初始化棋盘
             action_queue = new List<Piece>();
             delayed_spells = new List<SpellContext>();
@@ -75,7 +75,10 @@ namespace server
             {
                 action_queue[i].id = i;
             }
-            logdata=new LogConverter();
+
+            board.init_pieces_location(player1.pieces, player2.pieces);
+
+            logdata =new LogConverter();
             logdata.init(action_queue, board);
             lastRoundDeadPieces = new List<Piece>();
 
@@ -119,6 +122,7 @@ namespace server
             {
                 Console.WriteLine("请输入要攻击的棋子id编号（若不攻击，输入-1)");
                 string input = Console.ReadLine();
+
                 try
                 {
                     int x = int.Parse(input);
@@ -142,6 +146,7 @@ namespace server
                         break;
                     }
                 }
+
                 catch (Exception ex)
                 {
                     Console.WriteLine($"输入错误：{ex.Message}");
@@ -227,6 +232,8 @@ namespace server
             int attackRoll = RollDice(1, 20);
             bool isHit = false;
             bool isCritical = false;
+
+            Console.WriteLine("Now we need roll a dice to check if we can successfully hit.");
 
             if (attackRoll == 1)
             {
@@ -554,7 +561,6 @@ namespace server
             foreach (var piece in action_queue.Where(p => p.is_alive))
             {
                 piece.setActionPoints(piece.max_action_points);  
-
             }
 
             //处理行动队列
@@ -605,12 +611,19 @@ namespace server
                 }
             }
 
+
+            Console.WriteLine("Now begin attacking");
             // 攻击阶段
+            // 输出current_piece.action_points和action.attack
+            Console.WriteLine($"[Attack] Action Points: {current_piece.action_points}, Attack: {action.attack}"); // 输出当前行动点和攻击状态
             if (current_piece.action_points > 0 && action.attack)  
             {
+                Console.WriteLine("enter attacking");
                 var attack_context = action.attack_context;
                 attack_context.damageDealt = 0; // 初始化伤害值
                 executeAttack(attack_context);  // 内部会消耗action_points
+                //输出demage的值
+                Console.WriteLine($"[Attack] Damage Dealt: {attack_context.damageDealt}");
                 logdata.addAttack(attack_context); // 记录攻击日志
             }
 
@@ -705,7 +718,7 @@ namespace server
         }
 
 
-        public void VisualizeArray(int[,] array)
+        public void VisualizeArray(Cell[,] array)
         {
             // 遍历二维数组的每一行
             for (int i = 0; i < array.GetLength(0); i++)
@@ -713,16 +726,26 @@ namespace server
                 // 遍历当前行的每一列
                 for (int j = 0; j < array.GetLength(1); j++)
                 {
-                    if (array[i, j] == 2)
+                    if (array[i, j].state == 2)
                     {
-                        Console.ForegroundColor = ConsoleColor.Red; // 设置为红色
+                        if (array[i,j].playerId == 1)
+                        {
+                            Console.ForegroundColor = ConsoleColor.Red; // 设置颜色为红色
+                        }
+                        else if(array[i, j].playerId == 2)
+                        {
+                            Console.ForegroundColor = ConsoleColor.Blue; // 设置颜色为蓝色
+                        }
                     }
                     else
                     {
                         Console.ResetColor(); // 恢复默认颜色
                     }
                     // 输出每个数字，固定占位 2 格，用空格隔开
-                    Console.Write($"{array[i, j],2} ");
+                    if (array[i, j].state == 2)
+                        Console.Write($"{array[i, j].pieceId,2} ");
+                    else
+                        Console.Write($"{array[i, j].state,2} ");
                 }
 
                 // 换行
