@@ -230,6 +230,7 @@ namespace server
                             Console.WriteLine("输入的整数超过范围！");
                             continue;
                         }
+
                         if(board.grid[nums[0],nums[1]]!=1){
                             Console.WriteLine("输入的坐标状态为不可占据!");
                             continue;
