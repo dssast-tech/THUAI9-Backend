@@ -91,7 +91,7 @@ namespace server
             actionSet action = new actionSet();
             while (true)
             {
-                Console.WriteLine("请输入目标移动位置（格式：x y）：");
+                Console.WriteLine("请输入目标移动位置（格式：x y, 若不移动，输入-1 -1）：");
                 string input = Console.ReadLine();
 
                 try
@@ -106,8 +106,15 @@ namespace server
                     int x = int.Parse(inputs[0]);
                     int y = int.Parse(inputs[1]);
 
+                    if (x == -1 || y == -1)
+                    {
+                        action.move = false;
+                        break;
+                    }
+
                     // 执行业务逻辑
                     // 例如：设置棋子的目标位置
+                    action.move = true;
                     action.move_target = new Point(x, y);
 
                     // 退出循环
@@ -199,7 +206,7 @@ namespace server
         }
         //-----------------------------------------------------------------攻击逻辑------------------------------------------------------------//
         // 执行攻击上下文
-        void executeAttack(AttackContext context)
+        void executeAttack(ref AttackContext context)
         {
             if (context.attacker == null || context.target == null || !context.attacker.is_alive || !context.target.is_alive)
                 return;
@@ -271,7 +278,7 @@ namespace server
 
                 context.target.receiveDamage(damage, "physical");
                 context.damageDealt = damage; // 记录实际造成的伤害
-
+                Console.WriteLine($"[Debug] damage:{damage}");
 
                 if (context.target.health <= 0)
                 {
@@ -586,7 +593,7 @@ namespace server
             var action = getAction();
 
                 // 移动阶段
-            if (current_piece.action_points > 0)
+            if (current_piece.action_points > 0 && action.move)
             {
                 // 从玩家获取移动目标
                 var moveAction = action.move_target;
@@ -621,7 +628,7 @@ namespace server
                 Console.WriteLine("enter attacking");
                 var attack_context = action.attack_context;
                 attack_context.damageDealt = 0; // 初始化伤害值
-                executeAttack(attack_context);  // 内部会消耗action_points
+                executeAttack(ref attack_context);  // 内部会消耗action_points
                 //输出demage的值
                 Console.WriteLine($"[Attack] Damage Dealt: {attack_context.damageDealt}");
                 logdata.addAttack(attack_context); // 记录攻击日志
