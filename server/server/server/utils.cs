@@ -176,14 +176,14 @@ public static class SpellFactory
                 description = "治疗友方单位",
                 effectType = SpellEffectType.Heal,
                 damageType = DamageType.None,
-                baseValue = 20,
-                range = 1,
+                baseValue = 30,
+                range = 2,
                 areaRadius = 4,
                 spellCost = 1,
                 baseLifespan = 0,
                 isAreaEffect = false,
                 isDelaySpell = false,
-                isLockingSpell = true
+                isLockingSpell = false
             },
             new Spell
             {
@@ -240,6 +240,11 @@ public static class SpellFactory
         };
         return spells;
     }
+
+    public static Spell? GetSpellById(int id)
+{
+    return GetAllSpells().FirstOrDefault(spell => spell.id == id);
+}
 }
 
 
