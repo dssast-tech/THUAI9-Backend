@@ -170,15 +170,6 @@ namespace server
                     float heightDiff = height_map[next.x, next.y] - height_map[current.x, current.y];
                     float moveCost = 1 + Math.Max(0, heightDiff); // 爬山消耗：1 + 高度差（下坡不增加）
 
-                    float val = 2;// 此处体力值我不知道具体是多少，后续需要改
-                    if (p.strength < val)
-                    {
-                        if (moveCost >= 3)//高度差大于2，且体力不足以支撑
-                        {
-                            continue;
-                        }
-                    }
-
                     float newCost = costSoFar[current] + moveCost;
 
                     if (newCost > movement)
@@ -289,6 +280,8 @@ namespace server
             // 确保两个玩家的棋子不在同一侧
             if ((player1_pieces_ontop && player2_pieces_ontop) || (player1_pieces_below && player2_pieces_below))
             {
+                // 并没有重合检测，不同玩家棋子重合仍然在这里判断
+                Console.WriteLine("不同玩家不能有棋子处在同侧");//直接退出程序，后续可以修改
                 throw new InvalidOperationException("Both players' chess pieces are placed on the same side of the board.");
             }
 

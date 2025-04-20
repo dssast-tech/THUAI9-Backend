@@ -16,6 +16,7 @@ namespace server
 
     struct actionSet
     {
+        public bool move;
         public Point move_target;
         public bool attack;
         public  AttackContext attack_context;

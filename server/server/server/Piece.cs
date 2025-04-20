@@ -69,6 +69,7 @@ namespace server
             if (type == "physical")
             {
                 damage = Math.Max(0, damage - physical_resist); // 物理伤害计算
+                Console.WriteLine($"[DEBUG] pyResist:{physical_resist}");
             }
             else if (type == "magic")
             {
