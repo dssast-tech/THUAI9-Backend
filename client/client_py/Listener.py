@@ -19,7 +19,7 @@ class ClientListener:
         print(f"客户端监听启动: {self.url_prefix}")
 
         def run_server():
-            server = http.server.HTTPServer(('localhost', 5001), self.RequestHandlerFactory(self.get_action_callback))
+            server = http.server.HTTPServer(('localhost', 5002), self.RequestHandlerFactory(self.get_action_callback))
             while self.is_running:
                 server.handle_request()
 
