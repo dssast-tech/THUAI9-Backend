@@ -11,37 +11,38 @@ namespace server
     [System.Serializable]
     public class GameData
     {
-        public MapData mapMetadata;
-        public SoldiersDataWrapper soldiersData;
-        public List<GameRound> gameRounds;
+        public MapData mapMetadata { get; set; }
+        public SoldiersDataWrapper soldiersData { get; set; }
+        public List<GameRound> gameRounds { get; set; }
     }
+
     [System.Serializable]
     public class MapData
     {
-        public string mapName;
-        public string mapDescription;
-        public int mapWidth;
-        public float cubeSize;
-        public List<MapRow> rows; // 使用列表存储行数据
+        public string mapName { get; set; }
+        public string mapDescription { get; set; }
+        public int mapWidth { get; set; }
+        public float cubeSize { get; set; }
+        public List<MapRow> rows { get; set; } // 使用列表存储行数据
     }
     // SoldierData.cs
     [System.Serializable]
     public class SoldierData
     {
-        public int ID;
-        public string soldierType;
-        public string camp;
-        public Vector3 position;
-        public SoldierStats stats;
+        public int ID { get; set; }
+        public string soldierType { get; set; }
+        public string camp { get; set; }
+        public Vector3Serializable position { get; set; }
+        public SoldierStats stats { get; set; }
 
     }
 
     [System.Serializable]
     public class SoldierStats
     {
-        public int health;
-        public int strength;
-        public int mana;
+        public int health { get; set; }
+        public int strength { get; set; }
+        public int mana { get; set; }
     }
 
     // JSON包装类
@@ -49,7 +50,7 @@ namespace server
     public class SoldiersDataWrapper
     {
         //public SoldierData[] soldiers;
-        public List<SoldierData> soldiers;
+        public List<SoldierData> soldiers { get; set; }
     }
 
 
@@ -58,41 +59,55 @@ namespace server
     [System.Serializable]
     public class MapRow
     {
-        public List<int> row; // 每行的数据
+        public List<int> row { get; set; } // 每行的数据
     }
 
     [System.Serializable]
     public class InitialState
     {
-        public List<SoldierData> soldiers;
+        public List<SoldierData> soldiers { get; set; }
     }
 
     [System.Serializable]
     public class GameRound
     {
-        public int roundNumber;
-        public InitialState initialState;
-        public List<BattleAction> actions;
+        public int roundNumber { get; set; }
+        public InitialState initialState { get; set; }
+        public List<BattleAction> actions { get; set; }
     }
 
     [System.Serializable]
     public class BattleAction
     {
-        public string actionType;
-        public int soldierId;
+        public string actionType { get; set; }
+        public int soldierId { get; set; }
 
         // Movement
-        public List<Vector3> path;
-        public int remainingMovement;
+        public List<Vector3Serializable> path { get; set; }
+        public int remainingMovement { get; set; }
 
         // Attack
-        public int targetId;
-        public int damageDealt;
-        public SoldierStats newStats;
+        public int targetId { get; set; }
+        public int damageDealt { get; set; }
+        public SoldierStats newStats { get; set; }
 
         // Ability
-        public string ability;
-        public Vector3 targetPosition;
-        public int manaCost;
+        public string ability { get; set; }
+        public Vector3Serializable targetPosition { get; set; }
+        public int manaCost { get; set; }
+    }
+
+    public class Vector3Serializable
+    {
+        public int x { get; set; }
+        public int y { get; set; }
+        public int z { get; set; }
+
+        public Vector3Serializable(int x, int y, int z)
+        {
+            this.x = x;
+            this.y = y;
+            this.z = z;
+        }
     }
 }
