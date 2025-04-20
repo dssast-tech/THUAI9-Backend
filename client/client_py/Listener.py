@@ -2,6 +2,7 @@ import http.server
 import json
 from threading import Thread
 from game_message import GameMessage, PolicyMessage
+import requests  # 用于向服务器发送 GET 请求
 
 
 class ClientListener:
@@ -26,9 +27,38 @@ class ClientListener:
         self.server_thread = Thread(target=run_server)
         self.server_thread.start()
 
+        # 在启动监听器后，主动向服务器发送 GET 请求获取初始局面
+        self.request_initial_state()
+
     def stop(self):
         self.is_running = False
         print("客户端监听停止")
+
+    def request_initial_state(self):
+        """向服务器发送 GET 请求以获取初始局面"""
+        try:
+            print("向服务器请求初始局面...")
+            response = requests.get("http://localhost:5001")
+            game_state = response.json()
+            print("收到服务器返回的初始局面：")
+            print(json.dumps(game_state, indent=4))
+
+            # 调用回调函数生成策略
+            policy_message = self.get_action_callback(GameMessage.from_dict(game_state))
+
+            # 将策略通过 POST 请求发送回服务器
+            self.send_policy_to_server(policy_message)
+        except Exception as e:
+            print(f"请求初始局面失败：{e}")
+
+    def send_policy_to_server(self, policy_message):
+        """通过 POST 请求将策略发送回服务器"""
+        try:
+            print("向服务器发送策略...")
+            response = requests.post("http://localhost:5001", json=policy_message.to_dict())
+            print("服务器响应：", response.text)
+        except Exception as e:
+            print(f"发送策略失败：{e}")
 
     class RequestHandlerFactory:
         def __init__(self, get_action_callback):
@@ -43,7 +73,7 @@ class ClientListener:
             super().__init__(*args, **kwargs)
 
         def do_POST(self):
-            # 读取请求数据
+            """处理服务器发送的 POST 请求"""
             content_length = int(self.headers['Content-Length'])
             post_data = self.rfile.read(content_length)
             try:
