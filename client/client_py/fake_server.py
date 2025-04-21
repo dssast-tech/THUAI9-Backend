@@ -1,8 +1,7 @@
 import http.server
 import json
-import requests  # 用于向客户端发送请求
 from threading import Thread
-import time  # 用于轮询检测
+import time
 
 # 示例 server_to_client.json 数据
 SERVER_TO_CLIENT_JSON = {
@@ -56,8 +55,25 @@ SERVER_TO_CLIENT_JSON = {
 
 
 class ServerHandler(http.server.BaseHTTPRequestHandler):
+    def do_GET(self):
+        """处理客户端发送的 GET 请求，返回初始局面"""
+        try:
+            response_data = json.dumps(SERVER_TO_CLIENT_JSON).encode('utf-8')
+
+            # 返回响应
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.end_headers()
+            self.wfile.write(response_data)
+            print("已向客户端发送初始局面")
+        except Exception as e:
+            # 错误处理
+            self.send_response(500)
+            self.end_headers()
+            self.wfile.write(f"Error: {str(e)}".encode('utf-8'))
+
     def do_POST(self):
-        # 读取客户端发送的数据
+        """处理客户端发送的 POST 请求，接收决策"""
         content_length = int(self.headers['Content-Length'])
         post_data = self.rfile.read(content_length)
         try:
@@ -77,54 +93,11 @@ class ServerHandler(http.server.BaseHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(f"Error: {str(e)}".encode('utf-8'))
 
-    def do_GET(self):
-        # 处理 GET 请求，向客户端发送游戏状态信息
-        try:
-            response_data = json.dumps(SERVER_TO_CLIENT_JSON).encode('utf-8')
-
-            # 返回响应
-            self.send_response(200)
-            self.send_header("Content-Type", "application/json")
-            self.end_headers()
-            self.wfile.write(response_data)
-        except Exception as e:
-            # 错误处理
-            self.send_response(500)
-            self.end_headers()
-            self.wfile.write(f"Error: {str(e)}".encode('utf-8'))
-
-
-def wait_for_client():
-    """轮询检测客户端是否已启动"""
-    client_url = "http://localhost:5002/receive/"
-    while True:
-        try:
-            # 尝试向客户端发送一个简单的 GET 请求
-            response = requests.get(client_url, timeout=1)
-            print("客户端已连接，准备发送游戏状态...")
-            return
-        except requests.exceptions.ConnectionError:
-            print("等待客户端连接...")
-            time.sleep(1)  # 每隔 1 秒重试
-
 
 def run_server():
     server_address = ('localhost', 5001)
     httpd = http.server.HTTPServer(server_address, ServerHandler)
     print("服务器已启动，监听地址：http://localhost:5001")
-
-    # 等待客户端连接
-    wait_for_client()
-
-    # 模拟向客户端发送 GET 请求
-    try:
-        print("向客户端发送游戏状态...")
-        response = requests.get("http://localhost:5002/receive/")
-        print("收到客户端响应：")
-        print(response.text)
-    except Exception as e:
-        print(f"向客户端发送请求失败：{e}")
-
     httpd.serve_forever()
 
 
