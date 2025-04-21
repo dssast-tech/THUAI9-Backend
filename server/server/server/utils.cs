@@ -88,6 +88,8 @@ namespace server
 
         public bool isHit;            // 是否命中
         public bool isCritical;       // 是否暴击
+
+        public bool delayAdd;    // 优势值
     }
 
     // 配套枚举类型
@@ -183,27 +185,11 @@ public static class SpellFactory
                 baseLifespan = 0,
                 isAreaEffect = false,
                 isDelaySpell = false,
-                isLockingSpell = false
+                isLockingSpell = true
             },
             new Spell
             {
                 id = 3,
-                name = "teleport",
-                description = "瞬间移动一段位置",
-                effectType = SpellEffectType.Move,
-                damageType = DamageType.Physical,
-                baseValue = 0,
-                range = 1,
-                areaRadius = 10,
-                spellCost = 1,
-                baseLifespan = 0,
-                isAreaEffect = false,
-                isDelaySpell = false,
-                isLockingSpell = false
-            },
-            new Spell
-            {
-                id = 4,
                 name = "arrowHit",
                 description = "箭击",
                 effectType = SpellEffectType.Damage,
@@ -228,7 +214,7 @@ public static class SpellFactory
                 range = 1,
                 areaRadius = 0,
                 spellCost = 1,
-                baseLifespan = 0,
+                baseLifespan = 2,
                 isAreaEffect = false,
                 isDelaySpell = true,
                 isLockingSpell = false

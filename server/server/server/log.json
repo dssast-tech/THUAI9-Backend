@@ -847,23 +847,48 @@
           }
         ]
       },
-      "actions": [
-        {
-          "actionType": "Attack",
-          "soldierId": 0,
-          "path": null,
-          "remainingMovement": 0,
-          "targetId": 1,
-          "damageDealt": 0,
-          "newStats": null,
-          "ability": null,
-          "targetPosition": null,
-          "manaCost": 0
-        }
-      ]
+      "actions": []
     },
     {
       "roundNumber": 4,
+      "initialState": {
+        "soldiers": [
+          {
+            "ID": 0,
+            "soldierType": null,
+            "camp": "Blue",
+            "position": {
+              "x": 18,
+              "y": 0,
+              "z": 0
+            },
+            "stats": {
+              "health": 50,
+              "strength": 10,
+              "mana": 10
+            }
+          },
+          {
+            "ID": 1,
+            "soldierType": null,
+            "camp": "Blue",
+            "position": {
+              "x": 18,
+              "y": 1,
+              "z": 0
+            },
+            "stats": {
+              "health": 50,
+              "strength": 10,
+              "mana": 10
+            }
+          }
+        ]
+      },
+      "actions": []
+    },
+    {
+      "roundNumber": 5,
       "initialState": {
         "soldiers": [
           {
