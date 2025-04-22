@@ -13,7 +13,7 @@ namespace server
 {
     class Player
     {
-        const int PIECECNT = 1; //此处进行了一次修改
+        public const int PIECECNT = 1; //此处进行了一次修改
         public int id;
         public List<Piece> pieces; //持有的棋子
         public int feature_total=30;
@@ -126,7 +126,11 @@ namespace server
             
             }
             
-            
+        }
+
+        public void localInit(InitPolicyMessage initMessage)
+        {
+            //TODO
         }
 
 
@@ -140,120 +144,135 @@ namespace server
 
         List<int> initInput(Board board,int id)
         {
-            // 接收控制台输入，将信息解析为一个initializationSet
-            List<int> initializationSet = new List<int>();
-            try
-            {
-                bool inputcorrect=false;
-                do{
-                    Console.WriteLine("现在输入棋子属性分配，格式为：力量 敏捷 智力 总和不超过30");
-                    string input = Console.ReadLine();
-                    if (!string.IsNullOrEmpty(input))
+                // 接收控制台输入，将信息解析为一个initializationSet
+                List<int> initializationSet = new List<int>();
+                try
+                {
+                    bool inputcorrect = false;
+                    do
                     {
-                        string[] inputs = input.Split(' ');
-                        int[] nums = new int[inputs.Length];
-                        for(int i = 0; i < inputs.Length; i++) nums[i] = int.Parse(inputs[i]);
-                        if(nums.Length != 3){
-                            Console.WriteLine("输入的整数不是3个");
-                            continue;
-                        }
-                        if(nums[0] < 0 || nums[1] < 0 || nums[2] < 0){
-                            Console.WriteLine("输入的整数不能为负数！");
-                            continue;
-                        }
-                        if(nums[0] + nums[1] + nums[2] > 30){
-                            Console.WriteLine("输入的整数之和多于30！");
-                            continue;
-                        }
-                        for(int i = 0; i < nums.Length; i++) initializationSet.Add(nums[i]);
-                        inputcorrect=true;
-                    }
-                }while(inputcorrect==false);
-                
-
-                Console.WriteLine("武器防具表展示如下：");
-                Console.WriteLine("武器:         物伤值      法伤值     范围");
-                Console.WriteLine("1~长剑       18           0         5");
-                Console.WriteLine("2~短剑       24           0         3");
-                Console.WriteLine("3~弓         16           0         9"); 
-                Console.WriteLine("4~法杖        0           22        12");
-                Console.WriteLine("防具:         物豁免值      法豁免值   行动力影响");
-                Console.WriteLine("1~轻甲         8            10        +3");
-                Console.WriteLine("2~中甲         15           13        0");
-                Console.WriteLine("3~重甲         23           17        -3");
-                
-                inputcorrect=false;
-                do{
-                    Console.WriteLine("现在输入武器和防具，格式为：武器类型(1-4) 防具类型(1-3)");
-                    string input = Console.ReadLine();
-                    if (!string.IsNullOrEmpty(input))
-                    {
-                        string[] inputs = input.Split(' ');
-                        int[] nums = new int[inputs.Length];
-                        for(int i = 0; i < inputs.Length; i++) nums[i] = int.Parse(inputs[i]);
-                        if(nums.Length != 2){
-                            Console.WriteLine("输入的整数不是3个");
-                            continue;
-                        }
-                        if(nums[0] < 1 || nums[1] < 1 || nums[0] > 4 || nums[1] > 3){
-                            Console.WriteLine("输入的整数不在范围里！");
-                            continue;
-                        }
-                        if(nums[0] == 4 && nums[1] != 1){
-                            Console.WriteLine("法杖只能配轻甲！");
-                            continue;
-                        }
-                        for(int i = 0; i < nums.Length; i++) initializationSet.Add(nums[i]);
-                        inputcorrect=true;
-                    }
-                }while(inputcorrect==false);
-
-                inputcorrect=false;
-                do{
-
-                    int rows=board.height;int cols=board.width;
-                    int boarder=board.boarder;
-                    //TODO给用户显示地图信息
-                    Console.WriteLine("现在输入棋子初始坐标，格式为：x y");
-                    string input = Console.ReadLine();
-                    if (!string.IsNullOrEmpty(input))
-                    {
-                        string[] inputs = input.Split(' ');
-                        int[] nums = new int[inputs.Length];
-                        for(int i = 0; i < inputs.Length; i++) nums[i] = int.Parse(inputs[i]);
-                        if(nums.Length != 2){
-                            Console.WriteLine("输入的整数不是2个");
-                            continue;
-                        }
-
-                        if (nums[0]<0||nums[0]>cols-1||nums[1]> rows - 1 || nums[1]<0){
-                            Console.WriteLine("输入的整数超过范围！");
-                            continue;
-                        }
-                        if(board.grid[nums[0],nums[1]].state!=1){
-                            Console.WriteLine("输入的坐标状态为不可占据!");
-                            continue;
-                        }
-                        bool is_vaild=true;
-                        for(int i=0;i<piece_num;i++){
-                            if(nums[0]==pieces[i].position.x && nums[1]==pieces[i].position.y){
-                                Console.WriteLine("输入的坐标与已有棋子重合！");
-                                is_vaild=false;
+                        Console.WriteLine("现在输入棋子属性分配，格式为：力量 敏捷 智力 总和不超过30");
+                        string input = Console.ReadLine();
+                        if (!string.IsNullOrEmpty(input))
+                        {
+                            string[] inputs = input.Split(' ');
+                            int[] nums = new int[inputs.Length];
+                            for (int i = 0; i < inputs.Length; i++) nums[i] = int.Parse(inputs[i]);
+                            if (nums.Length != 3)
+                            {
+                                Console.WriteLine("输入的整数不是3个");
+                                continue;
                             }
+                            if (nums[0] < 0 || nums[1] < 0 || nums[2] < 0)
+                            {
+                                Console.WriteLine("输入的整数不能为负数！");
+                                continue;
+                            }
+                            if (nums[0] + nums[1] + nums[2] > 30)
+                            {
+                                Console.WriteLine("输入的整数之和多于30！");
+                                continue;
+                            }
+                            for (int i = 0; i < nums.Length; i++) initializationSet.Add(nums[i]);
+                            inputcorrect = true;
                         }
-                        if(!is_vaild) continue; 
-                        for(int i = 0; i < nums.Length; i++) initializationSet.Add(nums[i]);
-                        inputcorrect=true;
-                    }
-                }while(inputcorrect==false);
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"输入错误：{ex.Message}");
-                throw;
-            }
-        
-            return initializationSet;
+                    } while (inputcorrect == false);
+
+
+                    Console.WriteLine("武器防具表展示如下：");
+                    Console.WriteLine("武器:         物伤值      法伤值     范围");
+                    Console.WriteLine("1~长剑       18           0         5");
+                    Console.WriteLine("2~短剑       24           0         3");
+                    Console.WriteLine("3~弓         16           0         9");
+                    Console.WriteLine("4~法杖        0           22        12");
+                    Console.WriteLine("防具:         物豁免值      法豁免值   行动力影响");
+                    Console.WriteLine("1~轻甲         8            10        +3");
+                    Console.WriteLine("2~中甲         15           13        0");
+                    Console.WriteLine("3~重甲         23           17        -3");
+
+                    inputcorrect = false;
+                    do
+                    {
+                        Console.WriteLine("现在输入武器和防具，格式为：武器类型(1-4) 防具类型(1-3)");
+                        string input = Console.ReadLine();
+                        if (!string.IsNullOrEmpty(input))
+                        {
+                            string[] inputs = input.Split(' ');
+                            int[] nums = new int[inputs.Length];
+                            for (int i = 0; i < inputs.Length; i++) nums[i] = int.Parse(inputs[i]);
+                            if (nums.Length != 2)
+                            {
+                                Console.WriteLine("输入的整数不是3个");
+                                continue;
+                            }
+                            if (nums[0] < 1 || nums[1] < 1 || nums[0] > 4 || nums[1] > 3)
+                            {
+                                Console.WriteLine("输入的整数不在范围里！");
+                                continue;
+                            }
+                            if (nums[0] == 4 && nums[1] != 1)
+                            {
+                                Console.WriteLine("法杖只能配轻甲！");
+                                continue;
+                            }
+                            for (int i = 0; i < nums.Length; i++) initializationSet.Add(nums[i]);
+                            inputcorrect = true;
+                        }
+                    } while (inputcorrect == false);
+
+                    inputcorrect = false;
+                    do
+                    {
+
+                        int rows = board.height; int cols = board.width;
+                        int boarder = board.boarder;
+                        //TODO给用户显示地图信息
+                        Console.WriteLine("现在输入棋子初始坐标，格式为：x y");
+                        string input = Console.ReadLine();
+                        if (!string.IsNullOrEmpty(input))
+                        {
+                            string[] inputs = input.Split(' ');
+                            int[] nums = new int[inputs.Length];
+                            for (int i = 0; i < inputs.Length; i++) nums[i] = int.Parse(inputs[i]);
+                            if (nums.Length != 2)
+                            {
+                                Console.WriteLine("输入的整数不是2个");
+                                continue;
+                            }
+
+                            if (nums[0] < 0 || nums[0] > cols - 1 || nums[1] > rows - 1 || nums[1] < 0)
+                            {
+                                Console.WriteLine("输入的整数超过范围！");
+                                continue;
+                            }
+                            if (board.grid[nums[0], nums[1]].state != 1)
+                            {
+                                Console.WriteLine("输入的坐标状态为不可占据!");
+                                continue;
+                            }
+                            bool is_vaild = true;
+                            for (int i = 0; i < piece_num; i++)
+                            {
+                                if (nums[0] == pieces[i].position.x && nums[1] == pieces[i].position.y)
+                                {
+                                    Console.WriteLine("输入的坐标与已有棋子重合！");
+                                    is_vaild = false;
+                                }
+                            }
+                            if (!is_vaild) continue;
+                            for (int i = 0; i < nums.Length; i++) initializationSet.Add(nums[i]);
+                            inputcorrect = true;
+                        }
+                    } while (inputcorrect == false);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"输入错误：{ex.Message}");
+                    throw;
+                }
+
+                return initializationSet;
+            
         }
     }
 }

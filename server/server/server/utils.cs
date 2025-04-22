@@ -24,15 +24,15 @@ namespace server
         public  SpellContext spell_context;
     }
 
-    struct initializationSet
-    {
-        //用于棋子初始化的信息，具体内容待定
-    }
+    //struct initializationSet
+    //{
+    //    //用于棋子初始化的信息，具体内容待定
+    //}
 
-    struct Message
-    {
-        //通信预留转接类
-    }
+    //struct Message
+    //{
+    //    //通信预留转接类
+    //}
 
     struct AttackContext
     {
