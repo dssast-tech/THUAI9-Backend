@@ -72,7 +72,7 @@ namespace server
     public class GameRound
     {
         public int roundNumber { get; set; }
-        public InitialState initialState { get; set; }
+        //public InitialState initialState { get; set; }
         public List<BattleAction> actions { get; set; }
     }
 

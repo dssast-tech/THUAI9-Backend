@@ -5,12 +5,14 @@ using System.Numerics;
 using System.Text;
 using System.Threading.Tasks;
 using System.Xml.Serialization;
+using static System.Collections.Specialized.BitVector32;
 
 // 环境类：游戏核心控制器，管理所有游戏逻辑和状态
 namespace server
 {
     class Env
     {
+        int mode;// 0 for local, 1 for http
         List<Piece> action_queue; // 棋子的行动队列
         Piece current_piece; // 当前行动的棋子
         int round_number; // 当前回合数
@@ -22,7 +24,15 @@ namespace server
         List<Piece> newDeadThisRound; // 记录本回合新死亡的棋子列表
         List<Piece> lastRoundDeadPieces;
         LogConverter logdata;
-
+        ServerCommunicator communicator;
+        public Env()
+        {
+            communicator = new ServerCommunicator(
+                "address1",
+                "address2"
+                );
+            mode = 0;
+        }
 
         void initialize()
         {
@@ -36,8 +46,33 @@ namespace server
             player2 = new Player();
             player1.id = 1;
             player2.id = 2;
-            player1.localInit(board, player1.id);
-            player2.localInit(board, player2.id);
+
+
+            if( mode == 0 )
+            {
+                player1.localInit(board, player1.id);
+                player2.localInit(board, player2.id);
+            }
+            else
+            {
+                MessageWrapper<InitGameMessage> initmessage = new MessageWrapper<InitGameMessage>();
+                initmessage.type = 0;
+                initmessage.data = new InitGameMessage();
+                initmessage.data.pieceCnt = Player.PIECECNT;
+                initmessage.data.id = 1;
+                initmessage.data.board = board;
+                InitPolicyMessage initMessage = communicator.SendInitRequest(1, initmessage);
+                player1.localInit(initMessage);
+
+                initmessage = new MessageWrapper<InitGameMessage>();
+                initmessage.type = 0;
+                initmessage.data = new InitGameMessage();
+                initmessage.data.pieceCnt = Player.PIECECNT;
+                initmessage.data.id = 2;
+                initmessage.data.board = board;
+                initMessage = communicator.SendInitRequest(2, initmessage);
+                player2.localInit(initMessage);
+            }
 
             //board.init_pieces_location(player1.pieces, player2.pieces);
             // 初始化棋盘
@@ -85,82 +120,108 @@ namespace server
         }
 
         // 获取当前棋子的行动指令集
-        actionSet getAction()
+        actionSet getAction(int mode = 0)
         {
-            actionSet action = new actionSet();
-
-            // 移动部分
-            while (true)
+            //http模式
+            if (mode == 1)
             {
-                Console.WriteLine("请输入目标移动位置（格式：x y, 若不移动，输入-1 -1）：");
-                string input = Console.ReadLine();
-                try
-                {
-                    string[] inputs = input.Split(' ');
-                    if (inputs.Length != 2)
-                        throw new Exception("输入格式错误，应为两个用空格隔开的整数。");
 
-                    int x = int.Parse(inputs[0]);
-                    int y = int.Parse(inputs[1]);
+                MessageWrapper<GameMessage> initmessage = new MessageWrapper<GameMessage>();
+                initmessage.type = 1;
+                initmessage.data = new GameMessage();
 
-                    if (x == -1 || y == -1)
-                    {
-                        action.move = false;
-                        break;
-                    }
+                initmessage.data.action_queue = action_queue;
+                initmessage.data.board = board;
+                initmessage.data.current_piece = current_piece;
+                initmessage.data.round_number = round_number;
+                initmessage.data.delayed_spells = delayed_spells;
+                initmessage.data.player1 = player1;
+                initmessage.data.player2 = player2;
+                PolicyMessage actionMessage = communicator.SendActionRequest(current_piece.team, initmessage);
 
-                    action.move = true;
-                    action.move_target = new Point(x, y);
-                    break;
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"输入错误：{ex.Message}");
-                }
+                //TODO: 读取actionMessage并做合法性检查；@王浩宇
+
+                throw new NotImplementedException();
             }
-
-            // 攻击部分
-            while (true)
+            else
             {
-                Console.WriteLine("请输入要攻击的棋子id编号（若不攻击，输入-1)");
-                string input = Console.ReadLine();
-                try
-                {
-                    int x = int.Parse(input);
-                    if (x == -1)
-                    {
-                        action.attack = false;
-                        break;
-                    }
-                    else
-                    {
-                        action.attack = true;
-                        action.attack_context.attacker = current_piece;
-                        Piece foundPiece = action_queue.FirstOrDefault(p => p.id == x);
-                        if (foundPiece == null)
-                            throw new Exception("未找到指定的棋子。");
-                        action.attack_context.target = foundPiece;
-                        action.attack_context.attackPosition = current_piece.position;
-                        break;
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"输入错误：{ex.Message}");
-                }
-            }
-
-            // 法术部分
-            Console.WriteLine("是否要施放法术？(1/-1)");
-            string spellChoice = Console.ReadLine();
-            if (spellChoice != null && spellChoice.Trim() == "1")
-            {
+                actionSet action = new actionSet();
                 while (true)
                 {
-                    Console.WriteLine("请输入要施加的法术id（若不施法，输入-1)");
+                    Console.WriteLine("请输入目标移动位置（格式：x y, 若不移动，输入-1 -1）：");
+                    string input = Console.ReadLine();
+
+                    try
+                    {
+                        // 检查输入是否为两个用空格隔开的整数
+                        string[] inputs = input.Split(' ');
+                        if (inputs.Length != 2)
+                        {
+                            throw new Exception("输入格式错误，应为两个用空格隔开的整数。");
+                        }
+
+                        int x = int.Parse(inputs[0]);
+                        int y = int.Parse(inputs[1]);
+
+                        if (x == -1 || y == -1)
+                        {
+                            action.move = false;
+                            break;
+                        }
+
+                        // 执行业务逻辑
+                        // 例如：设置棋子的目标位置
+                        action.move = true;
+                        action.move_target = new Point(x, y);
+                        break;
+                        // 退出循环
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"输入错误：{ex.Message}");
+                    }
+                }
+                // 攻击部分
+                while (true)
+                {
+                    Console.WriteLine("请输入要攻击的棋子id编号（若不攻击，输入-1)");
                     string input = Console.ReadLine();
                     try
                     {
+                        int x = int.Parse(input);
+                        if (x == -1)
+                        {
+                            action.attack = false;
+                            break;
+                        }
+                        else
+                        {
+                            action.attack = true;
+                            action.attack_context.attacker = current_piece;
+                            Piece foundPiece = action_queue.FirstOrDefault(p => p.id == x);
+                            if (foundPiece == null)
+                                throw new Exception("未找到指定的棋子。");
+                            action.attack_context.target = foundPiece;
+                            action.attack_context.attackPosition = current_piece.position;
+                            break;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"输入错误：{ex.Message}");
+                    }
+                }
+
+                // 法术部分
+                Console.WriteLine("是否要施放法术？(1/-1)");
+                string spellChoice = Console.ReadLine();
+                if (spellChoice != null && spellChoice.Trim() == "1")
+                {
+                    while (true)
+                    {
+                        Console.WriteLine("请输入要施加的法术id（若不施法，输入-1)");
+                        string input = Console.ReadLine();
+
                         int spellId = int.Parse(input);
                         if (spellId == -1)
                         {
@@ -238,22 +299,22 @@ namespace server
                         };
 
                         Console.WriteLine($"法术 {spell.name} 已准备施放，目标区域中心: ({x}, {y})");
-                        break;
-                    }
-                    catch (Exception ex)
-                    {
-                        Console.WriteLine($"输入错误：{ex.Message}");
-                        continue;
                     }
                 }
-            }
-            else
-            {
-                action.spell = false;
-            }
+                else
+                {
+                    action.spell = false;
+                }
 
-            return action;
+                return action;
+            }
         }
+
+
+
+            
+
+
 
         // 投掷骰子  
         private int RollDice(int n, int sides) // n为投掷次数，sides为骰子面数
@@ -583,6 +644,7 @@ namespace server
 
             logdata.addRound(round_number, action_queue);
             log(0);
+            var action = getAction();
 
             action_queue.RemoveAt(0);
             // 将棋子放回队列末尾
@@ -597,9 +659,7 @@ namespace server
             //    continue;
             //}
 
-            var action = getAction();
 
-            // 移动阶段
             if (current_piece.action_points > 0 && action.move)
             {
                 // 从玩家获取移动目标
