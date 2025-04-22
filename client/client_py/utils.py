@@ -18,8 +18,46 @@ class ActionSet:
 
 
 class InitializationSet:
-    """用于棋子初始化的信息，具体内容待定"""
-    pass
+    """用于棋子初始化的信息"""
+
+    def __init__(self, strength=0, dexterity=0, intelligence=0, weapon=0, armor=0, position=None):
+        """
+        :param strength: 力量属性
+        :param dexterity: 敏捷属性
+        :param intelligence: 智力属性
+        :param weapon: 武器类型 (1~长剑, 2~短剑, 3~弓, 4~法杖)
+        :param armor: 防具类型 (1~轻甲, 2~中甲, 3~重甲)
+        :param position: 初始位置 (Point 对象)
+        """
+        self.strength = strength
+        self.dexterity = dexterity
+        self.intelligence = intelligence
+        self.weapon = weapon
+        self.armor = armor
+        self.position = position if position else Point()
+
+    def to_dict(self):
+        """将 InitializationSet 转换为字典格式"""
+        return {
+            "strength": self.strength,
+            "dexterity": self.dexterity,
+            "intelligence": self.intelligence,
+            "weapon": self.weapon,
+            "armor": self.armor,
+            "position": {"x": self.position.x, "y": self.position.y},
+        }
+
+    @staticmethod
+    def from_dict(data):
+        """从字典格式解析为 InitializationSet 对象"""
+        return InitializationSet(
+            strength=data.get("strength", 0),
+            dexterity=data.get("dexterity", 0),
+            intelligence=data.get("intelligence", 0),
+            weapon=data.get("weapon", 0),
+            armor=data.get("armor", 0),
+            position=Point(data["position"]["x"], data["position"]["y"]) if "position" in data else Point(),
+        )
 
 
 class Message:

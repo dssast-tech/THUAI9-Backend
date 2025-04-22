@@ -5,6 +5,7 @@ using System.Numerics;
 using System.Text;
 using System.Threading.Tasks;
 using System.Xml.Serialization;
+using static System.Collections.Specialized.BitVector32;
 
 // 环境类：游戏核心控制器，管理所有游戏逻辑和状态
 namespace server
@@ -38,9 +39,9 @@ namespace server
             //执行各类初始化
             //注：对于player类，先调用player的localInit函数进行初始化，并根据Init返回值进行地图信息的初始化（需要进行各种合法性检查，如初始位置是否越过双方边界线）
             board = new Board();
-            string filePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "BoardCase","case1.txt");
+            string filePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "BoardCase", "case1.txt");
             board.init(filePath);
-            
+
             player1 = new Player();
             player2 = new Player();
             player1.id = 1;
@@ -83,22 +84,22 @@ namespace server
 
             // 初始化行动列表
             action_queue = new List<Piece>();
-            
+
             Dictionary<Piece, int> piecePriority = new Dictionary<Piece, int>();
-            
+
             // 为每个棋子计算优先级
             foreach (var piece in player1.pieces)
             {
                 int priority = RollDice(1, 20) + piece.intelligence;
                 piecePriority[piece] = priority;
             }
-            
+
             foreach (var piece in player2.pieces)
             {
                 int priority = RollDice(1, 20) + piece.dexterity;
                 piecePriority[piece] = priority;
             }
-            
+
             // 按优先级从大到小排序并添加到行动队列
             action_queue = piecePriority
                 .OrderByDescending(pair => pair.Value)
@@ -112,7 +113,7 @@ namespace server
 
             board.init_pieces_location(player1.pieces, player2.pieces);
 
-            logdata =new LogConverter();
+            logdata = new LogConverter();
             logdata.init(action_queue, board);
             lastRoundDeadPieces = new List<Piece>();
 
@@ -122,7 +123,7 @@ namespace server
         actionSet getAction(int mode = 0)
         {
             //http模式
-            if(mode == 1)
+            if (mode == 1)
             {
 
                 MessageWrapper<GameMessage> initmessage = new MessageWrapper<GameMessage>();
@@ -136,7 +137,7 @@ namespace server
                 initmessage.data.delayed_spells = delayed_spells;
                 initmessage.data.player1 = player1;
                 initmessage.data.player2 = player2;
-                PolicyMessage actionMessage = communicator.SendActionRequest(current_piece.team,initmessage);
+                PolicyMessage actionMessage = communicator.SendActionRequest(current_piece.team, initmessage);
 
                 //TODO: 读取actionMessage并做合法性检查；@王浩宇
 
@@ -144,7 +145,6 @@ namespace server
             }
             else
             {
-                // 通过当前玩家对象获取行动决策（需具体实现）
                 actionSet action = new actionSet();
                 while (true)
                 {
@@ -173,20 +173,19 @@ namespace server
                         // 例如：设置棋子的目标位置
                         action.move = true;
                         action.move_target = new Point(x, y);
-
-                        // 退出循环
                         break;
+                        // 退出循环
                     }
                     catch (Exception ex)
                     {
                         Console.WriteLine($"输入错误：{ex.Message}");
                     }
                 }
+                // 攻击部分
                 while (true)
                 {
                     Console.WriteLine("请输入要攻击的棋子id编号（若不攻击，输入-1)");
                     string input = Console.ReadLine();
-
                     try
                     {
                         int x = int.Parse(input);
@@ -201,55 +200,121 @@ namespace server
                             action.attack_context.attacker = current_piece;
                             Piece foundPiece = action_queue.FirstOrDefault(p => p.id == x);
                             if (foundPiece == null)
-                            {
                                 throw new Exception("未找到指定的棋子。");
-                            }
                             action.attack_context.target = foundPiece;
                             action.attack_context.attackPosition = current_piece.position;
-                            // 其他攻击相关逻辑
                             break;
                         }
                     }
-
                     catch (Exception ex)
                     {
                         Console.WriteLine($"输入错误：{ex.Message}");
                     }
                 }
-                if (action.attack == true)
+
+                // 法术部分
+                Console.WriteLine("是否要施放法术？(1/-1)");
+                string spellChoice = Console.ReadLine();
+                if (spellChoice != null && spellChoice.Trim() == "1")
                 {
                     while (true)
                     {
-                        Console.WriteLine("请输入要施加的法术id（若不攻击，输入-1)");
+                        Console.WriteLine("请输入要施加的法术id（若不施法，输入-1)");
                         string input = Console.ReadLine();
-                        try
+
+                        int spellId = int.Parse(input);
+                        if (spellId == -1)
                         {
-                            int x = int.Parse(input);
-                            if (x == -1)
-                            {
-                                action.spell = false;
-                                break;
-                            }
-                            else
-                            {
-                                action.spell = true;
-                                action.spell_context.caster = current_piece;
-                                action.spell_context.target = action_queue[x];
-                                // 其他法术相关逻辑
-                                break;
-                            }
+                            action.spell = false;
+                            break;
                         }
-                        catch (Exception ex)
+
+                        Spell? selectedSpell = SpellFactory.GetSpellById(spellId);
+                        if (!selectedSpell.HasValue)
                         {
-                            Console.WriteLine($"输入错误：{ex.Message}");
+                            Console.WriteLine("未找到指定的法术，请重新输入。");
+                            continue;
                         }
+                        var spell = selectedSpell.Value;
+                        action.spell = true;
+
+                        Console.WriteLine($"已选择法术: {spell.name} - {spell.description}");
+
+                        Console.WriteLine("请输入要施加的法术中心坐标（格式：x y）");
+                        string[] inputs = Console.ReadLine().Split(' ');
+                        if (inputs.Length != 2)
+                        {
+                            Console.WriteLine("输入格式错误，应为两个用空格隔开的整数。");
+                            continue;
+                        }
+
+                        int x, y;
+                        if (!int.TryParse(inputs[0], out x) || !int.TryParse(inputs[1], out y))
+                        {
+                            Console.WriteLine("坐标输入格式错误，请重新输入。");
+                            continue;
+                        }
+
+                        if (Math.Sqrt(Math.Pow(current_piece.position.x - x, 2) +
+                                      Math.Pow(current_piece.position.y - y, 2)) > 100.0)
+                        {
+                            Console.WriteLine("施法范围超出限制，请重新输入。");
+                            continue;
+                        }
+
+                        Console.WriteLine("请输入要攻击的棋子id编号");
+                        string targetInput = Console.ReadLine();
+                        int targetId;
+                        if (!int.TryParse(targetInput, out targetId))
+                        {
+                            Console.WriteLine("棋子id输入格式错误，请重新输入。");
+                            continue;
+                        }
+                        Piece foundPiece = action_queue.FirstOrDefault(p => p.id == targetId);
+                        if (foundPiece == null)
+                        {
+                            Console.WriteLine("未找到指定的棋子，请重新输入。");
+                            continue;
+                        }
+
+                        action.spell_context.target = foundPiece;
+                        action.spell_context.targetArea = new Area
+                        {
+                            x = x,
+                            y = y,
+                            radius = spell.areaRadius
+                        };
+
+                        action.spell = true;
+                        action.spell_context.isDelaySpell = spell.isDelaySpell;
+                        action.spell_context.spellLifespan = spell.baseLifespan;
+                        action.spell_context.delayAdd = false;
+                        action.spell_context.caster = current_piece;
+                        action.spell_context.spell = spell;
+                        action.spell_context.targetArea = new Area
+                        {
+                            x = x,
+                            y = y,
+                            radius = spell.areaRadius
+                        };
+
+                        Console.WriteLine($"法术 {spell.name} 已准备施放，目标区域中心: ({x}, {y})");
                     }
                 }
+                else
+                {
+                    action.spell = false;
+                }
+
                 return action;
             }
+        }
+
+
 
             
-        }
+
+
 
         // 投掷骰子  
         private int RollDice(int n, int sides) // n为投掷次数，sides为骰子面数
@@ -257,11 +322,12 @@ namespace server
             Random random = new Random();
             return random.Next(1, sides + 1);
         }
-        private int Step_Modified_Func(int num){
-            if(num<=10)num=1;
-            else if(num<=20)num=2;
-            else if(num<=30)num=3;
-            else num=4;
+        private int Step_Modified_Func(int num)
+        {
+            if (num <= 10) num = 1;
+            else if (num <= 20) num = 2;
+            else if (num <= 30) num = 3;
+            else num = 4;
             return num;
         }
         //-----------------------------------------------------------------攻击逻辑------------------------------------------------------------//
@@ -358,7 +424,7 @@ namespace server
         {
             double distance = Math.Sqrt(
                 Math.Pow(attacker.position.x - target.position.x, 2) +
-                Math.Pow(attacker.position.y - target.position.y, 2) 
+                Math.Pow(attacker.position.y - target.position.y, 2)
             );
 
             return distance <= attacker.attack_range;
@@ -403,8 +469,8 @@ namespace server
 
         private void HandleDeathCheck(Piece target)
         {
-            int deathRoll = RollDice(1,20);
-            var accessor=target.GetAccessor();
+            int deathRoll = RollDice(1, 20);
+            var accessor = target.GetAccessor();
             if (deathRoll == 20)
             {
                 // 恢复至1滴血
@@ -421,7 +487,7 @@ namespace server
                 board.removePiece(target);
                 action_queue.Remove(target);
                 newDeadThisRound.Add(target);
-                target.deathRound = round_number; 
+                target.deathRound = round_number;
             }
             else // 濒死状态
             {
@@ -436,172 +502,114 @@ namespace server
         // 执行法术上下文
         void executeSpell(SpellContext context)
         {
-            if (context.caster == null || context.caster.action_points <= 0 || context.caster.spell_slots < context.spellCost)
+            //检查是否为延时法术
+            if (context.isDelaySpell && !context.delayAdd)
             {
-                Console.WriteLine("[Spell] Failed: Not enough resources.");
-                return;
-            }
-
-            bool spellSuccess = false;
-
-            if (context.isDelaySpell && context.baseLifespan==context.spellLifespan)
-            {
-                ExecuteDelaySpell(context); //若是第一次,进行初始化，下一轮才开始处理效果
-                return;
-            }
-
-            if (context.isAreaEffect)
-            {
-                ExecuteAreaSpell(context);
-            }
-            else
-            {
-                ExecuteSingleTargetSpell(context);
-            }
-            var accessor=context.caster.GetAccessor();
-            accessor.ChangeActionPointsBy(-1);
-        }
-
-        // 应用法术效果（根据类型）
-
-        private void ExecuteDelaySpell(SpellContext context)
-        {
-            // 1. 法术发动检定
-            int spellRoll = RollDice(1,20);
-            bool isSuccess = false;
-
-            // 非锁定类法术需要至少2.5倍法术强属性的投掷值
-            if (!context.isLockingSpell)
-            {
-                int requiredRoll = (int)(2.5 * context.spellPower);
-                isSuccess = spellRoll >= requiredRoll;
-            }
-            else
-            {
-                // 锁定类法术正常检定
-                int attackThrow = spellRoll +
-                                Step_Modified_Func(context.caster.intelligence) +
-                                context.spellPower;
-
-                int defenseValue = context.target.magic_resist;
-                isSuccess = attackThrow > defenseValue;
-            }
-
-            // 2. 如果成功，加入延时法术列表
-            if (isSuccess)
-            {
+                if (context.caster == null || context.caster.action_points <= 0 || context.caster.spell_slots < context.spellCost)
+                {
+                    Console.WriteLine("[Spell] Failed: Not enough resources or do not use spell.");
+                    return;
+                }
+                context.delayAdd = true;
                 delayed_spells.Add(context);
-                context.spellLifespan = context.baseLifespan;
+                // 扣除施法者资源
+                var accessorTemp = context.caster.GetAccessor();
+                accessorTemp.ChangeActionPointsBy(-1);
+                accessorTemp.ChangeSpellSlotsBy(-1);
+                Console.WriteLine("[Spell] Delayed spell added.");
+
+                return;
+
             }
-        }
-
-        private void ExecuteAreaSpell(SpellContext context)
-        {
-                // 1. 法术发动检定
-                int spellRoll = RollDice(1,20);
-                int attackThrow = spellRoll +
-                             Step_Modified_Func(context.caster.intelligence) +
-                             context.spellPower;
- 
-                 // 2. 获取范围内的所有目标
+            else if (context.isDelaySpell && context.spellLifespan == 0)
+            {
                 List<Piece> targets = GetPiecesInArea(context.targetArea);
-
-                // 3. 对每个目标进行处理
                 foreach (var target in targets)
                 {
-                    // 范围法术不分敌我
-                    int defenseValue = target.magic_resist;
-                    bool isHit = attackThrow > defenseValue;
-
-                    if (isHit)
-                    {
-                        // 应用伤害或效果
-                        if (context.isDamageSpell)
-                        {
-                            int damage = context.damageValue;
-                            target.receiveDamage(damage, "magic");
-
-                            // 死亡检定
-                            if (target.health <= 0)
-                            {
-                                HandleDeathCheck(target);
-                            }
-                        }
-                        else
-                        {
-                            // 应用buff/debuff效果
-                            ApplySpellEffect(target, context);
-                        }
-                    }
+                    Console.WriteLine("[Spell] Execute delay spell.");
+                    Console.WriteLine("[Spell] Effect applied to multi target.");
+                    ApplySpellEffect(target, context);
                 }
-        }
-
-        private void ExecuteSingleTargetSpell(SpellContext context)
-        {
-            // 1. 检查目标是否在施法范围内
-            if (!IsInSpellRange(context.caster, context.target))
-            {
                 return;
             }
 
-            // 2. 法术发动检定
-            int spellRoll = RollDice(1,20);
-            int attackThrow = spellRoll +
-                            Step_Modified_Func(context.caster.intelligence) +
-                            context.spellPower;
-
-            int defenseValue = context.target.magic_resist;
-            bool isHit = attackThrow > defenseValue;
-        }
-
-
-        private void ApplySpellEffect(Piece target, SpellContext context)
-        {
-            var accessor = target.GetAccessor();
-            // 根据法术类型应用不同效果
-            switch (context.effectType)
+            // 检查施法者是否有足够的资源
+            if (context.caster == null || context.caster.action_points <= 0 || context.caster.spell_slots < context.spellCost)
             {
-                case SpellEffectType.Buff:
-                    //target.physical_damage.AddBonus(context.effectValue);
-                    accessor.SetPhysicalDamageTo(target.physical_damage + context.effectValue);
-                    break;
-                case SpellEffectType.Debuff:
-                    accessor.SetPhysicResistBy(context.effectValue);
-                    //target.physical_resist -= context.effectValue;
-                    accessor.SetMagicResistBy(context.effectValue);
-                    //target.magic_resist -= context.effectValue;
-                    break;
-                case SpellEffectType.Heal:
-                    accessor.SetHealthTo(Math.Min(target.health + context.effectValue, target.max_health));
-                    break;
-
+                Console.WriteLine("[Spell] Failed: Not enough resources or do not use spell.");
+                return;
             }
+
+            // 检查目标是否在施法范围内
+
+            if (context.spell.isLockingSpell)
+            {
+                if (!IsInSpellRange(context.target, context.targetArea))
+                {
+                    Console.WriteLine("[Spell] Target is out of range.");
+                    return;
+                }
+                Console.WriteLine("[Spell] Effect applied to single target.");
+                ApplySpellEffect(context.target, context);
+            }
+            else
+            {
+                // 获取目标区域内的棋子
+                List<Piece> targets = GetPiecesInArea(context.targetArea);
+                foreach (var target in targets)
+                {
+                    Console.WriteLine("[Spell] Effect applied to multi target.");
+                    ApplySpellEffect(target, context);
+                }
+            }
+
+            // 扣除施法者资源
+            var accessor = context.caster.GetAccessor();
+            accessor.ChangeActionPointsBy(-1);
+            accessor.ChangeSpellSlotsBy(-1);
+
+            Console.WriteLine("[Spell] Spell successfully cast.");
+            return;
         }
 
+        // 辅助函数
+        private bool IsInSpellRange(Piece target, Area targetArea)
+        {
+            double distance = Math.Sqrt(
+                Math.Pow(target.position.x - targetArea.x, 2) +
+                Math.Pow(target.position.y - targetArea.y, 2)
+            );
+            return distance <= targetArea.radius;
+        }
 
         private List<Piece> GetPiecesInArea(Area targetArea)
         {
-            // 获取区域内的所有棋子
-            List<Piece> piecesInArea = new List<Piece>();
-            foreach (var piece in action_queue)
-            {
-                if (piece.is_alive && targetArea.Contains(piece.position))
-                {
-                    piecesInArea.Add(piece);
-                }
-            }
-            return piecesInArea;
+            return action_queue.Where(piece => targetArea.Contains(piece.position)).ToList();
         }
 
-        private bool IsInSpellRange(Piece caster, Piece target)
+        private void ApplySpellEffect(Piece target, SpellContext context)
         {
-            // 计算施法范围
-            // 这里可以使用与物理攻击相同的距离计算方式
-            double distance = Math.Sqrt(
-                Math.Pow(caster.position.x - target.position.x, 2) +
-                Math.Pow(caster.position.y - target.position.y, 2)
-            );
-            return distance <= caster.spell_range;
+            Console.WriteLine("[Spell] Applying effect to target...");
+            var accessor = target.GetAccessor();
+            switch (context.spell.effectType)
+            {
+                case SpellEffectType.Damage:
+                    accessor.SetHealthTo(Math.Max(target.health - context.spell.baseValue, 0));
+                    break;
+                case SpellEffectType.Heal:
+                    accessor.SetHealthTo(Math.Max(target.health + context.spell.baseValue, target.max_health));
+                    break;
+                case SpellEffectType.Buff:
+                    accessor.SetPhysicalDamageTo(target.physical_damage + context.spell.baseValue);
+                    break;
+                case SpellEffectType.Debuff:
+                    accessor.SetPhysicResistBy(context.spell.baseValue);
+                    accessor.SetMagicResistBy(context.spell.baseValue);
+                    break;
+                case SpellEffectType.Move:
+                    accessor.SetPosition(new Point(context.targetArea.x, context.targetArea.y));
+                    break;
+            }
         }
 
         //-----------------------------------------------------------------核心逻辑------------------------------------------------------------//
@@ -627,7 +635,7 @@ namespace server
             // 重置所有存活棋子的行动点
             foreach (var piece in action_queue.Where(p => p.is_alive))
             {
-                piece.setActionPoints(piece.max_action_points);  
+                piece.setActionPoints(piece.max_action_points);
             }
 
             //处理行动队列
@@ -651,7 +659,7 @@ namespace server
             //    continue;
             //}
 
-                // 移动阶段
+
             if (current_piece.action_points > 0 && action.move)
             {
                 // 从玩家获取移动目标
@@ -681,8 +689,9 @@ namespace server
             Console.WriteLine("Now begin attacking");
             // 攻击阶段
             // 输出current_piece.action_points和action.attack
+            
             Console.WriteLine($"[Attack] Action Points: {current_piece.action_points}, Attack: {action.attack}"); // 输出当前行动点和攻击状态
-            if (current_piece.action_points > 0 && action.attack)  
+            if (current_piece.action_points > 0 && action.attack)
             {
                 Console.WriteLine("enter attacking");
                 var attack_context = action.attack_context;
@@ -692,7 +701,12 @@ namespace server
                 Console.WriteLine($"[Attack] Damage Dealt: {attack_context.damageDealt}");
                 logdata.addAttack(attack_context); // 记录攻击日志
             }
-
+            
+            // test
+            //打印current_piece.spell_slots > 0 && current_piece.action_points > 0 && action.spell
+            //Console.WriteLine($"[Spell] Spell Slots: {current_piece.spell_slots}, Action Points: {current_piece.action_points}, Spell: {action.spell}");
+            
+            
             // 法术阶段
             if (current_piece.spell_slots > 0 && current_piece.action_points > 0 && action.spell)
             {
@@ -700,29 +714,39 @@ namespace server
                 executeSpell(spell_context);  // 内部会消耗spell_slots和action_points
             }
 
+    
 
             // 延时法术处理
             for (int i = delayed_spells.Count - 1; i >= 0; i--)
             {
                 var spell = delayed_spells[i];
                 spell.spellLifespan--;
+                delayed_spells[i] = spell; // 重新赋值
 
-                // 触发到期法术
-                if (spell.spellLifespan >= 0)
+                if (spell.spellLifespan == 0)
                 {
-                    // 根据法术类型处理
-                    //if (spell.isDamageSpell)
-                    //{
-                    //    spell.target.receiveDamage(spell.damageValue, "magic");
-                    //    if (spell.target.health <= 0) HandleDeathCheck(spell.target);
-                    //}
-                    //delayed_spells.RemoveAt(i);
                     executeSpell(spell);
+                    delayed_spells.RemoveAt(i);
+                    Console.WriteLine("[Spell] Delayed spell triggered and removed.");
                 }
-                else
+                else if (spell.spellLifespan < 0)
                 {
                     delayed_spells.RemoveAt(i);
+                    Console.WriteLine("[Spell] Delayed spell expired and removed.");
                 }
+            }
+            // 延时法术处理后打印所有延时法术信息
+            if (delayed_spells.Count > 0)
+            {
+                Console.WriteLine("[Spell] 当前延时法术列表：");
+                foreach (var spell in delayed_spells)
+                {
+                    Console.WriteLine($"  - {spell.spell.name} 剩余周期: {spell.spellLifespan}");
+                }
+            }
+            else
+            {
+                Console.WriteLine("[Spell] 当前无延时法术。");
             }
             //！移除操作已由攻击组完成
             // 移除死亡单位
@@ -794,11 +818,11 @@ namespace server
                 {
                     if (array[i, j].state == 2)
                     {
-                        if (array[i,j].playerId == 1)
+                        if (array[i, j].playerId == 1)
                         {
                             Console.ForegroundColor = ConsoleColor.Red; // 设置颜色为红色
                         }
-                        else if(array[i, j].playerId == 2)
+                        else if (array[i, j].playerId == 2)
                         {
                             Console.ForegroundColor = ConsoleColor.Blue; // 设置颜色为蓝色
                         }
