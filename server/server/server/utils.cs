@@ -24,15 +24,15 @@ namespace server
         public  SpellContext spell_context;
     }
 
-    struct initializationSet
-    {
-        //用于棋子初始化的信息，具体内容待定
-    }
+    //struct initializationSet
+    //{
+    //    //用于棋子初始化的信息，具体内容待定
+    //}
 
-    struct Message
-    {
-        //通信预留转接类
-    }
+    //struct Message
+    //{
+    //    //通信预留转接类
+    //}
 
     struct AttackContext
     {
@@ -88,6 +88,8 @@ namespace server
 
         public bool isHit;            // 是否命中
         public bool isCritical;       // 是否暴击
+
+        public bool delayAdd;    // 优势值
     }
 
     // 配套枚举类型
@@ -176,8 +178,8 @@ public static class SpellFactory
                 description = "治疗友方单位",
                 effectType = SpellEffectType.Heal,
                 damageType = DamageType.None,
-                baseValue = 20,
-                range = 1,
+                baseValue = 30,
+                range = 2,
                 areaRadius = 4,
                 spellCost = 1,
                 baseLifespan = 0,
@@ -188,22 +190,6 @@ public static class SpellFactory
             new Spell
             {
                 id = 3,
-                name = "teleport",
-                description = "瞬间移动一段位置",
-                effectType = SpellEffectType.Move,
-                damageType = DamageType.Physical,
-                baseValue = 0,
-                range = 1,
-                areaRadius = 10,
-                spellCost = 1,
-                baseLifespan = 0,
-                isAreaEffect = false,
-                isDelaySpell = false,
-                isLockingSpell = false
-            },
-            new Spell
-            {
-                id = 4,
                 name = "arrowHit",
                 description = "箭击",
                 effectType = SpellEffectType.Damage,
@@ -228,7 +214,7 @@ public static class SpellFactory
                 range = 1,
                 areaRadius = 0,
                 spellCost = 1,
-                baseLifespan = 0,
+                baseLifespan = 2,
                 isAreaEffect = false,
                 isDelaySpell = true,
                 isLockingSpell = false
@@ -240,6 +226,11 @@ public static class SpellFactory
         };
         return spells;
     }
+
+    public static Spell? GetSpellById(int id)
+{
+    return GetAllSpells().FirstOrDefault(spell => spell.id == id);
+}
 }
 
 

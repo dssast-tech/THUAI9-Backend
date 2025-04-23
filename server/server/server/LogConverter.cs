@@ -60,7 +60,7 @@ namespace server
             {
                 SoldierData temp = new SoldierData();
                 temp.ID = piece.id;
-                temp.camp = piece.team == 0 ? "Red" : "Blue";
+                temp.camp = piece.team == 1 ? "Red" : "Blue";
                 temp.position = new Vector3Serializable(piece.position.x, piece.position.y, piece.height );
                 temp.stats = new SoldierStats();
                 temp.stats.health = piece.health;
@@ -77,25 +77,25 @@ namespace server
             var curRound = gamedata.gameRounds[gamedata.gameRounds.Count - 1];
             curRound.roundNumber = roundCnt;
             curRound.actions = new List<BattleAction>();
-            curRound.initialState = new InitialState();
-            curRound.initialState.soldiers = new List<SoldierData>(gamedata.soldiersData.soldiers);
-            foreach (SoldierData i in curRound.initialState.soldiers)
-            {
-                i.stats.health = 0;
-            }
+            //curRound.initialState = new InitialState();
+            //curRound.initialState.soldiers = new List<SoldierData>(gamedata.soldiersData.soldiers);
+            //foreach (SoldierData i in curRound.initialState.soldiers)
+            //{
+            //    i.stats.health = 0;
+            //}
 
-            foreach(Piece piece in pieces)
-            {
-                SoldierData temp = new SoldierData();
-                temp.ID = piece.id;
-                temp.camp = piece.team == 0 ? "Red" : "Blue";
-                temp.position = new Vector3Serializable(piece.position.x, piece.position.y, piece.height);
-                temp.stats = new SoldierStats();
-                temp.stats.health = piece.health;
-                temp.stats.strength = piece.strength;
-                temp.stats.mana = piece.intelligence;
-                curRound.initialState.soldiers[temp.ID] = temp;
-            }
+            //foreach(Piece piece in pieces)
+            //{
+            //    SoldierData temp = new SoldierData();
+            //    temp.ID = piece.id;
+            //    temp.camp = piece.team == 1 ? "Red" : "Blue";
+            //    temp.position = new Vector3Serializable(piece.position.x, piece.position.y, piece.height);
+            //    temp.stats = new SoldierStats();
+            //    temp.stats.health = piece.health;
+            //    temp.stats.strength = piece.strength;
+            //    temp.stats.mana = piece.intelligence;
+            //    curRound.initialState.soldiers[temp.ID] = temp;
+            //}
         }
 
         public void addMove(Piece p, List<Vector3Serializable> path)

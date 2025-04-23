@@ -262,28 +262,29 @@ namespace server
         }
             public void init_pieces_location(List<Piece> player1_pieces, List<Piece> player2_pieces)
         {
-            // 处理玩家棋子处在不同侧的错误情况
-            bool player1_pieces_ontop = player1_pieces.All(piece => piece.position.y < boarder);
-            bool player1_pieces_below = player1_pieces.All(piece => piece.position.y > boarder);
-            if (!(player1_pieces_ontop || player1_pieces_below))
-            {
-                throw new InvalidOperationException("Player 1's chess pieces are placed on both sides of the board.");
-            }
+            // // 处理玩家棋子处在不同侧的错误情况
+            // bool player1_pieces_ontop = player1_pieces.All(piece => piece.position.y < boarder);
+            // bool player1_pieces_below = player1_pieces.All(piece => piece.position.y > boarder);
+            // if (!(player1_pieces_ontop || player1_pieces_below))
+            // {
+            //     throw new InvalidOperationException("Player 1's chess pieces are placed on both sides of the board.");
+            // }
 
-            bool player2_pieces_ontop = player2_pieces.All(piece => piece.position.y < boarder);
-            bool player2_pieces_below = player2_pieces.All(piece => piece.position.y >= boarder);
-            if (!(player2_pieces_ontop || player2_pieces_below))
-            {
-                throw new InvalidOperationException("Player 2's chess pieces are placed on both sides of the board.");
-            }
+            // bool player2_pieces_ontop = player2_pieces.All(piece => piece.position.y < boarder);
+            // bool player2_pieces_below = player2_pieces.All(piece => piece.position.y >= boarder);
+            // if (!(player2_pieces_ontop || player2_pieces_below))
+            // {
+            //     throw new InvalidOperationException("Player 2's chess pieces are placed on both sides of the board.");
+            // }
 
-            // 确保两个玩家的棋子不在同一侧
-            if ((player1_pieces_ontop && player2_pieces_ontop) || (player1_pieces_below && player2_pieces_below))
-            {
-                // 并没有重合检测，不同玩家棋子重合仍然在这里判断
-                Console.WriteLine("不同玩家不能有棋子处在同侧");//直接退出程序，后续可以修改
-                throw new InvalidOperationException("Both players' chess pieces are placed on the same side of the board.");
-            }
+            // // 确保两个玩家的棋子不在同一侧
+            // if ((player1_pieces_ontop && player2_pieces_ontop) || (player1_pieces_below && player2_pieces_below))
+            // {
+            //     // 并没有重合检测，不同玩家棋子重合仍然在这里判断
+            //     Console.WriteLine("不同玩家不能有棋子处在同侧");//直接退出程序，后续可以修改
+            //     throw new InvalidOperationException("Both players' chess pieces are placed on the same side of the board.");
+            // }
+            //我已在初始化屏蔽了上述情况
 
             // 所有棋子的坐标grid初始化为2
             foreach (var piece in player1_pieces)
