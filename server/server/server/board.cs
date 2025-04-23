@@ -85,6 +85,7 @@ namespace server
             if (!IsWithinBounds(to) || grid[to.x, to.y].state != 1)
             {
                 Vec_path = null;
+                Console.WriteLine($"目标位置({to.x}, {to.y})超出地图大小或被占据");
                 return false; // 终点超出地图大小、被占据、禁止到达
             }
 
@@ -92,6 +93,7 @@ namespace server
             if (path == null)
             {
                 Vec_path = null;
+                Console.WriteLine($"目标位置({to.x}, {to.y})不可达");
                 return false; //没有可达路径（沿途被阻挡）、行动力不足
             }
 
