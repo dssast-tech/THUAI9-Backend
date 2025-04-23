@@ -218,6 +218,22 @@ public static class SpellFactory
                 isAreaEffect = false,
                 isDelaySpell = true,
                 isLockingSpell = false
+            },
+            new Spell
+            {
+                id = 5,
+                name = "move",
+                description = "瞬间移动",
+                effectType = SpellEffectType.Move,
+                damageType = DamageType.Physical,
+                baseValue = 30,
+                range = 100,
+                areaRadius = 100,
+                spellCost = 1,
+                baseLifespan = 2,
+                isAreaEffect = false,
+                isDelaySpell = false,
+                isLockingSpell = true
             }
             
             

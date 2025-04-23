@@ -1,0 +1,126 @@
+syntax = "proto3";
+
+package game;
+
+service GameService {
+  rpc Initialize (InitializationRequest) returns (InitializationResponse);
+  rpc SendAction (ActionRequest) returns (ActionResponse);
+  rpc GetGameState (GameStateRequest) returns (GameStateResponse);
+}
+
+// Document 1: Client to Server communication
+message InitializationRequest {
+  InitializationSet initialization_set = 1;
+}
+
+message InitializationSet {
+  // Empty for now, can be extended later
+}
+
+message ActionRequest {
+  ActionSet action_set = 1;
+}
+
+message ActionSet {
+  MoveTarget move_target = 1;
+  bool attack = 2;
+  Position attack_position = 3;
+  AttackContext attack_context = 4;
+  SpellContext spell_context = 5;
+}
+
+message MoveTarget {
+  optional int32 x = 1;
+  optional int32 y = 2;
+}
+
+message Position {
+  optional int32 x = 1;
+  optional int32 y = 2;
+}
+
+message AttackContext {
+  Target target = 1;
+}
+
+message SpellContext {
+  Target target = 1;
+  optional string target_type = 2;
+  optional string effect_type = 3;
+}
+
+message Target {
+  optional string player = 1;
+  Position position = 2;
+}
+
+// Document 2: Server to Client communication
+message GameStateResponse {
+  GameState game_state = 1;
+  Piece piece = 2;
+  Board board = 3;
+  Env env = 4;
+}
+
+message GameState {
+  int32 current_round = 1;
+  int32 current_player_id = 2;
+}
+
+message Piece {
+  int32 health = 1;
+  int32 max_health = 2;
+  int32 physical_resist = 3;
+  int32 magic_resist = 4;
+  int32 physical_damage = 5;
+  int32 magic_damage = 6;
+  int32 action_points = 7;
+  int32 max_action_points = 8;
+  int32 spell_slots = 9;
+  int32 max_spell_slots = 10;
+  float movement = 11;
+  float max_movement = 12;
+  int32 id = 13;
+  int32 strength = 14;
+  int32 dexterity = 15;
+  int32 intelligence = 16;
+  Position position = 17;
+  int32 height = 18;
+  int32 attack_range = 19;
+  repeated string spell_list = 20;
+  int32 team = 21;
+  int32 queue_index = 22;
+  bool is_alive = 23;
+  bool is_in_turn = 24;
+  bool is_dying = 25;
+  float spell_range = 26;
+}
+
+message Board {
+  int32 width = 1;
+  int32 height = 2;
+  repeated string grid = 3;
+  repeated int32 height_map = 4;
+}
+
+message Env {
+  repeated string action_queue = 1;
+  int32 round_number = 2;
+  repeated string delayed_spells = 3;
+  bool is_game_over = 4;
+}
+
+// Response messages (can be extended as needed)
+message InitializationResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+message ActionResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+message GameStateRequest {
+  // Can add request parameters if needed
+}
