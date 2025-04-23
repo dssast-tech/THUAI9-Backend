@@ -86,6 +86,7 @@ namespace server
             {
                 Vec_path = null;
                 return false; // 终点超出地图大小、被占据、禁止到达
+ 
             }
 
             (List<Point>? path, float cost) = FindShortestPath(p, p.position, to, movement);
