@@ -41,6 +41,36 @@ namespace server
             board = new Board();
             string filePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "BoardCase", "case1.txt");
             board.init(filePath);
+            int boarder=board.boarder;
+            int rows = board.height;
+            int cols = board.width;
+
+            Console.WriteLine($"分界线为第 {boarder} 行，棋盘展示如下:");
+
+            using (StreamReader reader = new StreamReader(filePath))
+            {
+                string? line;
+                int currentLineNumber = 0;
+                int startLine = 4 + rows;
+                int endLine = 2 * rows + 3;
+                while ((line = reader.ReadLine()) != null)
+                {
+                    currentLineNumber++;
+                    if (currentLineNumber >= startLine && currentLineNumber <= endLine)
+                    {
+                        Console.WriteLine(line);
+                        if (currentLineNumber == startLine+boarder-1)
+                        {
+                            Console.ForegroundColor = ConsoleColor.Red;
+                            Console.WriteLine(new string('=', line.Length)); // 打印一条与当前行长度一致的红线
+                            Console.ResetColor();
+                        }
+                    }
+                    if (currentLineNumber > endLine)
+                        break;
+                }
+            }
+
 
             player1 = new Player();
             player2 = new Player();
@@ -74,7 +104,7 @@ namespace server
                 player2.localInit(initMessage);
             }
 
-            //board.init_pieces_location(player1.pieces, player2.pieces);
+            // board.init_pieces_location(player1.pieces, player2.pieces);
             // 初始化棋盘
             action_queue = new List<Piece>();
             delayed_spells = new List<SpellContext>();

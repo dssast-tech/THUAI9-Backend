@@ -13,7 +13,7 @@ namespace server
 {
     class Player
     {
-        public const int PIECECNT = 1; //此处进行了一次修改
+        public const int PIECECNT = 2; //此处进行了一次修改
         public int id;
         public List<Piece> pieces; //持有的棋子
         public int feature_total=30;
@@ -202,7 +202,7 @@ namespace server
                             for (int i = 0; i < inputs.Length; i++) nums[i] = int.Parse(inputs[i]);
                             if (nums.Length != 2)
                             {
-                                Console.WriteLine("输入的整数不是3个");
+                                Console.WriteLine("输入的整数不是2个");
                                 continue;
                             }
                             if (nums[0] < 1 || nums[1] < 1 || nums[0] > 4 || nums[1] > 3)
@@ -210,9 +210,9 @@ namespace server
                                 Console.WriteLine("输入的整数不在范围里！");
                                 continue;
                             }
-                            if (nums[0] == 4 && nums[1] != 1)
+                            if (nums[0] == 4 && nums[1] ==3)
                             {
-                                Console.WriteLine("法杖只能配轻甲！");
+                                Console.WriteLine("法杖和重甲不能同时装备！");
                                 continue;
                             }
                             for (int i = 0; i < nums.Length; i++) initializationSet.Add(nums[i]);
@@ -239,27 +239,22 @@ namespace server
                                 Console.WriteLine("输入的整数不是2个");
                                 continue;
                             }
-
-                            if (nums[0] < 0 || nums[0] > cols - 1 || nums[1] > rows - 1 || nums[1] < 0)
-                            {
-                                Console.WriteLine("输入的整数超过范围！");
-                                continue;
+                            if(nums[0]<0||nums[1]< (id==1? 0: boarder)||nums[0]>cols-1||nums[1]> (id==1?boarder:rows-1)){
+                            Console.WriteLine("输入的整数超过范围！");
+                            continue;
                             }
-                            if (board.grid[nums[0], nums[1]].state != 1)
-                            {
+                            if(board.grid[nums[0],nums[1]].state==2){
                                 Console.WriteLine("输入的坐标状态为不可占据!");
                                 continue;
                             }
-                            bool is_vaild = true;
-                            for (int i = 0; i < piece_num; i++)
-                            {
-                                if (nums[0] == pieces[i].position.x && nums[1] == pieces[i].position.y)
-                                {
+                            bool is_vaild=true;
+                            for(int i=0;i<piece_num;i++){
+                                if(nums[0]==pieces[i].position.x && nums[1]==pieces[i].position.y){
                                     Console.WriteLine("输入的坐标与已有棋子重合！");
-                                    is_vaild = false;
+                                    is_vaild=false;
                                 }
                             }
-                            if (!is_vaild) continue;
+                            if(!is_vaild) continue; 
                             for (int i = 0; i < nums.Length; i++) initializationSet.Add(nums[i]);
                             inputcorrect = true;
                         }
