@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
@@ -41,36 +41,6 @@ namespace server
             board = new Board();
             string filePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "BoardCase", "case1.txt");
             board.init(filePath);
-            int boarder=board.boarder;
-            int rows = board.height;
-            int cols = board.width;
-
-            Console.WriteLine($"分界线为第 {boarder} 行，棋盘展示如下:");
-
-            using (StreamReader reader = new StreamReader(filePath))
-            {
-                string? line;
-                int currentLineNumber = 0;
-                int startLine = 4 + rows;
-                int endLine = 2 * rows + 3;
-                while ((line = reader.ReadLine()) != null)
-                {
-                    currentLineNumber++;
-                    if (currentLineNumber >= startLine && currentLineNumber <= endLine)
-                    {
-                        Console.WriteLine(line);
-                        if (currentLineNumber == startLine+boarder-1)
-                        {
-                            Console.ForegroundColor = ConsoleColor.Red;
-                            Console.WriteLine(new string('=', line.Length)); // 打印一条与当前行长度一致的红线
-                            Console.ResetColor();
-                        }
-                    }
-                    if (currentLineNumber > endLine)
-                        break;
-                }
-            }
-
 
             player1 = new Player();
             player2 = new Player();
@@ -92,7 +62,7 @@ namespace server
                 initmessage.data.id = 1;
                 initmessage.data.board = board;
                 InitPolicyMessage initMessage = communicator.SendInitRequest(1, initmessage);
-                player1.localInit(initMessage);
+                player1.localInit(initMessage,board);
 
                 initmessage = new MessageWrapper<InitGameMessage>();
                 initmessage.type = 0;
@@ -101,10 +71,10 @@ namespace server
                 initmessage.data.id = 2;
                 initmessage.data.board = board;
                 initMessage = communicator.SendInitRequest(2, initmessage);
-                player2.localInit(initMessage);
+                player2.localInit(initMessage,board);
             }
 
-            // board.init_pieces_location(player1.pieces, player2.pieces);
+            //board.init_pieces_location(player1.pieces, player2.pieces);
             // 初始化棋盘
             action_queue = new List<Piece>();
             delayed_spells = new List<SpellContext>();
@@ -170,8 +140,68 @@ namespace server
                 PolicyMessage actionMessage = communicator.SendActionRequest(current_piece.team, initmessage);
 
                 //TODO: 读取actionMessage并做合法性检查；@王浩宇
+                actionSet action = new actionSet();
 
-                throw new NotImplementedException();
+                //----------移动部分----------------
+                if (actionMessage.action_set.move)
+                {
+                    // 校验棋盘边界（假设棋盘尺寸为100x100）
+                    if (actionMessage.action_set.move_target.x < 0 ||
+                        actionMessage.action_set.move_target.x >= board.width ||
+                        actionMessage.action_set.move_target.y < 0 ||
+                        actionMessage.action_set.move_target.y >= board.height)
+                    {
+                        throw new InvalidOperationException("移动目标超出棋盘范围"); // 
+                    }
+                    action.move = true;
+                    action.move_target = actionMessage.action_set.move_target;
+                }
+                else
+                {
+                    action.move = false;
+                }
+                //----------攻击部分----------------
+                if (actionMessage.action_set.attack)
+                {
+                    // 目标存在性校验（需匹配action_queue中的棋子ID）
+                    var target = actionMessage.action_set.attack_context.target;
+                    if (!action_queue.Any(p => p.id == target.id))
+                    {
+                        throw new KeyNotFoundException($"攻击目标ID {target.id} 不存在"); // 
+                    }
+                    action.attack = true;
+                    action.attack_context = actionMessage.action_set.attack_context;
+                    action.attack_context.attacker = current_piece; // 同步当前棋子状态
+                }
+                else
+                {
+                    action.attack = false;
+                }
+
+                if (actionMessage.action_set.spell)
+                {
+                    var spellCtx = actionMessage.action_set.spell_context;
+                    // 施法距离校验（与控制台版本相同的100单位限制）
+                    double distance = Math.Sqrt(
+                        Math.Pow(current_piece.position.x - spellCtx.targetArea.x, 2) +
+                        Math.Pow(current_piece.position.y - spellCtx.targetArea.y, 2)
+                    );
+                    if (distance > 100.0)
+                    {
+                        throw new ArgumentOutOfRangeException("施法距离超出限制"); // 
+                    }
+
+                    action.spell = true;
+                    action.spell_context = spellCtx;
+                    action.spell_context.caster = current_piece; // 同步施法者状态
+                }
+                else
+                {
+                    action.spell = false;
+                }
+                return action;
+
+                //throw new NotImplementedException();
             }
             else
             {
@@ -396,7 +426,7 @@ namespace server
             bool isHit = false;
             bool isCritical = false;
 
-            Console.WriteLine("Now we need roll a dice to check if we can successfully hit.");
+
 
             if (attackRoll == 1)
             {
@@ -723,7 +753,7 @@ namespace server
             Console.WriteLine($"[Attack] Action Points: {current_piece.action_points}, Attack: {action.attack}"); // 输出当前行动点和攻击状态
             if (current_piece.action_points > 0 && action.attack)
             {
-                Console.WriteLine("enter attacking");
+                //Console.WriteLine("enter attacking");
                 var attack_context = action.attack_context;
                 attack_context.damageDealt = 0; // 初始化伤害值
                 executeAttack(ref attack_context);  // 内部会消耗action_points
@@ -818,7 +848,6 @@ namespace server
             }
 
             // 死亡单位简报
-            //！！！！该模块应该无法正常工作，运行到log时p已经被移除
             if (lastRoundDeadPieces.Any())
             {
                 Console.WriteLine("\n[上一回合阵亡]");
