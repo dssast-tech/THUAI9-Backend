@@ -87,6 +87,7 @@ namespace server
                 Vec_path = null;
                 Console.WriteLine($"目标位置({to.x}, {to.y})超出地图大小或被占据");
                 return false; // 终点超出地图大小、被占据、禁止到达
+ 
             }
 
             (List<Point>? path, float cost) = FindShortestPath(p, p.position, to, movement);
@@ -127,7 +128,13 @@ namespace server
 
         public void removePiece(Piece p) //
         {
-            throw new NotImplementedException();
+            //throw new NotImplementedException();
+            int x = p.position.x;
+            int y = p.position.y;
+            grid[x, y].state = 1; // 原位置状态更新
+            grid[x, y].playerId = -1; // 原位置玩家ID更新
+            grid[x, y].pieceId = -1; // 原位置棋子ID更新
+
         }
 
         private bool IsWithinBounds(Point p)// 目标位置需要在矩形棋盘内部

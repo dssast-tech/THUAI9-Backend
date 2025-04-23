@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.Specialized;
 using System.Linq;
 using System.Numerics;
 using System.Text;
@@ -469,6 +470,7 @@ namespace server
 
                 if (context.target.health <= 0)
                 {
+                    // Console.Write($"debug");// debug
                     HandleDeathCheck(context.target); // 执行死亡检定
                 }
             }
@@ -531,6 +533,7 @@ namespace server
         private void HandleDeathCheck(Piece target)
         {
             int deathRoll = RollDice(1, 20);
+            Console.WriteLine($"[DeathCheck] Roll: {deathRoll}");
             var accessor = target.GetAccessor();
             if (deathRoll == 20)
             {
@@ -540,7 +543,7 @@ namespace server
                 accessor.SetAlive(true);
                 //target.health = 1;
             }
-            else if (deathRoll == 1) // 立即死亡
+            else // 立即死亡
             {
                 // 直接死亡
                 accessor.SetAlive(false);
@@ -550,13 +553,13 @@ namespace server
                 newDeadThisRound.Add(target);
                 target.deathRound = round_number;
             }
-            else // 濒死状态
-            {
-                // 进入濒死状态
-                //target.is_dying = true;
-                accessor.SetDying(true);
-                accessor.SetAlive(true);
-            }
+            //else // 濒死状态
+            //{
+            //    // 进入濒死状态
+            //    //target.is_dying = true;
+            //    accessor.SetDying(true);
+            //    accessor.SetAlive(false);
+            //}
         }
 
         //-----------------------------------------------------------------法术逻辑------------------------------------------------------------//
@@ -656,6 +659,11 @@ namespace server
             {
                 case SpellEffectType.Damage:
                     accessor.SetHealthTo(Math.Max(target.health - context.spell.baseValue, 0));
+                    if (context.target.health <= 0)
+                    {
+                        // Console.Write($"debug");// debug
+                        HandleDeathCheck(target); // 执行死亡检定
+                    }
                     break;
                 case SpellEffectType.Heal:
                     accessor.SetHealthTo(Math.Max(target.health + context.spell.baseValue, target.max_health));
@@ -834,12 +842,14 @@ namespace server
             //foreach (var dead in deadPieces)
             //{
             //    board.removePiece(dead);
-            //    action_queue.Remove(dead);
+            //   action_queue.Remove(dead);
             //}
 
             // 游戏结束检查
             isGameOver = !player1.pieces.Any(p => p.is_alive) ||
-              !player2.pieces.Any(p => p.is_alive);
+         
+            !player2.pieces.Any(p => p.is_alive);
+
         }
 
         void log(int mode)
