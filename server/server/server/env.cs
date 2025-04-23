@@ -700,7 +700,6 @@ namespace server
             // 游戏结束检查
             isGameOver = !player1.pieces.Any(p => p.is_alive) ||
               !player2.pieces.Any(p => p.is_alive);
-
         }
 
         void log(int mode)
