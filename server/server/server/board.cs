@@ -13,9 +13,9 @@ namespace server
 {
     public struct Cell
     {
-        public int state; // 0: 空地, 1: 可行走, 2: 占据, -1: 禁止
-        public int playerId; // 0: 无人, 1: 玩家1, 2: 玩家2
-        public int pieceId;
+        public int state { get; set; } // 0: 空地, 1: 可行走, 2: 占据, -1: 禁止
+        public int playerId { get; set; } // 0: 无人, 1: 玩家1, 2: 玩家2
+        public int pieceId { get; set; }
 
         public Cell(int state_, int playerId_ = -1, int pieceId_ = -1)
         {

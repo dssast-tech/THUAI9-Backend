@@ -31,7 +31,7 @@ namespace server
                 "address1",
                 "address2"
                 );
-            mode = 0;
+            mode = 1;
         }
 
         void initialize()

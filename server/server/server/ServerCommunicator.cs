@@ -25,6 +25,14 @@ namespace server
             var json = JsonSerializer.Serialize(message);
             var content = new StringContent(json, Encoding.UTF8, "application/json");
 
+            // 获取当前目录
+            string currentDirectory = Directory.GetCurrentDirectory();
+
+            // 定义文件路径
+            string filePath = Path.Combine(currentDirectory, "initlog.json");
+
+            // 将JSON写入文件
+            File.WriteAllText(filePath, json);
             using var cts = new CancellationTokenSource(timeoutMs);
             try
             {

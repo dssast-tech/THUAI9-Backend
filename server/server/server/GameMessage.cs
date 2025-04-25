@@ -9,15 +9,15 @@ namespace server
 
     class MessageWrapper<T>
     {
-        public int type; // 0for init, 1 for game
-        public T data;
+        public int type { get; set; } // 0for init, 1 for game
+        public T data { get; set; }
     }
 
     class InitGameMessage
     {
-        public int pieceCnt; //
-        public int id;
-        public Board board;
+        public int pieceCnt { get; set; }
+        public int id { get; set; }
+        public Board board { get; set; }
     }
 
     class InitPolicyMessage
