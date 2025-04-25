@@ -1,5 +1,6 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
+using System.Collections.Specialized;
 using System.Linq;
 using System.Numerics;
 using System.Text;
@@ -48,7 +49,7 @@ namespace server
             player2.id = 2;
 
 
-            if( mode == 0 )
+            if (mode == 0)
             {
                 player1.localInit(board, player1.id);
                 player2.localInit(board, player2.id);
@@ -62,7 +63,7 @@ namespace server
                 initmessage.data.id = 1;
                 initmessage.data.board = board;
                 InitPolicyMessage initMessage = communicator.SendInitRequest(1, initmessage);
-                player1.localInit(initMessage);
+                player1.localInit(initMessage, board);
 
                 initmessage = new MessageWrapper<InitGameMessage>();
                 initmessage.type = 0;
@@ -71,7 +72,7 @@ namespace server
                 initmessage.data.id = 2;
                 initmessage.data.board = board;
                 initMessage = communicator.SendInitRequest(2, initmessage);
-                player2.localInit(initMessage);
+                player2.localInit(initMessage, board);
             }
 
             //board.init_pieces_location(player1.pieces, player2.pieces);
@@ -140,8 +141,68 @@ namespace server
                 PolicyMessage actionMessage = communicator.SendActionRequest(current_piece.team, initmessage);
 
                 //TODO: 读取actionMessage并做合法性检查；@王浩宇
+                actionSet action = new actionSet();
 
-                throw new NotImplementedException();
+                //----------移动部分----------------
+                if (actionMessage.action_set.move)
+                {
+                    // 校验棋盘边界（假设棋盘尺寸为100x100）
+                    if (actionMessage.action_set.move_target.x < 0 ||
+                        actionMessage.action_set.move_target.x >= board.width ||
+                        actionMessage.action_set.move_target.y < 0 ||
+                        actionMessage.action_set.move_target.y >= board.height)
+                    {
+                        throw new InvalidOperationException("移动目标超出棋盘范围"); // 
+                    }
+                    action.move = true;
+                    action.move_target = actionMessage.action_set.move_target;
+                }
+                else
+                {
+                    action.move = false;
+                }
+                //----------攻击部分----------------
+                if (actionMessage.action_set.attack)
+                {
+                    // 目标存在性校验（需匹配action_queue中的棋子ID）
+                    var target = actionMessage.action_set.attack_context.target;
+                    if (!action_queue.Any(p => p.id == target.id))
+                    {
+                        throw new KeyNotFoundException($"攻击目标ID {target.id} 不存在"); // 
+                    }
+                    action.attack = true;
+                    action.attack_context = actionMessage.action_set.attack_context;
+                    action.attack_context.attacker = current_piece; // 同步当前棋子状态
+                }
+                else
+                {
+                    action.attack = false;
+                }
+
+                if (actionMessage.action_set.spell)
+                {
+                    var spellCtx = actionMessage.action_set.spell_context;
+                    // 施法距离校验（与控制台版本相同的100单位限制）
+                    double distance = Math.Sqrt(
+                        Math.Pow(current_piece.position.x - spellCtx.targetArea.x, 2) +
+                        Math.Pow(current_piece.position.y - spellCtx.targetArea.y, 2)
+                    );
+                    if (distance > 100.0)
+                    {
+                        throw new ArgumentOutOfRangeException("施法距离超出限制"); // 
+                    }
+
+                    action.spell = true;
+                    action.spell_context = spellCtx;
+                    action.spell_context.caster = current_piece; // 同步施法者状态
+                }
+                else
+                {
+                    action.spell = false;
+                }
+                return action;
+
+                //throw new NotImplementedException();
             }
             else
             {
@@ -299,6 +360,7 @@ namespace server
                         };
 
                         Console.WriteLine($"法术 {spell.name} 已准备施放，目标区域中心: ({x}, {y})");
+                        break;
                     }
                 }
                 else
@@ -312,7 +374,7 @@ namespace server
 
 
 
-            
+
 
 
 
@@ -366,7 +428,7 @@ namespace server
             bool isHit = false;
             bool isCritical = false;
 
-            Console.WriteLine("Now we need roll a dice to check if we can successfully hit.");
+
 
             if (attackRoll == 1)
             {
@@ -408,6 +470,7 @@ namespace server
 
                 if (context.target.health <= 0)
                 {
+                    // Console.Write($"debug");// debug
                     HandleDeathCheck(context.target); // 执行死亡检定
                 }
             }
@@ -470,6 +533,7 @@ namespace server
         private void HandleDeathCheck(Piece target)
         {
             int deathRoll = RollDice(1, 20);
+            Console.WriteLine($"[DeathCheck] Roll: {deathRoll}");
             var accessor = target.GetAccessor();
             if (deathRoll == 20)
             {
@@ -479,7 +543,7 @@ namespace server
                 accessor.SetAlive(true);
                 //target.health = 1;
             }
-            else if (deathRoll == 1) // 立即死亡
+            else // 立即死亡
             {
                 // 直接死亡
                 accessor.SetAlive(false);
@@ -489,13 +553,13 @@ namespace server
                 newDeadThisRound.Add(target);
                 target.deathRound = round_number;
             }
-            else // 濒死状态
-            {
-                // 进入濒死状态
-                //target.is_dying = true;
-                accessor.SetDying(true);
-                accessor.SetAlive(true);
-            }
+            //else // 濒死状态
+            //{
+            //    // 进入濒死状态
+            //    //target.is_dying = true;
+            //    accessor.SetDying(true);
+            //    accessor.SetAlive(false);
+            //}
         }
 
         //-----------------------------------------------------------------法术逻辑------------------------------------------------------------//
@@ -595,6 +659,11 @@ namespace server
             {
                 case SpellEffectType.Damage:
                     accessor.SetHealthTo(Math.Max(target.health - context.spell.baseValue, 0));
+                    if (context.target.health <= 0)
+                    {
+                        // Console.Write($"debug");// debug
+                        HandleDeathCheck(target); // 执行死亡检定
+                    }
                     break;
                 case SpellEffectType.Heal:
                     accessor.SetHealthTo(Math.Max(target.health + context.spell.baseValue, target.max_health));
@@ -607,7 +676,26 @@ namespace server
                     accessor.SetMagicResistBy(context.spell.baseValue);
                     break;
                 case SpellEffectType.Move:
-                    accessor.SetPosition(new Point(context.targetArea.x, context.targetArea.y));
+                    Console.WriteLine("[Spell:Move] Effect applied to single target.");
+                    List<Vector3Serializable> movePath = new List<Vector3Serializable>();
+                    bool success = board.movePiece(
+                    target,
+                    new Point(context.targetArea.x, context.targetArea.y),
+                    100,
+                    out movePath
+                    );
+                    Console.WriteLine($"[Spell:Move] Move success: {success}");
+                    if (success)
+                    {
+                        target.setActionPoints(current_piece.getActionPoints() - 1);
+                        var accessortemp = target.GetAccessor();
+                        accessortemp.SetPosition(new Point(context.targetArea.x, context.targetArea.y));
+                    }
+                    else
+                    {
+                        Console.WriteLine("[Move] Failed: Out of Range");
+                    }
+
                     break;
             }
         }
@@ -689,11 +777,11 @@ namespace server
             Console.WriteLine("Now begin attacking");
             // 攻击阶段
             // 输出current_piece.action_points和action.attack
-            
+
             Console.WriteLine($"[Attack] Action Points: {current_piece.action_points}, Attack: {action.attack}"); // 输出当前行动点和攻击状态
             if (current_piece.action_points > 0 && action.attack)
             {
-                Console.WriteLine("enter attacking");
+                //Console.WriteLine("enter attacking");
                 var attack_context = action.attack_context;
                 attack_context.damageDealt = 0; // 初始化伤害值
                 executeAttack(ref attack_context);  // 内部会消耗action_points
@@ -701,12 +789,12 @@ namespace server
                 Console.WriteLine($"[Attack] Damage Dealt: {attack_context.damageDealt}");
                 logdata.addAttack(attack_context); // 记录攻击日志
             }
-            
+
             // test
             //打印current_piece.spell_slots > 0 && current_piece.action_points > 0 && action.spell
             //Console.WriteLine($"[Spell] Spell Slots: {current_piece.spell_slots}, Action Points: {current_piece.action_points}, Spell: {action.spell}");
-            
-            
+
+
             // 法术阶段
             if (current_piece.spell_slots > 0 && current_piece.action_points > 0 && action.spell)
             {
@@ -714,7 +802,7 @@ namespace server
                 executeSpell(spell_context);  // 内部会消耗spell_slots和action_points
             }
 
-    
+
 
             // 延时法术处理
             for (int i = delayed_spells.Count - 1; i >= 0; i--)
@@ -754,12 +842,13 @@ namespace server
             //foreach (var dead in deadPieces)
             //{
             //    board.removePiece(dead);
-            //    action_queue.Remove(dead);
+            //   action_queue.Remove(dead);
             //}
 
             // 游戏结束检查
             isGameOver = !player1.pieces.Any(p => p.is_alive) ||
-              !player2.pieces.Any(p => p.is_alive);
+         
+            !player2.pieces.Any(p => p.is_alive);
 
         }
 
@@ -788,7 +877,6 @@ namespace server
             }
 
             // 死亡单位简报
-            //！！！！该模块应该无法正常工作，运行到log时p已经被移除
             if (lastRoundDeadPieces.Any())
             {
                 Console.WriteLine("\n[上一回合阵亡]");
