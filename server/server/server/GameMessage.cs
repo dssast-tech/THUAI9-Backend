@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace server
+namespace Server
 {
 
     class MessageWrapper<T>
@@ -14,7 +14,7 @@ namespace server
     }
 
     class InitGameMessage
-    {
+    { 
         public int pieceCnt { get; set; }
         public int id { get; set; }
         public Board board { get; set; }

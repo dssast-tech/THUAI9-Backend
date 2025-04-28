@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 //client和server的交互应通过player类进行，所有函数均应该能够与通信类交互（待定）
 
 
-namespace server
+namespace Server
 {
     class Player
     {

@@ -4,28 +4,38 @@ using System.Collections.Specialized;
 using System.Linq;
 using System.Numerics;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Xml.Serialization;
 using static System.Collections.Specialized.BitVector32;
 
 // 环境类：游戏核心控制器，管理所有游戏逻辑和状态
-namespace server
+namespace Server
 {
     class Env
     {
-        int mode;// 0 for local, 1 for http
-        List<Piece> action_queue; // 棋子的行动队列
-        Piece current_piece; // 当前行动的棋子
-        int round_number; // 当前回合数
-        List<SpellContext> delayed_spells; // 延时法术列表
-        Player player1; // 玩家1
-        Player player2; // 玩家2
-        Board board; // 棋盘
-        bool isGameOver; // 游戏是否结束
-        List<Piece> newDeadThisRound; // 记录本回合新死亡的棋子列表
-        List<Piece> lastRoundDeadPieces;
-        LogConverter logdata;
-        ServerCommunicator communicator;
+        public int mode;// 0 for local, 1 for http
+        public List<Piece> action_queue; // 棋子的行动队列
+        public Piece current_piece; // 当前行动的棋子
+        public int round_number; // 当前回合数
+        public List<SpellContext> delayed_spells; // 延时法术列表
+        public Player player1; // 玩家1
+        public Player player2; // 玩家2
+        public Board board; // 棋盘
+        public bool isGameOver; // 游戏是否结束
+        public List<Piece> newDeadThisRound; // 记录本回合新死亡的棋子列表
+        public List<Piece> lastRoundDeadPieces;
+        public LogConverter logdata;
+        public ServerCommunicator communicator;
+
+        public InitWaiter initWaiter;
+
+        public bool initialized_flag1;
+        public bool initialized_flag2;
+
+        public bool action_received;
+        public int input_allowed; //0for forbidden; 1 for player1; 2 for player 2
+
         public Env()
         {
             communicator = new ServerCommunicator(
@@ -33,9 +43,10 @@ namespace server
                 "address2"
                 );
             mode = 1;
+            initWaiter = new InitWaiter(2, TimeSpan.FromSeconds(5));
         }
 
-        void initialize()
+        public async Task initialize()
         {
             //执行各类初始化
             //注：对于player类，先调用player的localInit函数进行初始化，并根据Init返回值进行地图信息的初始化（需要进行各种合法性检查，如初始位置是否越过双方边界线）
@@ -49,6 +60,7 @@ namespace server
             player2.id = 2;
 
 
+
             if (mode == 0)
             {
                 player1.localInit(board, player1.id);
@@ -56,6 +68,25 @@ namespace server
             }
             else
             {
+               
+                try
+                {
+                    Console.WriteLine($"Waiting for 2 clients to initialize...");
+
+                    // ⏳ 阻塞在这里，直到所有client都初始化完成，或超时
+                    await initWaiter.WaitForAllClientsAsync();
+
+                    Console.WriteLine("All clients initialized, game starting...");
+                    // 这里可以开始正式的游戏逻辑
+
+                }
+                catch (TimeoutException)
+                {
+                    Console.WriteLine("Game starting despite timeout...");
+                    // 如果超时，可以选择自动开始游戏
+                }
+
+
                 MessageWrapper<InitGameMessage> initmessage = new MessageWrapper<InitGameMessage>();
                 initmessage.type = 0;
                 initmessage.data = new InitGameMessage();
@@ -719,6 +750,8 @@ namespace server
 
             //回合初始化
             round_number++;  // 回合计数器递增
+            action_received = false;
+            input_allowed = 0;
 
             // 重置所有存活棋子的行动点
             foreach (var piece in action_queue.Where(p => p.is_alive))
@@ -932,9 +965,9 @@ namespace server
         }
 
         // 游戏主循环
-        public void run()
+        public async Task run()
         {
-            initialize(); // 初始化游戏
+            await initialize(); // 初始化游戏
             Console.WriteLine("游戏初始化完成，开始游戏！");
             VisualizeArray(board.grid);
             while (!isGameOver) step(); // 回合制循环

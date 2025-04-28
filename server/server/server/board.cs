@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 using static System.Runtime.InteropServices.JavaScript.JSType;
 
 //仅维护信息
-namespace server
+namespace Server
 {
     public struct Cell
     {

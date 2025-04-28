@@ -6,7 +6,7 @@ using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
 
-namespace server
+namespace Server
 {
     internal class LogConverter
     {
@@ -29,7 +29,7 @@ namespace server
 
         List<MapRow> ConvertHeightMapToRows(Board board)
         {
-            List<MapRow> rows = new List<server.MapRow>();
+            List<MapRow> rows = new List<Server.MapRow>();
 
             // 遍历二维数组的每一行
             for (int i = 0; i < board.height_map.GetLength(0); i++)
