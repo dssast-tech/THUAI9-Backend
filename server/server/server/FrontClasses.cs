@@ -6,7 +6,7 @@ using System.Numerics;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace server
+namespace Server
 {
     [System.Serializable]
     public class GameData

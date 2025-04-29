@@ -9,13 +9,13 @@ using System.Threading.Tasks;
 using static System.Runtime.InteropServices.JavaScript.JSType;
 
 //仅维护信息
-namespace server
+namespace Server
 {
     public struct Cell
     {
-        public int state; // 0: 空地, 1: 可行走, 2: 占据, -1: 禁止
-        public int playerId; // 0: 无人, 1: 玩家1, 2: 玩家2
-        public int pieceId;
+        public int state { get; set; } // 0: 空地, 1: 可行走, 2: 占据, -1: 禁止
+        public int playerId { get; set; } // 0: 无人, 1: 玩家1, 2: 玩家2
+        public int pieceId { get; set; }
 
         public Cell(int state_, int playerId_ = -1, int pieceId_ = -1)
         {
@@ -100,7 +100,7 @@ namespace server
 
             List<Vector3Serializable> vectorPath = path.
                 Where(point => point.x >= 0 && point.x < width && point.y >= 0 && point.y < height)
-                .Select(point => new Vector3Serializable(point.x, point.y, height_map[point.x, point.y]))
+                .Select(point => new Vector3Serializable(point.x,  height_map[point.x, point.y], point.y))
                 .ToList();
             Vec_path = vectorPath;
             // p.movement -= cost;

@@ -6,7 +6,7 @@ using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
 
-namespace server
+namespace Server
 {
     internal class LogConverter
     {
@@ -29,7 +29,7 @@ namespace server
 
         List<MapRow> ConvertHeightMapToRows(Board board)
         {
-            List<MapRow> rows = new List<server.MapRow>();
+            List<MapRow> rows = new List<Server.MapRow>();
 
             // 遍历二维数组的每一行
             for (int i = 0; i < board.height_map.GetLength(0); i++)
@@ -61,7 +61,7 @@ namespace server
                 SoldierData temp = new SoldierData();
                 temp.ID = piece.id;
                 temp.camp = piece.team == 1 ? "Red" : "Blue";
-                temp.position = new Vector3Serializable(piece.position.x, piece.position.y, piece.height );
+                temp.position = new Vector3Serializable(piece.position.x, piece.height, piece.position.y );
                 temp.stats = new SoldierStats();
                 temp.stats.health = piece.health;
                 temp.stats.strength = piece.strength;
@@ -122,6 +122,14 @@ namespace server
         public void addSpell(SpellContext context)
         {
             //TODO
+        }
+
+        public void addDeath(Piece p)
+        {
+            BattleAction temp = new BattleAction();
+            temp.actionType = "death";
+            temp.soldierId = p.id;
+            gamedata.gameRounds[gamedata.gameRounds.Count - 1].actions.Add(temp);
         }
 
         public void save()

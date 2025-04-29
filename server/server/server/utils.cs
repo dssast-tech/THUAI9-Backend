@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 //所有辅助类应置于此文件中
 
 
-namespace server
+namespace Server
 {
     struct Point(int x, int y)//添加构造函数
     {
