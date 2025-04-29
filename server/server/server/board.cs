@@ -100,7 +100,7 @@ namespace Server
 
             List<Vector3Serializable> vectorPath = path.
                 Where(point => point.x >= 0 && point.x < width && point.y >= 0 && point.y < height)
-                .Select(point => new Vector3Serializable(point.x, point.y, height_map[point.x, point.y]))
+                .Select(point => new Vector3Serializable(point.x,  height_map[point.x, point.y], point.y))
                 .ToList();
             Vec_path = vectorPath;
             // p.movement -= cost;

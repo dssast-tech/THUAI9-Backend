@@ -34,27 +34,38 @@ class GameServiceStub(object):
         Args:
             channel: A grpc.Channel.
         """
-        self.Initialize = channel.unary_unary(
-                '/game.GameService/Initialize',
-                request_serializer=message__pb2.InitializationRequest.SerializeToString,
-                response_deserializer=message__pb2.InitializationResponse.FromString,
+        self.SendInit = channel.unary_unary(
+                '/server.GameService/SendInit',
+                request_serializer=message__pb2._InitRequest.SerializeToString,
+                response_deserializer=message__pb2._InitResponse.FromString,
+                _registered_method=True)
+        self.SendInitPolicy = channel.unary_unary(
+                '/server.GameService/SendInitPolicy',
+                request_serializer=message__pb2._InitPolicyRequest.SerializeToString,
+                response_deserializer=message__pb2._InitPolicyResponse.FromString,
                 _registered_method=True)
         self.SendAction = channel.unary_unary(
-                '/game.GameService/SendAction',
-                request_serializer=message__pb2.ActionRequest.SerializeToString,
-                response_deserializer=message__pb2.ActionResponse.FromString,
+                '/server.GameService/SendAction',
+                request_serializer=message__pb2._actionSet.SerializeToString,
+                response_deserializer=message__pb2._actionResponse.FromString,
                 _registered_method=True)
-        self.GetGameState = channel.unary_unary(
-                '/game.GameService/GetGameState',
-                request_serializer=message__pb2.GameStateRequest.SerializeToString,
-                response_deserializer=message__pb2.GameStateResponse.FromString,
+        self.BroadcastGameState = channel.unary_stream(
+                '/server.GameService/BroadcastGameState',
+                request_serializer=message__pb2._GameStateRequest.SerializeToString,
+                response_deserializer=message__pb2._GameStateResponse.FromString,
                 _registered_method=True)
 
 
 class GameServiceServicer(object):
     """Missing associated documentation comment in .proto file."""
 
-    def Initialize(self, request, context):
+    def SendInit(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def SendInitPolicy(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -66,7 +77,7 @@ class GameServiceServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
-    def GetGameState(self, request, context):
+    def BroadcastGameState(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -75,26 +86,31 @@ class GameServiceServicer(object):
 
 def add_GameServiceServicer_to_server(servicer, server):
     rpc_method_handlers = {
-            'Initialize': grpc.unary_unary_rpc_method_handler(
-                    servicer.Initialize,
-                    request_deserializer=message__pb2.InitializationRequest.FromString,
-                    response_serializer=message__pb2.InitializationResponse.SerializeToString,
+            'SendInit': grpc.unary_unary_rpc_method_handler(
+                    servicer.SendInit,
+                    request_deserializer=message__pb2._InitRequest.FromString,
+                    response_serializer=message__pb2._InitResponse.SerializeToString,
+            ),
+            'SendInitPolicy': grpc.unary_unary_rpc_method_handler(
+                    servicer.SendInitPolicy,
+                    request_deserializer=message__pb2._InitPolicyRequest.FromString,
+                    response_serializer=message__pb2._InitPolicyResponse.SerializeToString,
             ),
             'SendAction': grpc.unary_unary_rpc_method_handler(
                     servicer.SendAction,
-                    request_deserializer=message__pb2.ActionRequest.FromString,
-                    response_serializer=message__pb2.ActionResponse.SerializeToString,
+                    request_deserializer=message__pb2._actionSet.FromString,
+                    response_serializer=message__pb2._actionResponse.SerializeToString,
             ),
-            'GetGameState': grpc.unary_unary_rpc_method_handler(
-                    servicer.GetGameState,
-                    request_deserializer=message__pb2.GameStateRequest.FromString,
-                    response_serializer=message__pb2.GameStateResponse.SerializeToString,
+            'BroadcastGameState': grpc.unary_stream_rpc_method_handler(
+                    servicer.BroadcastGameState,
+                    request_deserializer=message__pb2._GameStateRequest.FromString,
+                    response_serializer=message__pb2._GameStateResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
-            'game.GameService', rpc_method_handlers)
+            'server.GameService', rpc_method_handlers)
     server.add_generic_rpc_handlers((generic_handler,))
-    server.add_registered_method_handlers('game.GameService', rpc_method_handlers)
+    server.add_registered_method_handlers('server.GameService', rpc_method_handlers)
 
 
  # This class is part of an EXPERIMENTAL API.
@@ -102,7 +118,7 @@ class GameService(object):
     """Missing associated documentation comment in .proto file."""
 
     @staticmethod
-    def Initialize(request,
+    def SendInit(request,
             target,
             options=(),
             channel_credentials=None,
@@ -115,9 +131,36 @@ class GameService(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/game.GameService/Initialize',
-            message__pb2.InitializationRequest.SerializeToString,
-            message__pb2.InitializationResponse.FromString,
+            '/server.GameService/SendInit',
+            message__pb2._InitRequest.SerializeToString,
+            message__pb2._InitResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def SendInitPolicy(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/server.GameService/SendInitPolicy',
+            message__pb2._InitPolicyRequest.SerializeToString,
+            message__pb2._InitPolicyResponse.FromString,
             options,
             channel_credentials,
             insecure,
@@ -142,9 +185,9 @@ class GameService(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/game.GameService/SendAction',
-            message__pb2.ActionRequest.SerializeToString,
-            message__pb2.ActionResponse.FromString,
+            '/server.GameService/SendAction',
+            message__pb2._actionSet.SerializeToString,
+            message__pb2._actionResponse.FromString,
             options,
             channel_credentials,
             insecure,
@@ -156,7 +199,7 @@ class GameService(object):
             _registered_method=True)
 
     @staticmethod
-    def GetGameState(request,
+    def BroadcastGameState(request,
             target,
             options=(),
             channel_credentials=None,
@@ -166,12 +209,12 @@ class GameService(object):
             wait_for_ready=None,
             timeout=None,
             metadata=None):
-        return grpc.experimental.unary_unary(
+        return grpc.experimental.unary_stream(
             request,
             target,
-            '/game.GameService/GetGameState',
-            message__pb2.GameStateRequest.SerializeToString,
-            message__pb2.GameStateResponse.FromString,
+            '/server.GameService/BroadcastGameState',
+            message__pb2._GameStateRequest.SerializeToString,
+            message__pb2._GameStateResponse.FromString,
             options,
             channel_credentials,
             insecure,

@@ -15,6 +15,14 @@ class Program
         builder.Services.AddSingleton<Env>();  // Env 单例，确保整个应用使用同一个实例
         builder.Services.AddGrpc();
 
+        builder.WebHost.ConfigureKestrel(options =>
+        {
+            options.ListenLocalhost(50051, o =>
+            {
+                o.Protocols = Microsoft.AspNetCore.Server.Kestrel.Core.HttpProtocols.Http2;
+            });
+        });
+
         var app = builder.Build();
 
         // 配置 gRPC 服务端点

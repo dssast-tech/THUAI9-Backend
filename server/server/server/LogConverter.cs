@@ -61,7 +61,7 @@ namespace Server
                 SoldierData temp = new SoldierData();
                 temp.ID = piece.id;
                 temp.camp = piece.team == 1 ? "Red" : "Blue";
-                temp.position = new Vector3Serializable(piece.position.x, piece.position.y, piece.height );
+                temp.position = new Vector3Serializable(piece.position.x, piece.height, piece.position.y );
                 temp.stats = new SoldierStats();
                 temp.stats.health = piece.health;
                 temp.stats.strength = piece.strength;
@@ -122,6 +122,14 @@ namespace Server
         public void addSpell(SpellContext context)
         {
             //TODO
+        }
+
+        public void addDeath(Piece p)
+        {
+            BattleAction temp = new BattleAction();
+            temp.actionType = "death";
+            temp.soldierId = p.id;
+            gamedata.gameRounds[gamedata.gameRounds.Count - 1].actions.Add(temp);
         }
 
         public void save()

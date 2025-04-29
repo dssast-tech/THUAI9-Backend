@@ -28,11 +28,20 @@ namespace Server
         public override Task<_InitResponse> SendInit(_InitRequest request, ServerCallContext context)
         {
             Console.WriteLine("Received InitRequest");
+            int assignedId = Interlocked.Increment(ref env.Idcnt);
+            Console.WriteLine($"Handling player{assignedId}");
 
+            env.connectWaiter.RegisterClient(assignedId.ToString());
+            env.connectWaiter.ClientReady(assignedId.ToString());
             // 模拟初始化棋盘的回信
             var response = new _InitResponse
             {
                 PieceCnt = Player.PIECECNT,
+                Id = assignedId,
+                Board = new _Board
+                {
+
+                }
             };
 
             return Task.FromResult(response);
@@ -148,7 +157,7 @@ namespace Server
                 }
 
                 // 如果所有客户端都准备好了，解除阻塞
-                if (_clientReadyStatus.Values.All(v => v))
+                if (_clientReadyStatus.Values.All(v => v)&& !_tcs.Task.IsCompleted)
                 {
                     _tcs.SetResult(true);
                 }

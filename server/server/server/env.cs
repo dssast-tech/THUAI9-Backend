@@ -28,10 +28,10 @@ namespace Server
         public LogConverter logdata;
         public ServerCommunicator communicator;
 
+        public InitWaiter connectWaiter;
         public InitWaiter initWaiter;
+        public int Idcnt = 0; 
 
-        public bool initialized_flag1;
-        public bool initialized_flag2;
 
         public bool action_received;
         public int input_allowed; //0for forbidden; 1 for player1; 2 for player 2
@@ -43,6 +43,7 @@ namespace Server
                 "address2"
                 );
             mode = 1;
+            connectWaiter = new InitWaiter(2, TimeSpan.FromSeconds(10));
             initWaiter = new InitWaiter(2, TimeSpan.FromSeconds(5));
         }
 
@@ -68,7 +69,7 @@ namespace Server
             }
             else
             {
-               
+
                 try
                 {
                     Console.WriteLine($"Waiting for 2 clients to initialize...");
@@ -733,7 +734,7 @@ namespace Server
 
         //-----------------------------------------------------------------核心逻辑------------------------------------------------------------//
         // 单回合步进逻辑
-        void step()
+        public async Task step()
         {
 
             //***ForDebug***//
