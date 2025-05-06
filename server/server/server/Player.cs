@@ -29,6 +29,7 @@ namespace Server
                     4~法杖        0           22        12
                 */
             var accessor=node.GetAccessor();
+            accessor.SetTypeTo(weapon);
             switch(weapon){
                 case 1:
                     accessor.SetPhysicalDamageTo(18);
@@ -123,6 +124,7 @@ namespace Server
                 
                 Point t=new Point();t.x=feature[5];t.y=feature[6];
                 accessor.SetPosition(t);
+                accessor.SetHeightTo(board.height_map[t.x,t.y]);
             
             }
             

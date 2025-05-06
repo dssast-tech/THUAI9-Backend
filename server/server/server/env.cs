@@ -42,7 +42,7 @@ namespace Server
                 "address1",
                 "address2"
                 );
-            mode = 1;
+            mode = 0;
             connectWaiter = new InitWaiter(2, TimeSpan.FromSeconds(10));
             initWaiter = new InitWaiter(2, TimeSpan.FromSeconds(5));
         }
@@ -88,23 +88,23 @@ namespace Server
                 }
 
 
-                MessageWrapper<InitGameMessage> initmessage = new MessageWrapper<InitGameMessage>();
-                initmessage.type = 0;
-                initmessage.data = new InitGameMessage();
-                initmessage.data.pieceCnt = Player.PIECECNT;
-                initmessage.data.id = 1;
-                initmessage.data.board = board;
-                InitPolicyMessage initMessage = communicator.SendInitRequest(1, initmessage);
-                player1.localInit(initMessage, board);
+                //MessageWrapper<InitGameMessage> initmessage = new MessageWrapper<InitGameMessage>();
+                //initmessage.type = 0;
+                //initmessage.data = new InitGameMessage();
+                //initmessage.data.pieceCnt = Player.PIECECNT;
+                //initmessage.data.id = 1;
+                //initmessage.data.board = board;
+                //InitPolicyMessage initMessage = communicator.SendInitRequest(1, initmessage);
+                //player1.localInit(initMessage, board);
 
-                initmessage = new MessageWrapper<InitGameMessage>();
-                initmessage.type = 0;
-                initmessage.data = new InitGameMessage();
-                initmessage.data.pieceCnt = Player.PIECECNT;
-                initmessage.data.id = 2;
-                initmessage.data.board = board;
-                initMessage = communicator.SendInitRequest(2, initmessage);
-                player2.localInit(initMessage, board);
+                //initmessage = new MessageWrapper<InitGameMessage>();
+                //initmessage.type = 0;
+                //initmessage.data = new InitGameMessage();
+                //initmessage.data.pieceCnt = Player.PIECECNT;
+                //initmessage.data.id = 2;
+                //initmessage.data.board = board;
+                //initMessage = communicator.SendInitRequest(2, initmessage);
+                //player2.localInit(initMessage, board);
             }
 
             //board.init_pieces_location(player1.pieces, player2.pieces);
@@ -580,6 +580,7 @@ namespace Server
                 // 直接死亡
                 accessor.SetAlive(false);
 
+                logdata.addDeath(target);
                 board.removePiece(target);
                 action_queue.Remove(target);
                 newDeadThisRound.Add(target);
@@ -620,11 +621,13 @@ namespace Server
             else if (context.isDelaySpell && context.spellLifespan == 0)
             {
                 List<Piece> targets = GetPiecesInArea(context.targetArea);
+                context.hitPiecies = GetPiecesInArea(context.targetArea);
                 foreach (var target in targets)
                 {
                     Console.WriteLine("[Spell] Execute delay spell.");
                     Console.WriteLine("[Spell] Effect applied to multi target.");
                     ApplySpellEffect(target, context);
+                    logdata.addSpell(context, board);
                 }
                 return;
             }
@@ -647,15 +650,18 @@ namespace Server
                 }
                 Console.WriteLine("[Spell] Effect applied to single target.");
                 ApplySpellEffect(context.target, context);
+                logdata.addSpell(context, board);
             }
             else
             {
                 // 获取目标区域内的棋子
                 List<Piece> targets = GetPiecesInArea(context.targetArea);
+                context.hitPiecies = GetPiecesInArea(context.targetArea);
                 foreach (var target in targets)
                 {
                     Console.WriteLine("[Spell] Effect applied to multi target.");
                     ApplySpellEffect(target, context);
+                    logdata.addSpell(context, board);
                 }
             }
 
@@ -879,11 +885,12 @@ namespace Server
             //   action_queue.Remove(dead);
             //}
 
+
             // 游戏结束检查
             isGameOver = !player1.pieces.Any(p => p.is_alive) ||
          
             !player2.pieces.Any(p => p.is_alive);
-
+            logdata.finishRound(round_number, action_queue, player1.pieces.Count, player2.pieces.Count, isGameOver);
         }
 
         void log(int mode)
