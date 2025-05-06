@@ -1,9 +1,6 @@
 {
-  "mapMetadata": {
-    "mapName": "Default Map",
-    "mapDescription": "Default Description",
+  "mapdata": {
     "mapWidth": 20,
-    "cubeSize": 1,
     "rows": [
       {
         "row": [
@@ -32,7 +29,7 @@
       {
         "row": [
           0,
-          0,
+          2,
           0,
           0,
           1,
@@ -107,7 +104,7 @@
           1,
           1,
           1,
-          0,
+          2,
           0,
           1,
           1,
@@ -487,443 +484,280 @@
       }
     ]
   },
-  "soldiersData": {
-    "soldiers": [
-      {
-        "ID": 0,
-        "soldierType": null,
-        "camp": "Blue",
-        "position": {
-          "x": 1,
-          "y": 1,
-          "z": 0
-        },
-        "stats": {
-          "health": 0,
-          "strength": 10,
-          "mana": 10
-        }
-      },
-      {
-        "ID": 1,
-        "soldierType": null,
-        "camp": "Blue",
-        "position": {
-          "x": 19,
-          "y": 19,
-          "z": 0
-        },
-        "stats": {
-          "health": 0,
-          "strength": 10,
-          "mana": 10
-        }
-      }
-    ]
+  "playerData": {
+    "player1": "Red",
+    "player2": "Blue"
   },
+  "soldiersData": [
+    {
+      "ID": 0,
+      "soldierType": "Warrior",
+      "camp": "Red",
+      "position": {
+        "x": 9,
+        "y": 3,
+        "z": 9
+      },
+      "stats": {
+        "health": 50,
+        "strength": 10,
+        "intelligence": 10
+      }
+    },
+    {
+      "ID": 1,
+      "soldierType": "Archer",
+      "camp": "Blue",
+      "position": {
+        "x": 9,
+        "y": 2,
+        "z": 11
+      },
+      "stats": {
+        "health": 80,
+        "strength": 25,
+        "intelligence": 1
+      }
+    }
+  ],
   "gameRounds": [
     {
       "roundNumber": 1,
-      "initialState": {
-        "soldiers": [
-          {
-            "ID": 0,
-            "soldierType": null,
-            "camp": "Blue",
-            "position": {
-              "x": 1,
-              "y": 1,
-              "z": 0
-            },
-            "stats": {
-              "health": 50,
-              "strength": 10,
-              "mana": 10
-            }
-          },
-          {
-            "ID": 1,
-            "soldierType": null,
-            "camp": "Blue",
-            "position": {
-              "x": 19,
-              "y": 19,
-              "z": 0
-            },
-            "stats": {
-              "health": 50,
-              "strength": 10,
-              "mana": 10
-            }
-          }
-        ]
-      },
       "actions": [
         {
-          "actionType": "Movement",
+          "actionType": "Attack",
           "soldierId": 0,
-          "path": [
+          "path": null,
+          "remainingMovement": 0,
+          "damageDealt": [
             {
-              "x": 1,
-              "y": 0,
-              "z": -1
-            },
-            {
-              "x": 2,
-              "y": 0,
-              "z": 0
-            },
-            {
-              "x": 3,
-              "y": 0,
-              "z": 0
-            },
-            {
-              "x": 4,
-              "y": 0,
-              "z": 0
-            },
-            {
-              "x": 5,
-              "y": 0,
-              "z": 0
-            },
-            {
-              "x": 6,
-              "y": 0,
-              "z": 0
-            },
-            {
-              "x": 7,
-              "y": 0,
-              "z": 0
-            },
-            {
-              "x": 8,
-              "y": 0,
-              "z": 0
-            },
-            {
-              "x": 9,
-              "y": 0,
-              "z": 0
-            },
-            {
-              "x": 10,
-              "y": 0,
-              "z": 0
-            },
-            {
-              "x": 11,
-              "y": 0,
-              "z": 0
-            },
-            {
-              "x": 12,
-              "y": 0,
-              "z": 0
-            },
-            {
-              "x": 13,
-              "y": 0,
-              "z": 0
-            },
-            {
-              "x": 14,
-              "y": 0,
-              "z": 0
-            },
-            {
-              "x": 15,
-              "y": 0,
-              "z": 0
-            },
-            {
-              "x": 16,
-              "y": 0,
-              "z": 0
-            },
-            {
-              "x": 17,
-              "y": 0,
-              "z": 0
-            },
-            {
-              "x": 18,
-              "y": 0,
-              "z": 0
+              "targetId": 1,
+              "damage": 18
             }
           ],
-          "remainingMovement": 25,
-          "targetId": 0,
-          "damageDealt": 0,
+          "oldStats": null,
           "newStats": null,
+          "targetId": 1,
           "ability": null,
           "targetPosition": null,
-          "manaCost": 0
+          "intelligenceCost": 0,
+          "oldRedScore": 0,
+          "oldBlueScore": 0,
+          "newRedScore": 0,
+          "newBlueScore": 0,
+          "winner": null,
+          "cause": null
         }
-      ]
+      ],
+      "stats": [
+        {
+          "soldierId": 1,
+          "survived": "true",
+          "position": {
+            "x": 9,
+            "y": 2,
+            "z": 11
+          },
+          "Stats": {
+            "health": 62,
+            "strength": 25,
+            "intelligence": 1
+          }
+        },
+        {
+          "soldierId": 0,
+          "survived": "true",
+          "position": {
+            "x": 9,
+            "y": 3,
+            "z": 9
+          },
+          "Stats": {
+            "health": 50,
+            "strength": 10,
+            "intelligence": 10
+          }
+        }
+      ],
+      "score": {
+        "redScore": 0,
+        "blueScore": 0
+      },
+      "end": "false"
     },
     {
       "roundNumber": 2,
-      "initialState": {
-        "soldiers": [
-          {
-            "ID": 0,
-            "soldierType": null,
-            "camp": "Blue",
-            "position": {
-              "x": 18,
-              "y": 0,
-              "z": 0
-            },
-            "stats": {
-              "health": 50,
-              "strength": 10,
-              "mana": 10
-            }
-          },
-          {
-            "ID": 1,
-            "soldierType": null,
-            "camp": "Blue",
-            "position": {
-              "x": 19,
-              "y": 19,
-              "z": 0
-            },
-            "stats": {
-              "health": 50,
-              "strength": 10,
-              "mana": 10
-            }
-          }
-        ]
-      },
       "actions": [
         {
           "actionType": "Movement",
           "soldierId": 1,
           "path": [
             {
-              "x": 19,
-              "y": 18,
-              "z": 0
-            },
-            {
-              "x": 19,
-              "y": 17,
-              "z": 0
-            },
-            {
-              "x": 19,
-              "y": 16,
-              "z": 0
-            },
-            {
-              "x": 19,
-              "y": 15,
-              "z": 0
-            },
-            {
-              "x": 19,
-              "y": 14,
-              "z": 0
-            },
-            {
-              "x": 19,
-              "y": 13,
-              "z": 0
-            },
-            {
-              "x": 19,
-              "y": 12,
-              "z": 0
-            },
-            {
-              "x": 19,
-              "y": 11,
-              "z": 0
-            },
-            {
-              "x": 19,
-              "y": 10,
-              "z": 0
-            },
-            {
-              "x": 19,
-              "y": 9,
-              "z": 0
-            },
-            {
-              "x": 19,
-              "y": 8,
-              "z": 0
-            },
-            {
-              "x": 19,
-              "y": 7,
-              "z": 0
-            },
-            {
-              "x": 19,
-              "y": 6,
-              "z": 0
-            },
-            {
-              "x": 19,
-              "y": 5,
-              "z": 0
-            },
-            {
-              "x": 19,
-              "y": 4,
-              "z": 0
-            },
-            {
-              "x": 19,
-              "y": 3,
-              "z": 0
-            },
-            {
-              "x": 19,
+              "x": 8,
               "y": 2,
-              "z": 0
+              "z": 11
             },
             {
-              "x": 19,
-              "y": 1,
-              "z": 0
+              "x": 8,
+              "y": 2,
+              "z": 10
             },
             {
-              "x": 18,
-              "y": 1,
-              "z": 0
+              "x": 8,
+              "y": 2,
+              "z": 9
+            },
+            {
+              "x": 8,
+              "y": 2,
+              "z": 8
             }
           ],
-          "remainingMovement": 25,
-          "targetId": 0,
-          "damageDealt": 0,
+          "remainingMovement": 23,
+          "damageDealt": null,
+          "oldStats": null,
           "newStats": null,
+          "targetId": 0,
           "ability": null,
           "targetPosition": null,
-          "manaCost": 0
+          "intelligenceCost": 0,
+          "oldRedScore": 0,
+          "oldBlueScore": 0,
+          "newRedScore": 0,
+          "newBlueScore": 0,
+          "winner": null,
+          "cause": null
+        },
+        {
+          "actionType": "Attack",
+          "soldierId": 1,
+          "path": null,
+          "remainingMovement": 0,
+          "damageDealt": [
+            {
+              "targetId": 0,
+              "damage": 0
+            }
+          ],
+          "oldStats": null,
+          "newStats": null,
+          "targetId": 0,
+          "ability": null,
+          "targetPosition": null,
+          "intelligenceCost": 0,
+          "oldRedScore": 0,
+          "oldBlueScore": 0,
+          "newRedScore": 0,
+          "newBlueScore": 0,
+          "winner": null,
+          "cause": null
         }
-      ]
+      ],
+      "stats": [
+        {
+          "soldierId": 0,
+          "survived": "true",
+          "position": {
+            "x": 9,
+            "y": 3,
+            "z": 9
+          },
+          "Stats": {
+            "health": 50,
+            "strength": 10,
+            "intelligence": 10
+          }
+        },
+        {
+          "soldierId": 1,
+          "survived": "true",
+          "position": {
+            "x": 8,
+            "y": 2,
+            "z": 8
+          },
+          "Stats": {
+            "health": 62,
+            "strength": 25,
+            "intelligence": 1
+          }
+        }
+      ],
+      "score": {
+        "redScore": 0,
+        "blueScore": 0
+      },
+      "end": "false"
     },
     {
       "roundNumber": 3,
-      "initialState": {
-        "soldiers": [
-          {
-            "ID": 0,
-            "soldierType": null,
-            "camp": "Blue",
-            "position": {
-              "x": 18,
-              "y": 0,
-              "z": 0
+      "actions": [
+        {
+          "actionType": "Movement",
+          "soldierId": 0,
+          "path": [
+            {
+              "x": 9,
+              "y": 3,
+              "z": 10
             },
-            "stats": {
-              "health": 50,
-              "strength": 10,
-              "mana": 10
+            {
+              "x": 10,
+              "y": 3,
+              "z": 10
             }
+          ],
+          "remainingMovement": 25,
+          "damageDealt": null,
+          "oldStats": null,
+          "newStats": null,
+          "targetId": 0,
+          "ability": null,
+          "targetPosition": null,
+          "intelligenceCost": 0,
+          "oldRedScore": 0,
+          "oldBlueScore": 0,
+          "newRedScore": 0,
+          "newBlueScore": 0,
+          "winner": null,
+          "cause": null
+        }
+      ],
+      "stats": [
+        {
+          "soldierId": 1,
+          "survived": "true",
+          "position": {
+            "x": 8,
+            "y": 2,
+            "z": 8
           },
-          {
-            "ID": 1,
-            "soldierType": null,
-            "camp": "Blue",
-            "position": {
-              "x": 18,
-              "y": 1,
-              "z": 0
-            },
-            "stats": {
-              "health": 50,
-              "strength": 10,
-              "mana": 10
-            }
+          "Stats": {
+            "health": 62,
+            "strength": 25,
+            "intelligence": 1
           }
-        ]
-      },
-      "actions": []
-    },
-    {
-      "roundNumber": 4,
-      "initialState": {
-        "soldiers": [
-          {
-            "ID": 0,
-            "soldierType": null,
-            "camp": "Blue",
-            "position": {
-              "x": 18,
-              "y": 0,
-              "z": 0
-            },
-            "stats": {
-              "health": 50,
-              "strength": 10,
-              "mana": 10
-            }
+        },
+        {
+          "soldierId": 0,
+          "survived": "true",
+          "position": {
+            "x": 10,
+            "y": 3,
+            "z": 10
           },
-          {
-            "ID": 1,
-            "soldierType": null,
-            "camp": "Blue",
-            "position": {
-              "x": 18,
-              "y": 1,
-              "z": 0
-            },
-            "stats": {
-              "health": 50,
-              "strength": 10,
-              "mana": 10
-            }
+          "Stats": {
+            "health": 50,
+            "strength": 10,
+            "intelligence": 10
           }
-        ]
+        }
+      ],
+      "score": {
+        "redScore": 0,
+        "blueScore": 0
       },
-      "actions": []
-    },
-    {
-      "roundNumber": 5,
-      "initialState": {
-        "soldiers": [
-          {
-            "ID": 0,
-            "soldierType": null,
-            "camp": "Blue",
-            "position": {
-              "x": 18,
-              "y": 0,
-              "z": 0
-            },
-            "stats": {
-              "health": 50,
-              "strength": 10,
-              "mana": 10
-            }
-          },
-          {
-            "ID": 1,
-            "soldierType": null,
-            "camp": "Blue",
-            "position": {
-              "x": 18,
-              "y": 1,
-              "z": 0
-            },
-            "stats": {
-              "health": 50,
-              "strength": 10,
-              "mana": 10
-            }
-          }
-        ]
-      },
-      "actions": []
+      "end": "false"
     }
   ]
 }

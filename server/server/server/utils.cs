@@ -90,6 +90,8 @@ namespace Server
         public bool isCritical;       // 是否暴击
 
         public bool delayAdd;    // 优势值
+
+        public List<Piece> hitPiecies;
     }
 
     // 配套枚举类型

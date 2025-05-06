@@ -38,10 +38,7 @@ namespace Server
             {
                 PieceCnt = Player.PIECECNT,
                 Id = assignedId,
-                Board = new _Board
-                {
-
-                }
+                Board = Converter.ToProto(env.board)
             };
 
             return Task.FromResult(response);
@@ -52,9 +49,21 @@ namespace Server
         {
             //request to meaage
             env.initWaiter.RegisterClient(request.PlayerId.ToString());
-
-            // 这里我们可以模拟“准备完毕”信号
             env.initWaiter.ClientReady(request.PlayerId.ToString());
+
+            int player = request.PlayerId;
+            var _pieceArgs = request.PieceArgs.ToList();
+            var initPolicyMessage = new InitPolicyMessage();
+            initPolicyMessage.pieceArgs= new List<pieceArg>();
+            foreach ( var pieceArg in _pieceArgs )
+            {
+                initPolicyMessage.pieceArgs.Add(Converter.FromProto(pieceArg));
+            }
+
+            if (player == 1) env.player1.localInit(initPolicyMessage, env.board);
+            else env.player2.localInit(initPolicyMessage, env.board);
+
+
             // 模拟初始化策略的回信
             var response = new _InitPolicyResponse
             {
