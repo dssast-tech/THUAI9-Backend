@@ -1,3 +1,4 @@
+using Grpc.Core;
 using Server;
 namespace Server
 {
@@ -164,5 +165,64 @@ namespace Server
         };
 
         // 其它 message 类依此类推
+
+        public static TargetType FromProto(_TargetType proto) => proto switch
+        {
+            _TargetType.Self => TargetType.Self,
+            _TargetType.Single => TargetType.Single,
+            _TargetType.Area => TargetType.Area,
+            _TargetType.Chain => TargetType.Chain,
+            _ => throw new ArgumentOutOfRangeException(nameof(proto), proto, null)
+        };
+
+        public static _TargetType ToProto(TargetType csharp) => csharp switch
+        {
+            TargetType.Self => _TargetType.Self,
+            TargetType.Single => _TargetType.Single,
+            TargetType.Area => _TargetType.Area,
+            TargetType.Chain => _TargetType.Chain,
+            _ => throw new ArgumentOutOfRangeException(nameof(csharp), csharp, null)
+        };
+
+        public static AttackContext FromProto(_AttackContext proto, Env env) => new AttackContext
+        {
+            attacker = env.action_queue.Find(item => item.id == proto.Attacker),
+            target = env.action_queue.Find(item => item.id == proto.Target),
+        };
+
+        public static SpellContext FromProto(_SpellContext proto, Env env)
+        {
+            var temp = new SpellContext();
+            temp.caster = env.action_queue.Find(item => item.id == proto.Caster);
+            temp.spell = SpellFactory.GetSpellById(proto.SpellID)?? throw new InvalidOperationException("Spell is null.");
+            temp.targetType = FromProto(proto.TargetType);
+            if (proto.TargetArea != null) temp.targetArea = FromProto(proto.TargetArea);
+            if (proto.Target != -1) env.action_queue.Find(item => item.id == proto.Target);
+            return temp;
+        }
+
+        public static _SpellContext ToProto(SpellContext csharp)
+        {
+            var temp = new _SpellContext();
+            temp.Caster = csharp.caster.id;
+            temp.SpellID = csharp.spell.id;
+            temp.TargetType = ToProto(csharp.targetType);
+            if (csharp.targetArea != null)  temp.TargetArea = ToProto(csharp.targetArea);
+            if (csharp.target != null) temp.Target = csharp.target.id;
+            else temp.Target = -1;
+            return temp;
+        }
+
+        public static actionSet FromProto(_actionSet proto, Env env)
+        {
+            var temp = new actionSet();
+            temp.move = proto.Move;
+            temp.attack = proto.Attack;
+            temp.spell = proto.Spell;
+            if(temp.move) temp.move_target = FromProto(proto.MoveTarget);
+            if (temp.attack) temp.attack_context = FromProto(proto.AttackContext, env);
+            if (temp.spell) temp.spell_context = FromProto(proto.SpellContext, env);
+            return temp;
+        }
     }
 }

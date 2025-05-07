@@ -30,6 +30,7 @@ namespace Server
 
         public InitWaiter connectWaiter;
         public InitWaiter initWaiter;
+        public ActionWaiter actionWaiter;
         public int Idcnt = 0; 
 
 
@@ -404,7 +405,10 @@ namespace Server
             }
         }
 
-
+        actionSet getAction(actionSet inputAction)
+        {
+            throw new NotImplementedException();
+        }
 
 
 
@@ -769,10 +773,17 @@ namespace Server
             //处理行动队列
             int processedCount = 0;  // 已处理棋子计数器
             current_piece = action_queue[0];  // 取队列第一个
+            int current_player = current_piece.team;
 
             logdata.addRound(round_number, action_queue);
             log(0);
-            var action = getAction();
+
+            actionSet action;
+            if ( mode==0 ) action = getAction();
+            else
+            {
+                action = Converter.FromProto(await actionWaiter.WaitForPlayerActionAsync(current_player, TimeSpan.FromSeconds(2)),this);
+            }
 
             action_queue.RemoveAt(0);
             // 将棋子放回队列末尾
