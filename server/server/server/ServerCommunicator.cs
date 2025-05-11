@@ -18,10 +18,66 @@ namespace Server
 
 
         Env env;
-
         public GameServiceImpl(Env env)
         {
             this.env = env;
+        }
+
+        private readonly ConcurrentDictionary<int, IServerStreamWriter<_GameStateResponse>> _clients =
+        new ConcurrentDictionary<int, IServerStreamWriter<_GameStateResponse>>();
+
+        // 客户端调用这个方法订阅
+        public override async Task BroadcastGameState(_GameStateRequest request, IServerStreamWriter<_GameStateResponse> responseStream, ServerCallContext context)
+        {
+            var clientId = request.PlayerID;
+            Console.WriteLine($"Client {clientId} connected.");
+
+            // 加入连接池
+            _clients.TryAdd(clientId, responseStream);
+
+            try
+            {
+                // 保持连接直到客户端断开
+                await Task.Delay(Timeout.Infinite, context.CancellationToken);
+            }
+            catch (TaskCanceledException)
+            {
+                // 客户端断开
+                Console.WriteLine($"Client {clientId} disconnected.");
+            }
+            finally
+            {
+                // 移除连接
+                _clients.TryRemove(clientId, out _);
+            }
+        }
+
+        // 这个方法在主逻辑中调用，用于广播数据
+        public async Task BroadcastToAllClients()
+        {
+            var gameStateResponse = new _GameStateResponse
+            {
+                CurrentRound = env.round_number,
+                CurrentPlayerId = env.current_piece.team,
+                ActionQueue = { env.action_queue.Select(Converter.ToProto) },
+                CurrentPieceID = env.current_piece.id,
+                DelayedSpells = { env.delayed_spells.Select(Converter.ToProto) },
+                Board = Converter.ToProto(env.board),
+                IsGameOver = env.isGameOver
+            };
+
+            foreach (var client in _clients)
+            {
+                try
+                {
+                    await client.Value.WriteAsync(gameStateResponse);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Failed to send to client {client.Key}: {ex.Message}");
+                    // 可以考虑移除失效的连接
+                }
+            }
         }
 
         // 1. SendInit 实现
@@ -79,36 +135,22 @@ namespace Server
         {
             Console.WriteLine("Received ActionSet: ");
 
-            // 验证动作并创建响应
+            bool accepted = false;
+            if (env.actionWaiter._playerActions.TryGetValue(request.PlayerId, out var tcs))
+            {
+                accepted = tcs.TrySetResult(request);  // 解锁等待
+            }
+
             var actionResponse = new _actionResponse
             {
-                Success = true,
-                Mes = "Policy confirmed"
+                Success = accepted,
+                Mes = accepted ? "Policy confirmed" : "No action expected at this time"
             };
 
 
             return Task.FromResult(actionResponse);
         }
 
-        // 4. BroadcastGameState 实现
-        public override async Task BroadcastGameState(_GameStateRequest request, IServerStreamWriter<_GameStateResponse> responseStream, ServerCallContext context)
-        {
-            Console.WriteLine("Received GameStateRequest: " );
-
-            // 模拟每回合的游戏状态更新
-
-            // 模拟游戏状态
-            var gameStateResponse = new _GameStateResponse
-            {
-
-            };
-
-            // 通过流发送游戏状态更新
-            await responseStream.WriteAsync(gameStateResponse);
-
-                // 暂停一段时间，模拟游戏回合的进展
-            await Task.Delay(1000); // 模拟1秒的间隔
-        }
     }
 
     public class InitWaiter
@@ -185,6 +227,36 @@ namespace Server
             }
         }
     }
+
+    class ActionWaiter
+    {
+        public ConcurrentDictionary<int, TaskCompletionSource<_actionSet>> _playerActions
+             = new ConcurrentDictionary<int, TaskCompletionSource<_actionSet>>();
+        public async Task<_actionSet> WaitForPlayerActionAsync(int playerId, TimeSpan timeout)
+        {
+            var tcs = new TaskCompletionSource<_actionSet>();
+            _playerActions[playerId] = tcs;
+
+            var completedTask = await Task.WhenAny(tcs.Task, Task.Delay(timeout));
+
+            _playerActions.TryRemove(playerId, out _);  // 清理
+
+            if (completedTask == tcs.Task)
+            {
+                var _action = tcs.Task.Result;
+                return _action;
+            }
+            else
+            {
+                Console.WriteLine($"Player {playerId} action timeout.");
+                throw new ApplicationException();
+            }
+        }
+    }
+
+
+
+    /*******************旧版********************************/
 
     class ServerCommunicator
     {
