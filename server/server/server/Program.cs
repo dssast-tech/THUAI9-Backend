@@ -8,7 +8,6 @@ class Program
 {
     static async Task Main(string[] args)
     {
-
         var builder = WebApplication.CreateBuilder(args);
 
         // 添加 gRPC 服务
@@ -37,8 +36,13 @@ class Program
 
         var serverTask = app.RunAsync();
         var game = app.Services.GetRequiredService<Env>();
+        
+        // 输入方式现在在Env.initialize()中设置
+        
         Task.Run(() => game.run());  // 在后台线程运行 game.run()
 
         await serverTask;
     }
+    
+    
 }

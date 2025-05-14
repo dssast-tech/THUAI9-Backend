@@ -26,32 +26,67 @@ namespace Server
         public List<Piece> newDeadThisRound; // 记录本回合新死亡的棋子列表
         public List<Piece> lastRoundDeadPieces;
         public LogConverter logdata;
-        public ServerCommunicator communicator;
+        // public ServerCommunicator communicator;
 
         public InitWaiter connectWaiter;
         public InitWaiter initWaiter;
         public ActionWaiter actionWaiter;
         public int Idcnt = 0; 
 
+        // 添加输入方法管理器
+        public InputMethodManager inputMethodManager;
 
         public bool action_received;
         public int input_allowed; //0for forbidden; 1 for player1; 2 for player 2
 
         public Env()
         {
-            communicator = new ServerCommunicator(
-                "address1",
-                "address2"
-                );
+            // communicator = new ServerCommunicator(
+            //     "address1",
+            //     "address2"
+            //     );
             mode = 0;
             connectWaiter = new InitWaiter(2, TimeSpan.FromSeconds(10));
             initWaiter = new InitWaiter(2, TimeSpan.FromSeconds(5));
+            actionWaiter = new ActionWaiter();
+            
+            // 初始化输入方法管理器
+            inputMethodManager = new InputMethodManager(this);
         }
 
         public async Task initialize()
         {
             //执行各类初始化
             //注：对于player类，先调用player的localInit函数进行初始化，并根据Init返回值进行地图信息的初始化（需要进行各种合法性检查，如初始位置是否越过双方边界线）
+            
+            // 默认设置双方为控制台输入方式
+            inputMethodManager.SetConsoleInputMethod(1);
+            // inputMethodManager.SetConsoleInputMethod(2);
+            
+            // 示例：如何设置其他输入方式
+            // 1. 设置玩家1为远程输入方式
+            // inputMethodManager.SetRemoteInputMethod(1);
+            
+            // 2. 设置玩家2为本地函数输入，使用攻击型策略
+            inputMethodManager.SetFunctionLocalInputMethod(2, 
+                StrategyFactory.GetAggressiveInitStrategy(), 
+                StrategyFactory.GetAggressiveActionStrategy());
+            
+            // 3. 设置玩家1为本地函数输入，使用防御型策略
+            // inputMethodManager.SetFunctionLocalInputMethod(1,
+            //     StrategyFactory.GetDefensiveInitStrategy(),
+            //     StrategyFactory.GetDefensiveActionStrategy());
+            
+            // 4. 设置玩家2为本地函数输入，使用法师型策略
+            // inputMethodManager.SetFunctionLocalInputMethod(2,
+            //     StrategyFactory.GetMageInitStrategy(),
+            //     StrategyFactory.GetMageActionStrategy());
+            
+            // 5. 设置玩家1为本地函数输入，使用随机策略
+            // inputMethodManager.SetFunctionLocalInputMethod(1,
+            //     StrategyFactory.GetRandomInitStrategy(),
+            //     StrategyFactory.GetRandomActionStrategy());
+            
             board = new Board();
             string filePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "BoardCase", "case1.txt");
             board.init(filePath);
@@ -61,16 +96,49 @@ namespace Server
             player1.id = 1;
             player2.id = 2;
 
-
+            // 如果有任何玩家使用远程输入，设置模式为远程模式
+            if (inputMethodManager.IsRemoteInput(1) || inputMethodManager.IsRemoteInput(2))
+            {
+                mode = 1;
+            }
 
             if (mode == 0)
             {
-                player1.localInit(board, player1.id);
-                player2.localInit(board, player2.id);
+                // 本地模式 - 使用本地输入方法
+                // 初始化player1
+                if (!inputMethodManager.IsRemoteInput(1))
+                {
+                    // 准备InitGameMessage
+                    var initMessage = new InitGameMessage
+                    {
+                        pieceCnt = Player.PIECECNT,
+                        id = 1,
+                        board = board
+                    };
+                    
+                    // 使用本地输入方法处理初始化
+                    var initPolicy = inputMethodManager.HandleInitInput(1, initMessage);
+                    player1.localInit(initPolicy, board);
+                }
+                
+                // 初始化player2
+                if (!inputMethodManager.IsRemoteInput(2))
+                {
+                    // 准备InitGameMessage
+                    var initMessage = new InitGameMessage
+                    {
+                        pieceCnt = Player.PIECECNT,
+                        id = 2,
+                        board = board
+                    };
+                    
+                    // 使用本地输入方法处理初始化
+                    var initPolicy = inputMethodManager.HandleInitInput(2, initMessage);
+                    player2.localInit(initPolicy, board);
+                }
             }
             else
             {
-
                 try
                 {
                     Console.WriteLine($"Waiting for 2 clients to initialize...");
@@ -79,37 +147,16 @@ namespace Server
                     await initWaiter.WaitForAllClientsAsync();
 
                     Console.WriteLine("All clients initialized, game starting...");
-                    // 这里可以开始正式的游戏逻辑
-
+                    // 远程模式下不需要额外操作，因为远程输入是通过gRPC通道自动处理的
                 }
                 catch (TimeoutException)
                 {
                     Console.WriteLine("Game starting despite timeout...");
                     // 如果超时，可以选择自动开始游戏
                 }
-
-
-                //MessageWrapper<InitGameMessage> initmessage = new MessageWrapper<InitGameMessage>();
-                //initmessage.type = 0;
-                //initmessage.data = new InitGameMessage();
-                //initmessage.data.pieceCnt = Player.PIECECNT;
-                //initmessage.data.id = 1;
-                //initmessage.data.board = board;
-                //InitPolicyMessage initMessage = communicator.SendInitRequest(1, initmessage);
-                //player1.localInit(initMessage, board);
-
-                //initmessage = new MessageWrapper<InitGameMessage>();
-                //initmessage.type = 0;
-                //initmessage.data = new InitGameMessage();
-                //initmessage.data.pieceCnt = Player.PIECECNT;
-                //initmessage.data.id = 2;
-                //initmessage.data.board = board;
-                //initMessage = communicator.SendInitRequest(2, initmessage);
-                //player2.localInit(initMessage, board);
             }
 
-            //board.init_pieces_location(player1.pieces, player2.pieces);
-            // 初始化棋盘
+            // 以下是原有初始化代码，无需修改
             action_queue = new List<Piece>();
             delayed_spells = new List<SpellContext>();
             isGameOver = false;
@@ -150,258 +197,25 @@ namespace Server
             logdata = new LogConverter();
             logdata.init(action_queue, board);
             lastRoundDeadPieces = new List<Piece>();
-
         }
 
         // 获取当前棋子的行动指令集
         actionSet getAction(int mode = 0)
         {
-            //http模式
-            if (mode == 1)
+            // 确定当前玩家ID
+            int currentPlayerId = current_piece.team;
+            
+            // 根据模式决定如何处理输入
+            if (mode == 1 || inputMethodManager.IsRemoteInput(currentPlayerId))
             {
-
-                MessageWrapper<GameMessage> initmessage = new MessageWrapper<GameMessage>();
-                initmessage.type = 1;
-                initmessage.data = new GameMessage();
-
-                initmessage.data.action_queue = action_queue;
-                initmessage.data.board = board;
-                initmessage.data.current_piece = current_piece;
-                initmessage.data.round_number = round_number;
-                initmessage.data.delayed_spells = delayed_spells;
-                initmessage.data.player1 = player1;
-                initmessage.data.player2 = player2;
-                PolicyMessage actionMessage = communicator.SendActionRequest(current_piece.team, initmessage);
-
-                //TODO: 读取actionMessage并做合法性检查；@王浩宇
-                actionSet action = new actionSet();
-
-                //----------移动部分----------------
-                if (actionMessage.action_set.move)
-                {
-                    // 校验棋盘边界（假设棋盘尺寸为100x100）
-                    if (actionMessage.action_set.move_target.x < 0 ||
-                        actionMessage.action_set.move_target.x >= board.width ||
-                        actionMessage.action_set.move_target.y < 0 ||
-                        actionMessage.action_set.move_target.y >= board.height)
-                    {
-                        throw new InvalidOperationException("移动目标超出棋盘范围"); // 
-                    }
-                    action.move = true;
-                    action.move_target = actionMessage.action_set.move_target;
+                // 远程模式下，使用actionWaiter等待远程输入
+                // 这里通常由GRPC处理器处理，等待客户端响应
+                throw new NotImplementedException("此函数不会在远程模式下直接调用，Step方法中会处理远程输入");
                 }
                 else
                 {
-                    action.move = false;
-                }
-                //----------攻击部分----------------
-                if (actionMessage.action_set.attack)
-                {
-                    // 目标存在性校验（需匹配action_queue中的棋子ID）
-                    var target = actionMessage.action_set.attack_context.target;
-                    if (!action_queue.Any(p => p.id == target.id))
-                    {
-                        throw new KeyNotFoundException($"攻击目标ID {target.id} 不存在"); // 
-                    }
-                    action.attack = true;
-                    action.attack_context = actionMessage.action_set.attack_context;
-                    action.attack_context.attacker = current_piece; // 同步当前棋子状态
-                }
-                else
-                {
-                    action.attack = false;
-                }
-
-                if (actionMessage.action_set.spell)
-                {
-                    var spellCtx = actionMessage.action_set.spell_context;
-                    // 施法距离校验（与控制台版本相同的100单位限制）
-                    double distance = Math.Sqrt(
-                        Math.Pow(current_piece.position.x - spellCtx.targetArea.x, 2) +
-                        Math.Pow(current_piece.position.y - spellCtx.targetArea.y, 2)
-                    );
-                    if (distance > 100.0)
-                    {
-                        throw new ArgumentOutOfRangeException("施法距离超出限制"); // 
-                    }
-
-                    action.spell = true;
-                    action.spell_context = spellCtx;
-                    action.spell_context.caster = current_piece; // 同步施法者状态
-                }
-                else
-                {
-                    action.spell = false;
-                }
-                return action;
-
-                //throw new NotImplementedException();
-            }
-            else
-            {
-                actionSet action = new actionSet();
-                while (true)
-                {
-                    Console.WriteLine("请输入目标移动位置（格式：x y, 若不移动，输入-1 -1）：");
-                    string input = Console.ReadLine();
-
-                    try
-                    {
-                        // 检查输入是否为两个用空格隔开的整数
-                        string[] inputs = input.Split(' ');
-                        if (inputs.Length != 2)
-                        {
-                            throw new Exception("输入格式错误，应为两个用空格隔开的整数。");
-                        }
-
-                        int x = int.Parse(inputs[0]);
-                        int y = int.Parse(inputs[1]);
-
-                        if (x == -1 || y == -1)
-                        {
-                            action.move = false;
-                            break;
-                        }
-
-                        // 执行业务逻辑
-                        // 例如：设置棋子的目标位置
-                        action.move = true;
-                        action.move_target = new Point(x, y);
-                        break;
-                        // 退出循环
-                    }
-                    catch (Exception ex)
-                    {
-                        Console.WriteLine($"输入错误：{ex.Message}");
-                    }
-                }
-                // 攻击部分
-                while (true)
-                {
-                    Console.WriteLine("请输入要攻击的棋子id编号（若不攻击，输入-1)");
-                    string input = Console.ReadLine();
-                    try
-                    {
-                        int x = int.Parse(input);
-                        if (x == -1)
-                        {
-                            action.attack = false;
-                            break;
-                        }
-                        else
-                        {
-                            action.attack = true;
-                            action.attack_context.attacker = current_piece;
-                            Piece foundPiece = action_queue.FirstOrDefault(p => p.id == x);
-                            if (foundPiece == null)
-                                throw new Exception("未找到指定的棋子。");
-                            action.attack_context.target = foundPiece;
-                            action.attack_context.attackPosition = current_piece.position;
-                            break;
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        Console.WriteLine($"输入错误：{ex.Message}");
-                    }
-                }
-
-                // 法术部分
-                Console.WriteLine("是否要施放法术？(1/-1)");
-                string spellChoice = Console.ReadLine();
-                if (spellChoice != null && spellChoice.Trim() == "1")
-                {
-                    while (true)
-                    {
-                        Console.WriteLine("请输入要施加的法术id（若不施法，输入-1)");
-                        string input = Console.ReadLine();
-
-                        int spellId = int.Parse(input);
-                        if (spellId == -1)
-                        {
-                            action.spell = false;
-                            break;
-                        }
-
-                        Spell? selectedSpell = SpellFactory.GetSpellById(spellId);
-                        if (!selectedSpell.HasValue)
-                        {
-                            Console.WriteLine("未找到指定的法术，请重新输入。");
-                            continue;
-                        }
-                        var spell = selectedSpell.Value;
-                        action.spell = true;
-
-                        Console.WriteLine($"已选择法术: {spell.name} - {spell.description}");
-
-                        Console.WriteLine("请输入要施加的法术中心坐标（格式：x y）");
-                        string[] inputs = Console.ReadLine().Split(' ');
-                        if (inputs.Length != 2)
-                        {
-                            Console.WriteLine("输入格式错误，应为两个用空格隔开的整数。");
-                            continue;
-                        }
-
-                        int x, y;
-                        if (!int.TryParse(inputs[0], out x) || !int.TryParse(inputs[1], out y))
-                        {
-                            Console.WriteLine("坐标输入格式错误，请重新输入。");
-                            continue;
-                        }
-
-                        if (Math.Sqrt(Math.Pow(current_piece.position.x - x, 2) +
-                                      Math.Pow(current_piece.position.y - y, 2)) > 100.0)
-                        {
-                            Console.WriteLine("施法范围超出限制，请重新输入。");
-                            continue;
-                        }
-
-                        Console.WriteLine("请输入要攻击的棋子id编号");
-                        string targetInput = Console.ReadLine();
-                        int targetId;
-                        if (!int.TryParse(targetInput, out targetId))
-                        {
-                            Console.WriteLine("棋子id输入格式错误，请重新输入。");
-                            continue;
-                        }
-                        Piece foundPiece = action_queue.FirstOrDefault(p => p.id == targetId);
-                        if (foundPiece == null)
-                        {
-                            Console.WriteLine("未找到指定的棋子，请重新输入。");
-                            continue;
-                        }
-
-                        action.spell_context.target = foundPiece;
-                        action.spell_context.targetArea = new Area
-                        {
-                            x = x,
-                            y = y,
-                            radius = spell.areaRadius
-                        };
-
-                        action.spell = true;
-                        action.spell_context.isDelaySpell = spell.isDelaySpell;
-                        action.spell_context.spellLifespan = spell.baseLifespan;
-                        action.spell_context.delayAdd = false;
-                        action.spell_context.caster = current_piece;
-                        action.spell_context.spell = spell;
-                        action.spell_context.targetArea = new Area
-                        {
-                            x = x,
-                            y = y,
-                            radius = spell.areaRadius
-                        };
-
-                        Console.WriteLine($"法术 {spell.name} 已准备施放，目标区域中心: ({x}, {y})");
-                        break;
-                    }
-                }
-                else
-                {
-                    action.spell = false;
-                }
-
-                return action;
+                // 使用本地输入方法获取行动
+                return inputMethodManager.HandleActionInput(currentPlayerId);
             }
         }
 
@@ -409,10 +223,6 @@ namespace Server
         {
             throw new NotImplementedException();
         }
-
-
-
-
 
         // 投掷骰子  
         private int RollDice(int n, int sides) // n为投掷次数，sides为骰子面数
@@ -746,7 +556,6 @@ namespace Server
         // 单回合步进逻辑
         public async Task step()
         {
-
             //***ForDebug***//
             //手动结束游戏
             Console.WriteLine("输入exit结束游戏：");
@@ -778,26 +587,25 @@ namespace Server
             logdata.addRound(round_number, action_queue);
             log(0);
 
+            // 获取行动
             actionSet action;
-            if ( mode==0 ) action = getAction();
+            
+            // 根据当前玩家的输入方法决定如何获取行动
+            if (inputMethodManager.IsRemoteInput(current_player))
+            {
+                // 使用远程输入方法（通过actionWaiter）
+                action = Converter.FromProto(await actionWaiter.WaitForPlayerActionAsync(current_player, TimeSpan.FromSeconds(2)), this);
+            }
             else
             {
-                action = Converter.FromProto(await actionWaiter.WaitForPlayerActionAsync(current_player, TimeSpan.FromSeconds(2)),this);
+                // 使用本地输入方法
+                action = inputMethodManager.HandleActionInput(current_player);
             }
 
+            // 更新行动队列
             action_queue.RemoveAt(0);
-            // 将棋子放回队列末尾
             action_queue.Add(current_piece);
             processedCount++;
-
-            //// 跳过死亡/非己方回合单位
-            //if (!current_piece.is_alive || current_piece.team != (round_number % 2 + 1))
-            //{
-            //    action_queue.Add(current_piece);
-            //    processedCount++;
-            //    continue;
-            //}
-
 
             if (current_piece.action_points > 0 && action.move)
             {
@@ -986,11 +794,87 @@ namespace Server
         // 游戏主循环
         public async Task run()
         {
+         
+            
             await initialize(); // 初始化游戏
             Console.WriteLine("游戏初始化完成，开始游戏！");
             VisualizeArray(board.grid);
-            while (!isGameOver) step(); // 回合制循环
+            
+            // 游戏主循环
+            while (!isGameOver) 
+            {
+                await step();
+            }
+            
             logdata.save();
+        }
+        
+        // 添加设置玩家本地函数的辅助方法，使用StrategyFactory中的策略
+        private void SetupPlayerLocalFunction(int playerId, int strategyType)
+        {
+            Func<InitGameMessage, InitPolicyMessage> initHandler;
+            Func<Env, actionSet> actionHandler;
+            
+            switch (strategyType)
+            {
+                case 1: // 攻击型
+                    initHandler = StrategyFactory.GetAggressiveInitStrategy();
+                    actionHandler = StrategyFactory.GetAggressiveActionStrategy();
+                    Console.WriteLine($"玩家{playerId}使用攻击型策略");
+                    break;
+                    
+                case 2: // 防御型
+                    initHandler = StrategyFactory.GetDefensiveInitStrategy();
+                    actionHandler = StrategyFactory.GetDefensiveActionStrategy();
+                    Console.WriteLine($"玩家{playerId}使用防御型策略");
+                    break;
+                    
+                case 3: // 法师型
+                    initHandler = StrategyFactory.GetMageInitStrategy();
+                    actionHandler = StrategyFactory.GetMageActionStrategy();
+                    Console.WriteLine($"玩家{playerId}使用法师型策略");
+                    break;
+                    
+                case 4: // 随机
+                    initHandler = StrategyFactory.GetRandomInitStrategy();
+                    actionHandler = StrategyFactory.GetRandomActionStrategy();
+                    Console.WriteLine($"玩家{playerId}使用随机策略");
+                    break;
+                    
+                default:
+                    initHandler = StrategyFactory.GetAggressiveInitStrategy();
+                    actionHandler = StrategyFactory.GetAggressiveActionStrategy();
+                    Console.WriteLine($"策略类型无效，玩家{playerId}使用默认攻击型策略");
+                    break;
+            }
+            
+            // 设置函数式本地输入
+            inputMethodManager.SetFunctionLocalInputMethod(playerId, initHandler, actionHandler);
+        }
+
+        // 设置玩家输入方法的辅助方法
+        private void SetupPlayerInputMethod(int playerId, int inputType)
+        {
+            switch (inputType)
+            {
+                case 1: // 控制台
+                    inputMethodManager.SetConsoleInputMethod(playerId);
+                    break;
+                    
+                case 2: // 远程连接
+                    inputMethodManager.SetRemoteInputMethod(playerId);
+                    break;
+                    
+                case 3: // 本地函数
+                    // 使用新的SetupPlayerLocalFunction方法，默认使用攻击型策略
+                    SetupPlayerLocalFunction(playerId, 1);
+                    break;
+                    
+                default:
+                    Console.WriteLine($"未知的输入类型 {inputType}，将使用默认的控制台输入。");
+                    inputMethodManager.SetConsoleInputMethod(playerId);
+                    break;
+            }
         }
     }
 }

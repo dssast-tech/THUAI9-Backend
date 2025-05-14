@@ -242,12 +242,6 @@ namespace Server
 
 
 
-        public actionSet getAction(Piece currentPiece)
-        {
-            //控制台或AI逻辑
-            
-            throw new NotImplementedException();
-        }
 
 
         List<int> initInput(Board board,int id)
