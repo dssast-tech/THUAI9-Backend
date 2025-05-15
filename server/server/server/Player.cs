@@ -174,17 +174,29 @@ namespace Server
                 accessor.SetDexterityTo(arg.dexterity);
                 accessor.SetIntelligenceTo(arg.intelligence);
 
-                // 派生属性计算
+                // 行动点系统初始化
+                accessor.SetMaxActionPoints();
+                accessor.SetActionPointsTo(piece.max_action_points);
+
+                // 法术槽系统初始化 
+                accessor.SetMaxSpellSlots();
+                accessor.SetSpellSlotsTo(piece.max_spell_slots);
+
+                // 生命值系统
                 accessor.SetMaxHealthTo(30 + arg.strength * 2);
                 accessor.SetHealthTo(piece.max_health);
+
+                // 移动系统
                 accessor.SetMaxMovementTo(arg.dexterity + (float)(0.5 * arg.strength) + 10);
+                accessor.SetMovementTo(piece.max_movement); 
 
                 // 装备系统初始化
                 SetWeapon(arg.equip.x, piece);
                 SetArmor(arg.equip.y, piece);
 
-                // 位置初始化（已通过校验）
+                // 位置初始化（补全高度信息）
                 accessor.SetPosition(arg.pos);
+                accessor.SetHeightTo(board.height_map[arg.pos.x, arg.pos.y]);
 
                 piece_num++;
             }
