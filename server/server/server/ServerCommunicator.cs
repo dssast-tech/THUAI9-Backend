@@ -160,6 +160,7 @@ namespace Server
         private readonly Dictionary<string, Task> _clientTimeoutTasks = new Dictionary<string, Task>();
         private readonly TaskCompletionSource<bool> _tcs = new TaskCompletionSource<bool>();
         private readonly TimeSpan _timeout;
+        private int loadedClients = 0;
 
         public InitWaiter(int expectedClients, TimeSpan timeout)
         {
@@ -177,6 +178,8 @@ namespace Server
                     _clientReadyStatus.Add(clientId, false);
                     _clientTimeoutTasks[clientId] = StartTimeoutTask(clientId);  // 启动超时任务
                     Console.WriteLine($"[InitWaiter] Registered client: {clientId} (Total clients: {_clientReadyStatus.Count}/{_expectedClients})");
+                    Interlocked.Increment(ref loadedClients);
+                    CheckAndSetCompletion();
                 }
             }
         }
@@ -189,10 +192,23 @@ namespace Server
             // 如果超时并且client还没有准备好，输出超时信息
             lock (_clientReadyStatus)
             {
-                if (!_clientReadyStatus[clientId])
+                if (_clientReadyStatus.ContainsKey(clientId) && !_clientReadyStatus[clientId])
                 {
                     Console.WriteLine($"[InitWaiter] Client {clientId} timed out after {_timeout.TotalSeconds} seconds.");
                 }
+            }
+        }
+
+        private void CheckAndSetCompletion()
+        {
+            // 已经在锁内，不需要再加锁
+            if (loadedClients == _expectedClients &&
+                !_tcs.Task.IsCompleted)
+            {
+                Console.WriteLine("[InitWaiter] All clients registered and ready, attempting to complete task.");
+                // _tcs.TrySetResult(true);
+                _tcs.SetCanceled();
+
             }
         }
 
@@ -205,26 +221,28 @@ namespace Server
                 {
                     _clientReadyStatus[clientId] = true;
                     Console.WriteLine($"[InitWaiter] Client {clientId} is ready! ({_clientReadyStatus.Values.Count(v => v)} out of {_expectedClients})");
-                }
-
-                // 如果所有客户端都准备好了，解除阻塞
-                if (_clientReadyStatus.Values.All(v => v) && !_tcs.Task.IsCompleted)
-                {
-                    _tcs.SetResult(true);
+                    CheckAndSetCompletion();
                 }
             }
         }
+
         public async Task WaitForAllClientsAsync()
         {
             var timeoutTask = Task.Delay(_timeout);
             var completedTask = await Task.WhenAny(_tcs.Task, timeoutTask);
 
+
+
+            Console.WriteLine($"[InitWaiter] Task completed: {(completedTask == _tcs.Task ? "Main Task" : "Timeout Task")}");
+            Console.WriteLine($"[InitWaiter] TCS Task Status: {_tcs.Task.Status}");
+            
             if (completedTask == timeoutTask)
             {
-                Console.WriteLine("[InitWaiter] Timeout waiting for clients.");
-                // 超时逻辑：可能是自动开始游戏，或者错误提示
+                Console.WriteLine("[InitWaiter] Timeout occurred while waiting for clients.");
                 throw new TimeoutException("Timed out waiting for all clients to initialize.");
             }
+            
+            Console.WriteLine("[InitWaiter] Successfully completed waiting for all clients.");
         }
     }
 

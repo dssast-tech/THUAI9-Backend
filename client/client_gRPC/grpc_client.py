@@ -1,9 +1,16 @@
 import grpc
 import message_pb2
 import message_pb2_grpc
-import Player
+from strategy_factory import StrategyFactory
+from State import *
+from utils import *
+from converter import *
 
 def run():
+    # 选择策略
+    init_strategy = StrategyFactory.get_aggressive_init_strategy()
+    # action_strategy = StrategyFactory.get_defensive_action_strategy()
+    
     with grpc.insecure_channel('localhost:50051') as channel:
         stub = message_pb2_grpc.GameServiceStub(channel)
 
@@ -12,19 +19,14 @@ def run():
         print(f"初始化响应: {response.id}")
         player.id = response.id
 
-        # 获取游戏状态
-        InitResponse = stub.SendInitPolicy(message_pb2._InitPolicyRequest(id=player.id))
-        # print(f"当前游戏状态: {game_state}")
+        # 获取初始化游戏状态并应用初始化策略
+        init_policy = Converter.to_proto_piece_args(init_strategy(response))
+        
+        # 将init_policy转换为protobuf消息并发送
+        init_policy_response = message_pb2._InitPolicyRequest(playerId=player.id, pieceArgs=init_policy)
 
-        # 发送动作
-        action = message_pb2.ActionRequest(
-            action_set=message_pb2.ActionSet(
-                move_target=message_pb2.MoveTarget(x=3, y=5),
-                attack=False
-            )
-        )
-        action_response = stub.SendAction(action)
-        print(f"动作响应: {action_response.message}")
+        print("初始化策略已发送")
+
 
 if __name__ == "__main__":
     player = Player()

@@ -165,3 +165,4 @@ class Spell:
         self.is_area_effect = is_area_effect
         self.is_delay_spell = is_delay_spell
         self.is_locking_spell = is_locking_spell
+

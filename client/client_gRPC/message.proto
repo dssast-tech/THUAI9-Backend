@@ -62,61 +62,19 @@ message _Board {
     int32 boarder = 5;
 }
 
-message _Spell {
-    int32 id = 1;
-    string name = 2;
-    string description = 3;
-    _SpellEffectType effectType = 4;
-    _DamageType damageType = 5;
-    int32 baseValue = 6;
-    int32 range = 7;
-    int32 areaRadius = 8;
-    int32 spellCost = 9;
-    int32 baseLifespan = 10;
-    bool isAreaEffect = 11;
-    bool isDelaySpell = 12;
-    bool isLockingSpell = 13;
-}
 
 message _SpellContext {
-    _Piece caster = 1;
-    _Spell spell = 2;
-    int32 spellPower = 3;
+    int32 caster = 1;
+    int32 spellID = 2;
     _TargetType targetType = 4;
-    _Piece target = 5;
+    int32 target = 5;
     _Area targetArea = 6;
-    float spellRange = 7;
-    _SpellEffectType effectType = 8;
-    _DamageType damageType = 9;
-    int32 damageValue = 10;
-    int32 healValue = 11;
-    int32 effectValue = 12;
-    bool isDelaySpell = 13;
-    int32 baseLifespan = 14;
-    int32 spellLifespan = 15;
-    bool isDamageSpell = 16;
-    bool isAreaEffect = 17;
-    bool isLockingSpell = 18;
-    int32 spellCost = 19;
-    int32 actionCost = 20;
-    bool isHit = 21;
-    bool isCritical = 22;
-    bool delayAdd = 23;
+    int32 spellLifespan = 7;
 }
 
 message _AttackContext {
-    _Piece attacker = 1;
-    _Piece target = 2;
-    _AttackType attackType = 3;
-    bool isCritical = 4;
-    int32 damageDealt = 5;
-    bool isHit = 6;
-    int32 advantageValue = 7;
-    _Point attackPosition = 8;
-    int32 attackRoll = 9;
-    int32 defenseValue = 10;
-    bool causedDeath = 11;
-    int32 deathRoll = 12;
+    int32 attacker = 1;
+    int32 target = 2;
 }
 
 message _Area {
@@ -145,7 +103,7 @@ message _Piece {
     _Point position = 17;
     int32 height = 18;
     int32 attack_range = 19;
-    repeated _Spell spell_list = 20;
+    repeated int32 spell_list = 20;
     int32 deathRound = 21;
     int32 team = 22;
     int32 queue_index = 23;
@@ -217,23 +175,15 @@ message _actionResponse {
 }
 
 message _GameStateResponse {
-    _GameState gameState = 1;
-    _Piece piece = 2;
-    _Board board = 3;
-    _Env env = 4;
-}
-
-message _GameStateRequest {}
-
-message _Env {
-    repeated string actionQueue = 1;
-    int32 roundNumber = 2;
-    repeated _SpellContext delayedSpells = 3;
-    bool isGameOver = 4;
-}
-
-message _GameState {
     int32 currentRound = 1;
     int32 currentPlayerId = 2;
+    int32 currentPieceID = 3;
+    repeated _Piece actionQueue = 4;
+    _Board board = 5;
+    repeated _SpellContext delayedSpells = 6;
+    bool isGameOver = 7;
 }
 
+message _GameStateRequest {
+    int32 playerID =1;
+}
