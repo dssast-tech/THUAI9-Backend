@@ -39,6 +39,14 @@ namespace Server
         public bool action_received;
         public int input_allowed; //0for forbidden; 1 for player1; 2 for player 2
 
+        private async Task BroadcastGameState()
+        {
+            if (mode == 1 && GameServiceImpl.Instance != null)
+            {
+                await GameServiceImpl.Instance.BroadcastToAllClients();
+            }
+        }
+
         public Env()
         {
             // communicator = new ServerCommunicator(
@@ -46,8 +54,8 @@ namespace Server
             //     "address2"
             //     );
             mode = 0;
-            connectWaiter = new InitWaiter(2, TimeSpan.FromSeconds(10));
-            initWaiter = new InitWaiter(2, TimeSpan.FromSeconds(5));
+            connectWaiter = new InitWaiter(2, TimeSpan.FromSeconds(10),22);
+            initWaiter = new InitWaiter(2, TimeSpan.FromSeconds(10),11);
             actionWaiter = new ActionWaiter();
             
             // 初始化输入方法管理器
@@ -60,33 +68,34 @@ namespace Server
             //注：对于player类，先调用player的localInit函数进行初始化，并根据Init返回值进行地图信息的初始化（需要进行各种合法性检查，如初始位置是否越过双方边界线）
             
             // 默认设置双方为控制台输入方式
-            inputMethodManager.SetConsoleInputMethod(1);
+            // inputMethodManager.SetConsoleInputMethod(1);
             // inputMethodManager.SetConsoleInputMethod(2);
             
             // 示例：如何设置其他输入方式
             // 1. 设置玩家1为远程输入方式
-            // inputMethodManager.SetRemoteInputMethod(1);
+            inputMethodManager.SetRemoteInputMethod(1);
+            inputMethodManager.SetRemoteInputMethod(2);
             
             // 2. 设置玩家2为本地函数输入，使用攻击型策略
-            inputMethodManager.SetFunctionLocalInputMethod(2, 
-                StrategyFactory.GetAggressiveInitStrategy(), 
-                StrategyFactory.GetAggressiveActionStrategy());
-            
+            // inputMethodManager.SetFunctionLocalInputMethod(2, 
+            //     StrategyFactory.GetAggressiveInitStrategy(), 
+            //     StrategyFactory.GetAggressiveActionStrategy());
+
             // 3. 设置玩家1为本地函数输入，使用防御型策略
             // inputMethodManager.SetFunctionLocalInputMethod(1,
             //     StrategyFactory.GetDefensiveInitStrategy(),
             //     StrategyFactory.GetDefensiveActionStrategy());
-            
+
             // 4. 设置玩家2为本地函数输入，使用法师型策略
             // inputMethodManager.SetFunctionLocalInputMethod(2,
             //     StrategyFactory.GetMageInitStrategy(),
             //     StrategyFactory.GetMageActionStrategy());
-            
+
             // 5. 设置玩家1为本地函数输入，使用随机策略
             // inputMethodManager.SetFunctionLocalInputMethod(1,
             //     StrategyFactory.GetRandomInitStrategy(),
             //     StrategyFactory.GetRandomActionStrategy());
-            
+
             board = new Board();
             string filePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "BoardCase", "case1.txt");
             board.init(filePath);
@@ -156,6 +165,7 @@ namespace Server
                 }
             }
 
+
             // 以下是原有初始化代码，无需修改
             action_queue = new List<Piece>();
             delayed_spells = new List<SpellContext>();
@@ -198,7 +208,6 @@ namespace Server
             logdata.init(action_queue, board);
             lastRoundDeadPieces = new List<Piece>();
         }
-
         // 获取当前棋子的行动指令集
         actionSet getAction(int mode = 0)
         {
@@ -556,15 +565,16 @@ namespace Server
         // 单回合步进逻辑
         public async Task step()
         {
+
             //***ForDebug***//
             //手动结束游戏
-            Console.WriteLine("输入exit结束游戏：");
-            string input = Console.ReadLine();
-            if (input == "exit")
-            {
-                isGameOver = true;
-                return;
-            }
+            // Console.WriteLine("输入exit结束游戏：");
+            // string input = Console.ReadLine();
+            // if (input == "exit")
+            // {
+            //     isGameOver = true;
+            //     return;
+            // }
 
             //**************//
 
@@ -586,6 +596,11 @@ namespace Server
 
             logdata.addRound(round_number, action_queue);
             log(0);
+            
+            // 在回合开始时广播游戏状态
+            Console.WriteLine("Broadcasting game state...");
+            await BroadcastGameState();
+            Console.WriteLine("Broadcasting game state done");
 
             // 获取行动
             actionSet action;
@@ -799,7 +814,8 @@ namespace Server
             await initialize(); // 初始化游戏
             Console.WriteLine("游戏初始化完成，开始游戏！");
             VisualizeArray(board.grid);
-            
+
+            await Task.Delay(1000);
             // 游戏主循环
             while (!isGameOver) 
             {
@@ -809,72 +825,6 @@ namespace Server
             logdata.save();
         }
         
-        // 添加设置玩家本地函数的辅助方法，使用StrategyFactory中的策略
-        private void SetupPlayerLocalFunction(int playerId, int strategyType)
-        {
-            Func<InitGameMessage, InitPolicyMessage> initHandler;
-            Func<Env, actionSet> actionHandler;
-            
-            switch (strategyType)
-            {
-                case 1: // 攻击型
-                    initHandler = StrategyFactory.GetAggressiveInitStrategy();
-                    actionHandler = StrategyFactory.GetAggressiveActionStrategy();
-                    Console.WriteLine($"玩家{playerId}使用攻击型策略");
-                    break;
-                    
-                case 2: // 防御型
-                    initHandler = StrategyFactory.GetDefensiveInitStrategy();
-                    actionHandler = StrategyFactory.GetDefensiveActionStrategy();
-                    Console.WriteLine($"玩家{playerId}使用防御型策略");
-                    break;
-                    
-                case 3: // 法师型
-                    initHandler = StrategyFactory.GetMageInitStrategy();
-                    actionHandler = StrategyFactory.GetMageActionStrategy();
-                    Console.WriteLine($"玩家{playerId}使用法师型策略");
-                    break;
-                    
-                case 4: // 随机
-                    initHandler = StrategyFactory.GetRandomInitStrategy();
-                    actionHandler = StrategyFactory.GetRandomActionStrategy();
-                    Console.WriteLine($"玩家{playerId}使用随机策略");
-                    break;
-                    
-                default:
-                    initHandler = StrategyFactory.GetAggressiveInitStrategy();
-                    actionHandler = StrategyFactory.GetAggressiveActionStrategy();
-                    Console.WriteLine($"策略类型无效，玩家{playerId}使用默认攻击型策略");
-                    break;
-            }
-            
-            // 设置函数式本地输入
-            inputMethodManager.SetFunctionLocalInputMethod(playerId, initHandler, actionHandler);
-        }
 
-        // 设置玩家输入方法的辅助方法
-        private void SetupPlayerInputMethod(int playerId, int inputType)
-        {
-            switch (inputType)
-            {
-                case 1: // 控制台
-                    inputMethodManager.SetConsoleInputMethod(playerId);
-                    break;
-                    
-                case 2: // 远程连接
-                    inputMethodManager.SetRemoteInputMethod(playerId);
-                    break;
-                    
-                case 3: // 本地函数
-                    // 使用新的SetupPlayerLocalFunction方法，默认使用攻击型策略
-                    SetupPlayerLocalFunction(playerId, 1);
-                    break;
-                    
-                default:
-                    Console.WriteLine($"未知的输入类型 {inputType}，将使用默认的控制台输入。");
-                    inputMethodManager.SetConsoleInputMethod(playerId);
-                    break;
-            }
-        }
     }
 }

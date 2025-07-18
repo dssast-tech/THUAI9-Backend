@@ -15,12 +15,34 @@ namespace Server
 {
     class GameServiceImpl : GameService.GameServiceBase
     {
-
-
+        private static int instanceCount = 0;  // 添加静态计数器
+        private readonly string instanceId = Guid.NewGuid().ToString();  // 添加唯一标识符
         Env env;
+        public static GameServiceImpl Instance { get; private set; }
+
         public GameServiceImpl(Env env)
         {
+            instanceCount++;  // 构造函数调用时增加计数
+            Console.WriteLine($"GameServiceImpl constructor called. Total instances created: {instanceCount}");
+            Console.WriteLine($"New instance created with ID: {instanceId}");
+            
             this.env = env;
+            Instance = this;
+        }
+
+        // 添加验证方法
+        public void VerifyInstance()
+        {
+            if (Instance == null)
+            {
+                Console.WriteLine("Warning: Instance is null!");
+                return;
+            }
+
+            Console.WriteLine($"Current instance ID: {instanceId}");
+            Console.WriteLine($"Static Instance ID: {Instance.instanceId}");
+            Console.WriteLine($"Are they the same instance? {ReferenceEquals(this, Instance)}");
+            Console.WriteLine($"Total instances created: {instanceCount}");
         }
 
         private readonly ConcurrentDictionary<int, IServerStreamWriter<_GameStateResponse>> _clients =
@@ -29,11 +51,14 @@ namespace Server
         // 客户端调用这个方法订阅
         public override async Task BroadcastGameState(_GameStateRequest request, IServerStreamWriter<_GameStateResponse> responseStream, ServerCallContext context)
         {
+            VerifyInstance();  // 验证实例
             var clientId = request.PlayerID;
             Console.WriteLine($"Client {clientId} connected.");
 
             // 加入连接池
-            _clients.TryAdd(clientId, responseStream);
+            bool addSuccess = _clients.TryAdd(clientId, responseStream);
+            Console.WriteLine($"Client {clientId} connection attempt - Success: {addSuccess}");
+            Console.WriteLine($"Current client count: {_clients.Count}");
 
             try
             {
@@ -43,13 +68,14 @@ namespace Server
             catch (TaskCanceledException)
             {
                 // 客户端断开
-                Console.WriteLine($"Client {clientId} disconnected.");
+                Console.WriteLine($"Client {clientId} disconnected by accident.");
             }
-            finally
-            {
-                // 移除连接
-                _clients.TryRemove(clientId, out _);
-            }
+            // finally
+            // {
+            //     // 移除连接
+            //     _clients.TryRemove(clientId, out _);
+            //     Console.WriteLine($"Client {clientId} disconnected by will.");
+            // }
         }
 
         // 这个方法在主逻辑中调用，用于广播数据
@@ -66,6 +92,7 @@ namespace Server
                 IsGameOver = env.isGameOver
             };
 
+            Console.WriteLine($"Broadcasting game state to {_clients.Count} clients");
             foreach (var client in _clients)
             {
                 try
@@ -83,6 +110,7 @@ namespace Server
         // 1. SendInit 实现
         public override Task<_InitResponse> SendInit(_InitRequest request, ServerCallContext context)
         {
+            VerifyInstance();  // 验证实例
             Console.WriteLine("Received InitRequest");
             int assignedId = Interlocked.Increment(ref env.Idcnt);
             Console.WriteLine($"Handling player{assignedId}");
@@ -103,9 +131,7 @@ namespace Server
         // 2. SendInitPolicy 实现
         public override Task<_InitPolicyResponse> SendInitPolicy(_InitPolicyRequest request, ServerCallContext context)
         {
-            //request to meaage
-            env.initWaiter.RegisterClient(request.PlayerId.ToString());
-            env.initWaiter.ClientReady(request.PlayerId.ToString());
+            VerifyInstance();  // 验证实例
 
             int player = request.PlayerId;
             var _pieceArgs = request.PieceArgs.ToList();
@@ -127,6 +153,9 @@ namespace Server
                 Mes = "Policy confirmed"
             };
 
+            env.initWaiter.RegisterClient(player.ToString());
+            env.initWaiter.ClientReady(player.ToString());
+            
             return Task.FromResult(response);
         }
 
@@ -160,11 +189,15 @@ namespace Server
         private readonly Dictionary<string, Task> _clientTimeoutTasks = new Dictionary<string, Task>();
         private readonly TaskCompletionSource<bool> _tcs = new TaskCompletionSource<bool>();
         private readonly TimeSpan _timeout;
+        private int loadedClients = 0;
 
-        public InitWaiter(int expectedClients, TimeSpan timeout)
+        private int flag = 0;
+
+        public InitWaiter(int expectedClients, TimeSpan timeout, int Flag)
         {
             _expectedClients = expectedClients;
             _timeout = timeout;
+            flag = Flag;
         }
 
         // 注册一个client
@@ -176,7 +209,8 @@ namespace Server
                 {
                     _clientReadyStatus.Add(clientId, false);
                     _clientTimeoutTasks[clientId] = StartTimeoutTask(clientId);  // 启动超时任务
-                    Console.WriteLine($"[InitWaiter] Registered client: {clientId} (Total clients: {_clientReadyStatus.Count}/{_expectedClients})");
+                    Console.WriteLine($"[InitWaiter: {flag}] Registered client: {clientId} (Total clients: {_clientReadyStatus.Count}/{_expectedClients})");
+                    Interlocked.Increment(ref loadedClients);
                 }
             }
         }
@@ -189,10 +223,22 @@ namespace Server
             // 如果超时并且client还没有准备好，输出超时信息
             lock (_clientReadyStatus)
             {
-                if (!_clientReadyStatus[clientId])
+                if (_clientReadyStatus.ContainsKey(clientId) && !_clientReadyStatus[clientId])
                 {
                     Console.WriteLine($"[InitWaiter] Client {clientId} timed out after {_timeout.TotalSeconds} seconds.");
                 }
+            }
+        }
+
+        private void CheckAndSetCompletion()
+        {
+            // 已经在锁内，不需要再加锁
+            if (loadedClients == _expectedClients &&
+                !_tcs.Task.IsCompleted)
+            {
+                Console.WriteLine($"[InitWaiter: {flag}] All clients registered and ready, attempting to complete task.");
+                _tcs.TrySetResult(true);
+
             }
         }
 
@@ -204,27 +250,30 @@ namespace Server
                 if (_clientReadyStatus.ContainsKey(clientId))
                 {
                     _clientReadyStatus[clientId] = true;
-                    Console.WriteLine($"[InitWaiter] Client {clientId} is ready! ({_clientReadyStatus.Values.Count(v => v)} out of {_expectedClients})");
-                }
-
-                // 如果所有客户端都准备好了，解除阻塞
-                if (_clientReadyStatus.Values.All(v => v) && !_tcs.Task.IsCompleted)
-                {
-                    _tcs.SetResult(true);
+                    Console.WriteLine($"[InitWaiter: {flag}] Client {clientId} is ready! ({_clientReadyStatus.Values.Count(v => v)} out of {_expectedClients})");
+                    CheckAndSetCompletion();
                 }
             }
         }
+
         public async Task WaitForAllClientsAsync()
         {
             var timeoutTask = Task.Delay(_timeout);
             var completedTask = await Task.WhenAny(_tcs.Task, timeoutTask);
 
+
+
+            Console.WriteLine($"[InitWaiter] Task completed: {(completedTask == _tcs.Task ? "Main Task" : "Timeout Task")}");
+            Console.WriteLine($"[InitWaiter] TCS Task Status: {_tcs.Task.Status}");
+            
             if (completedTask == timeoutTask)
             {
-                Console.WriteLine("[InitWaiter] Timeout waiting for clients.");
-                // 超时逻辑：可能是自动开始游戏，或者错误提示
+                Console.WriteLine("[InitWaiter] Timeout occurred while waiting for clients.");
+                Console.WriteLine($"[InitWaiter] Flag: {flag}");
                 throw new TimeoutException("Timed out waiting for all clients to initialize.");
             }
+            
+            Console.WriteLine("[InitWaiter] Successfully completed waiting for all clients.");
         }
     }
 
