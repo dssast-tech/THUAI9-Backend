@@ -185,5 +185,5 @@ message _GameStateResponse {
 }
 
 message _GameStateRequest {
-    int32 playerID =1;
+    int32 playerID = 1;
 }

@@ -1,3 +1,4 @@
+import numpy as np
 from typing import List, Optional, Dict, Any
 import message_pb2 as msg
 from dataclasses import dataclass
@@ -70,20 +71,30 @@ class Converter:
             height=py_board.height,
             boarder=py_board.boarder
         )
-        proto_board.grid.extend([Converter.to_proto_cell(cell) for cell in py_board.grid])
-        proto_board.height_map.extend(py_board.height_map)
+        
+        # 转换grid
+        grid_flat = py_board.grid.flatten()
+        proto_board.grid.extend([Converter.to_proto_cell(cell) for cell in grid_flat])
+        
+        # 转换height_map
+        proto_board.height_map.extend(py_board.height_map.flatten())
+        
         return proto_board
 
     @staticmethod
     def from_proto_board(proto_board: msg._Board) -> Board:
         """将protobuf Board消息转换为Python Board对象"""
-        return Board(
-            width=proto_board.width,
-            height=proto_board.height,
-            grid=[Converter.from_proto_cell(cell) for cell in proto_board.grid],
-            height_map=list(proto_board.height_map),
-            boarder=proto_board.boarder
-        )
+        board = Board(width=proto_board.width, height=proto_board.height)
+        
+        # 转换grid
+        grid_1d = np.array([Converter.from_proto_cell(cell) for cell in proto_board.grid], dtype=object)
+        board.grid = grid_1d.reshape(proto_board.width, proto_board.height)
+        
+        # 转换height_map
+        board.height_map = np.array(proto_board.height_map).reshape(proto_board.width, proto_board.height)
+        
+        board.boarder = proto_board.boarder
+        return board
 
     @staticmethod
     def to_proto_area(py_area: Area) -> msg._Area:
@@ -140,35 +151,35 @@ class Converter:
     @staticmethod
     def from_proto_piece(proto_piece: msg._Piece) -> Piece:
         """将protobuf Piece消息转换为Python Piece对象"""
-        return Piece(
-            health=proto_piece.health,
-            max_health=proto_piece.max_health,
-            physical_resist=proto_piece.physical_resist,
-            magic_resist=proto_piece.magic_resist,
-            physical_damage=proto_piece.physical_damage,
-            magic_damage=proto_piece.magic_damage,
-            action_points=proto_piece.action_points,
-            max_action_points=proto_piece.max_action_points,
-            spell_slots=proto_piece.spell_slots,
-            max_spell_slots=proto_piece.max_spell_slots,
-            movement=proto_piece.movement,
-            max_movement=proto_piece.max_movement,
-            id=proto_piece.id,
-            strength=proto_piece.strength,
-            dexterity=proto_piece.dexterity,
-            intelligence=proto_piece.intelligence,
-            position=Converter.from_proto_point(proto_piece.position),
-            height=proto_piece.height,
-            attack_range=proto_piece.attack_range,
-            spell_list=list(proto_piece.spell_list),
-            deathRound=proto_piece.deathRound,
-            team=proto_piece.team,
-            queue_index=proto_piece.queue_index,
-            is_alive=proto_piece.is_alive,
-            is_in_turn=proto_piece.is_in_turn,
-            is_dying=proto_piece.is_dying,
-            spell_range=proto_piece.spell_range
-        )
+        piece = Piece()
+        # 使用属性赋值
+        piece.health = proto_piece.health
+        piece.max_health = proto_piece.max_health
+        piece.physical_resist = proto_piece.physical_resist
+        piece.magic_resist = proto_piece.magic_resist
+        piece.physical_damage = proto_piece.physical_damage
+        piece.magic_damage = proto_piece.magic_damage
+        piece.action_points = proto_piece.action_points
+        piece.max_action_points = proto_piece.max_action_points
+        piece.spell_slots = proto_piece.spell_slots
+        piece.max_spell_slots = proto_piece.max_spell_slots
+        piece.movement = proto_piece.movement
+        piece.max_movement = proto_piece.max_movement
+        piece.id = proto_piece.id
+        piece.strength = proto_piece.strength
+        piece.dexterity = proto_piece.dexterity
+        piece.intelligence = proto_piece.intelligence
+        piece.position = Converter.from_proto_point(proto_piece.position)
+        piece.height = proto_piece.height
+        piece.attack_range = proto_piece.attack_range
+        piece.spell_list = np.array(proto_piece.spell_list, dtype=int)
+        piece.team = proto_piece.team
+        piece.queue_index = proto_piece.queue_index
+        piece.is_alive = proto_piece.is_alive
+        piece.is_in_turn = proto_piece.is_in_turn
+        piece.is_dying = proto_piece.is_dying
+        piece.spell_range = proto_piece.spell_range
+        return piece
 
     @staticmethod
     def to_proto_piece_arg(py_piece_arg: PieceArg) -> msg._pieceArg:
@@ -239,3 +250,99 @@ class Converter:
             targetArea=target_area,
             spellLifespan=proto_spell_context.spellLifespan
         ) 
+
+    @staticmethod
+    def to_proto_action(py_action: ActionSet, player_id: int) -> msg._actionSet:
+        """将Python ActionSet对象转换为protobuf _actionSet消息
+        
+        Args:
+            py_action: Python格式的行动集合
+            player_id: 玩家ID
+            
+        Returns:
+            protobuf格式的行动集合
+        """
+        proto_action = msg._actionSet()
+        proto_action.playerId = player_id  
+        
+        # 设置移动相关
+        if hasattr(py_action, 'move_target') and py_action.move_target:
+            proto_action.move = True
+            proto_action.move_target.CopyFrom(Converter.to_proto_point(py_action.move_target))
+        else:
+            proto_action.move = False
+        
+        # 设置攻击相关
+        proto_action.attack = py_action.attack
+        if py_action.attack and py_action.attack_context:
+            proto_action.attack_context.CopyFrom(
+                Converter.to_proto_attack_context(py_action.attack_context)
+            )
+        
+        # 设置法术相关
+        proto_action.spell = py_action.spell
+        if py_action.spell and py_action.spell_context:
+            proto_action.spell_context.CopyFrom(
+                Converter.to_proto_spell_context(py_action.spell_context)
+            )
+        
+        return proto_action
+
+    @staticmethod
+    def from_proto_action(proto_action: msg._actionSet) -> ActionSet:
+        """将protobuf _actionSet消息转换为Python ActionSet对象
+        
+        Args:
+            proto_action: protobuf格式的行动集合
+            
+        Returns:
+            Python格式的行动集合
+        """
+        py_action = ActionSet()
+        
+        # 转换移动相关
+        if proto_action.move:
+            py_action.move_target = Converter.from_proto_point(proto_action.move_target)
+        
+        # 转换攻击相关
+        py_action.attack = proto_action.attack
+        if proto_action.attack:
+            py_action.attack_context = Converter.from_proto_attack_context(proto_action.attack_context)
+        
+        # 转换法术相关
+        py_action.spell = proto_action.spell
+        if proto_action.spell:
+            py_action.spell_context = Converter.from_proto_spell_context(proto_action.spell_context)
+        
+        return py_action
+
+    @staticmethod
+    def from_proto_game_state(proto_state: msg._GameStateResponse, env) -> None:
+        """将protobuf _GameStateResponse消息转换并更新到env对象中"""
+        # 更新基本信息
+        env.round_number = proto_state.currentRound
+        env.is_game_over = proto_state.isGameOver
+        
+        # 更新棋盘
+        if proto_state.board:
+            env.board = Converter.from_proto_board(proto_state.board)
+        # 更新行动队列
+        env.action_queue = np.array([Converter.from_proto_piece(piece) for piece in proto_state.actionQueue], dtype=object)
+        # 更新当前行动棋子
+        for piece in env.action_queue:
+            if piece.id == proto_state.currentPieceID:
+                env.current_piece = piece
+                break
+        
+        # 更新延迟法术
+        env.delayed_spells = np.array([Converter.from_proto_spell_context(spell) for spell in proto_state.delayedSpells], dtype=object)
+        # 更新玩家信息
+        if not env.player1:
+            env.player1 = Player()
+            env.player1.id = 1
+        if not env.player2:
+            env.player2 = Player()
+            env.player2.id = 2
+        # 根据team属性分配棋子
+        env.player1.pieces = np.array([piece for piece in env.action_queue if piece.team == 1], dtype=object)
+        env.player2.pieces = np.array([piece for piece in env.action_queue if piece.team == 2], dtype=object)

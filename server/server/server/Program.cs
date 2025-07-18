@@ -12,6 +12,7 @@ class Program
 
         // 添加 gRPC 服务
         builder.Services.AddSingleton<Env>();  // Env 单例，确保整个应用使用同一个实例
+        builder.Services.AddSingleton<GameServiceImpl>();  // 将GameServiceImpl注册为单例
         builder.Services.AddGrpc();
 
         builder.WebHost.ConfigureKestrel(options =>

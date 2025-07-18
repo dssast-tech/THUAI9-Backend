@@ -112,7 +112,7 @@ namespace Server
                 Strength = csharp.strength,
                 Dexterity = csharp.dexterity,
                 Intelligence = csharp.intelligence,
-                Position = ToProto(csharp.position),
+                Position = ToProto(csharp.position),  // 如果 position 为空，使用默认位置
                 Height = csharp.height,
                 AttackRange = csharp.attack_range,
                 DeathRound = csharp.deathRound,
@@ -126,6 +126,7 @@ namespace Server
             List<int> spellIdList = new List<int>();
             foreach (Spell sp in csharp.spell_list) spellIdList.Add(sp.id);
             proto.SpellList.AddRange(spellIdList);
+
             return proto;
         }
 

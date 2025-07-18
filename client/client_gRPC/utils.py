@@ -1,4 +1,5 @@
 import math
+import numpy as np
 from enum import Enum
 
 
@@ -144,7 +145,7 @@ class Area:
         self.radius = radius
 
     def contains(self, point):
-        distance = math.sqrt((point.x - self.x) ** 2 + (point.y - self.y) ** 2)
+        distance = np.sqrt((point.x - self.x) ** 2 + (point.y - self.y) ** 2)
         return distance <= self.radius
 
 

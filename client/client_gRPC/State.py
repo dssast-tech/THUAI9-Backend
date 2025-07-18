@@ -1,3 +1,4 @@
+import numpy as np
 from utils import *
 from dataclasses import dataclass
 from typing import List, Optional
@@ -6,7 +7,8 @@ from typing import List, Optional
 class Player:
     def __init__(self):
         self.id = -1
-        self.pieces = []
+        self.pieces = np.array([], dtype=object)  # 使用object类型以支持Piece对象
+
 class Piece:
     def __init__(self):
         self.health = 0
@@ -27,7 +29,7 @@ class Piece:
         self.position = Point(0, 0)
         self.height = 0
         self.attack_range = 0
-        self.spell_list = []
+        self.spell_list = np.array([], dtype=int)  # 法术ID列表
         self.team = 0
         self.queue_index = 0
         self.is_alive = True
@@ -45,17 +47,17 @@ class Cell:
     piece_id: -1-无棋子, 其他值为棋子ID
     """
     state: int = 1  # 默认为可行走
-    player_id: int = -1  # 默认无人
-    piece_id: int = -1  # 默认无棋子
+    playerId: int = -1  # 默认无人
+    pieceId: int = -1  # 默认无棋子
 
 
 class Board:
     def __init__(self, width=0, height=0):
         self.width = width
         self.height = height
-        # 使用Cell对象初始化网格
-        self.grid = [[Cell() for _ in range(height)] for _ in range(width)]
-        self.height_map = [[0 for _ in range(height)] for _ in range(width)]
+        # 使用numpy数组存储Cell对象和高度信息
+        self.grid = np.full((width, height), Cell(), dtype=object)
+        self.height_map = np.zeros((width, height), dtype=int)
         self.boarder = height // 2  # 分界线为高度的一半
 
     def is_within_bounds(self, p: Point) -> bool:
@@ -64,19 +66,19 @@ class Board:
 
     def is_occupied(self, p: Point) -> bool:
         """检查位置是否被占据"""
-        return self.grid[p.x][p.y].state == 2
+        return self.grid[p.x, p.y].state == 2
 
     def get_height(self, p: Point) -> int:
         """获取指定位置的高度"""
-        return self.height_map[p.x][p.y]
+        return self.height_map[p.x, p.y]
 
 
 class Env:
     def __init__(self):
-        self.action_queue = []
+        self.action_queue = np.array([], dtype=object)  # 使用object类型以支持Piece对象
         self.current_piece = None
         self.round_number = 0
-        self.delayed_spells = []
+        self.delayed_spells = np.array([], dtype=object)  # 使用object类型以支持SpellContext对象
         self.player1 = None
         self.player2 = None
         self.board = Board()
@@ -103,27 +105,4 @@ class PieceArg:
 class InitPolicyMessage:
     """初始化策略消息"""
     def __init__(self):
-        self.piece_args: List[PieceArg] = []
-
-
-class GameMessage:
-    """游戏状态消息"""
-    def __init__(self):
-        self.action_queue: List[Piece] = []  # 棋子的行动队列
-        self.current_piece: Optional[Piece] = None  # 当前行动的棋子
-        self.round_number: int = 0  # 当前回合数
-        self.delayed_spells: List[SpellContext] = []  # 延时法术列表
-        self.player1: Optional[Player] = None  # 玩家1
-        self.player2: Optional[Player] = None  # 玩家2
-        self.board: Optional[Board] = None  # 棋盘
-
-
-class PolicyMessage:
-    """策略消息"""
-    def __init__(self):
-        self.action_set: Optional[ActionSet] = None
-
-    def __post_init__(self):
-        """确保action_set有默认值"""
-        if self.action_set is None:
-            self.action_set = ActionSet()
+        self.piece_args = np.array([], dtype=object)  # 使用object类型以支持PieceArg对象
