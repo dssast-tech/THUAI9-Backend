@@ -8,6 +8,7 @@ from converter import *
 import asyncio
 import threading
 import time
+import argparse
 
 async def subscribe_game_state(stub, player_id, action_strategy):
     """订阅游戏状态更新"""
@@ -66,12 +67,25 @@ def start_subscription(stub, player_id, action_strategy):
     loop.run_until_complete(subscribe_game_state(stub, player_id, action_strategy))
     loop.close()
 
+def parse_args():
+    parser = argparse.ArgumentParser(description='gRPC游戏客户端')
+    parser.add_argument('--host', type=str, default='localhost',
+                      help='服务器主机名或IP地址 (默认: localhost)')
+    parser.add_argument('--port', type=int, default=50051,
+                      help='服务器端口号 (默认: 50051)')
+    return parser.parse_args()
+
 def run():
+    # 解析命令行参数
+    args = parse_args()
+    server_address = f'{args.host}:{args.port}'
+    print(f"连接到服务器: {server_address}")
+    
     # 选择策略
     init_strategy = StrategyFactory.get_aggressive_init_strategy()
     action_strategy = StrategyFactory.get_defensive_action_strategy()
     
-    with grpc.insecure_channel('localhost:50051') as channel:
+    with grpc.insecure_channel(server_address) as channel:
         stub = message_pb2_grpc.GameServiceStub(channel)
 
         # 初始化游戏
