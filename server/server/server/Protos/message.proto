@@ -1,0 +1,191 @@
+syntax = "proto3";
+
+package server;
+
+service GameService {
+  rpc SendInit (_InitRequest) returns (_InitResponse);
+  rpc SendInitPolicy (_InitPolicyRequest) returns (_InitPolicyResponse);
+  rpc SendAction(_actionSet) returns (_actionResponse);
+  rpc BroadcastGameState (_GameStateRequest) returns (stream _GameStateResponse);
+
+}
+
+
+// 枚举定义
+enum _AttackType {
+    Physical = 0;   // 物理攻击
+    Spell = 1;      // 法术攻击
+    Excellence = 2; // 卓越攻击
+}
+
+enum _TargetType {
+    Single = 0; // 单体
+    Area = 1;   // 范围
+    Self = 2;   // 自身
+    Chain = 3;  // 链式
+}
+
+enum _SpellEffectType {
+    Damage = 0; // 伤害
+    Heal = 1;   // 治疗
+    Buff = 2;   // Buff
+    Debuff = 3; // Debuff
+    Move = 4;   // 移动
+}
+
+enum _DamageType {
+    Fire = 0;
+    Ice = 1;
+    Lightning = 2;
+    _Physical = 3;
+    Pure = 4;
+    None = 5;
+}
+
+// 数据结构定义
+message _Point {
+    int32 x = 1;
+    int32 y = 2;
+}
+
+message _Cell {
+    int32 state = 1; // 0: 空地, 1: 可行走, 2: 占据, -1: 禁止
+    int32 playerId = 2; // 0: 无人, 1: 玩家1, 2: 玩家2
+    int32 pieceId = 3;
+}
+
+message _Board {
+    int32 width = 1;
+    int32 height = 2;
+    repeated _Cell grid = 3;
+    repeated int32 height_map = 4;
+    int32 boarder = 5;
+}
+
+
+message _SpellContext {
+    int32 caster = 1;
+    int32 spellID = 2;
+    _TargetType targetType = 4;
+    int32 target = 5;
+    _Area targetArea = 6;
+    int32 spellLifespan = 7;
+}
+
+message _AttackContext {
+    int32 attacker = 1;
+    int32 target = 2;
+}
+
+message _Area {
+    int32 x = 1;
+    int32 y = 2;
+    int32 radius = 3;
+}
+
+message _Piece {
+    int32 health = 1;
+    int32 max_health = 2;
+    int32 physical_resist = 3;
+    int32 magic_resist = 4;
+    int32 physical_damage = 5;
+    int32 magic_damage = 6;
+    int32 action_points = 7;
+    int32 max_action_points = 8;
+    int32 spell_slots = 9;
+    int32 max_spell_slots = 10;
+    float movement = 11;
+    float max_movement = 12;
+    int32 id = 13;
+    int32 strength = 14;
+    int32 dexterity = 15;
+    int32 intelligence = 16;
+    _Point position = 17;
+    int32 height = 18;
+    int32 attack_range = 19;
+    repeated int32 spell_list = 20;
+    int32 deathRound = 21;
+    int32 team = 22;
+    int32 queue_index = 23;
+    bool is_alive = 24;
+    bool is_in_turn = 25;
+    bool is_dying = 26;
+    double spell_range = 27;
+}
+
+message _Player {
+    int32 id = 1;
+    repeated _Piece pieces = 2;
+    int32 feature_total = 3;
+    int32 piece_num = 4;
+}
+
+message _InitRequest {
+    string message = 1;
+}
+
+message _InitResponse {
+    int32 pieceCnt = 1;
+    int32 id = 2;
+    _Board board = 3;
+}
+
+message _InitPolicyRequest {
+    int32 playerId = 1;
+    repeated _pieceArg pieceArgs = 2;
+}
+
+message _InitPolicyResponse{
+    bool success = 1;
+    string mes = 2;
+}
+
+message _GameMessage {
+    repeated _Piece action_queue = 1;
+    _Piece current_piece = 2;
+    int32 round_number = 3;
+    repeated _SpellContext delayed_spells = 4;
+    _Player player1 = 5;
+    _Player player2 = 6;
+    _Board board = 7;
+}
+
+
+message _pieceArg {
+    int32 strength = 1;
+    int32 intelligence = 2;
+    int32 dexterity = 3;
+    _Point equip = 4;
+    _Point pos = 5;
+}
+
+message _actionSet {
+    bool move = 1;
+    _Point move_target = 2;
+    bool attack = 3;
+    _AttackContext attack_context = 4;
+    bool spell = 5;
+    _SpellContext spell_context = 6;
+    int32 playerId = 7;
+}
+
+message _actionResponse {
+    bool success = 1;
+    string mes = 2;
+}
+
+message _GameStateResponse {
+    int32 currentRound = 1;
+    int32 currentPlayerId = 2;
+    int32 currentPieceID = 3;
+    repeated _Piece actionQueue = 4;
+    _Board board = 5;
+    repeated _SpellContext delayedSpells = 6;
+    bool isGameOver = 7;
+}
+
+message _GameStateRequest {
+    int32 playerID =1;
+}
+
+

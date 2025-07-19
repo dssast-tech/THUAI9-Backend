@@ -1,75 +1,108 @@
 #pragma once
 #include <vector>
-#include <Player.h>
+#include <memory>
 #include "utils.h"
 
-class Piece
-{
+class Player {
 public:
-    int health;
-    int max_health;
-    int physical_resist;
-    int magic_resist;
-    DicePair physical_damage;
-    DicePair magic_damage;
-    int action_points;
-    int max_action_points;
-    int spell_slots;
-    int max_spell_slots;
-    float movement;
-    float max_movement;
-
-    int strength;
-    int dexterity;
-    int intelligence;
-
-    Point position;
-    int height;
-    int attack_range;
-    std::vector<Spell> spell_list;
-
-    int team;
-    int queue_index;
-    bool is_alive;
-    bool is_in_turn;
-    bool is_dying;
-    double spell_range;
-
-    Piece() : health(0), max_health(0), physical_resist(0), magic_resist(0),
-                     action_points(0), max_action_points(0), spell_slots(0), max_spell_slots(0),
-                     movement(0), max_movement(0), strength(0), dexterity(0), intelligence(0),
-                     height(0), attack_range(0), team(0), queue_index(0), is_alive(true),
-                     is_in_turn(false), is_dying(false), spell_range(0.0) {}
+    int id = -1;
+    std::vector<std::shared_ptr<Piece>> pieces;
 };
 
-class Board
-{
-private:
-    int width, height;
-    std::vector<std::vector<int>> grid;
-    std::vector<std::vector<int>> height_map;
-
+class Piece {
 public:
-    Board() : width(0), height(0) {}
-    Board(int width, int height) : width(width), height(height)
-    {
-        grid.resize(width, std::vector<int>(height, 0));
-        height_map.resize(width, std::vector<int>(height, 0));
+    int health = 0;
+    int max_health = 0;
+    int physical_resist = 0;
+    int magic_resist = 0;
+    int physical_damage = 0;
+    int magic_damage = 0;
+    int action_points = 0;
+    int max_action_points = 0;
+    int spell_slots = 0;
+    int max_spell_slots = 0;
+    float movement = 0.0f;
+    float max_movement = 0.0f;
+    int id = 0;
+    int strength = 0;
+    int dexterity = 0;
+    int intelligence = 0;
+    Point position{0, 0};
+    int height = 0;
+    int attack_range = 0;
+    std::vector<int> spell_list;
+    int team = 0;
+    int queue_index = 0;
+    bool is_alive = true;
+    bool is_in_turn = false;
+    bool is_dying = false;
+    double spell_range = 0.0;
+};
+
+struct Cell {
+    int state = 1;  // 默认为可行走
+    int player_id = -1;  // 默认无人
+    int piece_id = -1;  // 默认无棋子
+};
+
+class Board {
+public:
+    int width = 0;
+    int height = 0;
+    std::vector<std::vector<Cell>> grid;
+    std::vector<std::vector<int>> height_map;
+    int boarder = 0;  // 分界线为高度的一半
+
+    Board(int w = 0, int h = 0) : width(w), height(h) {
+        grid.resize(w, std::vector<Cell>(h));
+        height_map.resize(w, std::vector<int>(h, 0));
+        boarder = h / 2;
+    }
+
+    bool is_within_bounds(const Point& p) const {
+        return p.x >= 0 && p.x < width && p.y >= 0 && p.y < height;
+    }
+
+    bool is_occupied(const Point& p) const {
+        return grid[p.x][p.y].state == 2;
+    }
+
+    int get_height(const Point& p) const {
+        return height_map[p.x][p.y];
     }
 };
 
-class Env
-{
-private:
-    std::vector<Piece> action_queue;
-    Piece current_piece;
-    int round_number;
-    std::vector<SpellContext> delayed_spells;
-    Player player1;
-    Player player2;
-    Board board;
-    bool isGameOver;
-
+class Env {
 public:
-    Env() : round_number(0), isGameOver(false) {}
+    std::vector<std::shared_ptr<Piece>> action_queue;
+    std::shared_ptr<Piece> current_piece;
+    int round_number = 0;
+    std::vector<std::shared_ptr<SpellContext>> delayed_spells;
+    std::shared_ptr<Player> player1;
+    std::shared_ptr<Player> player2;
+    std::shared_ptr<Board> board;
+    bool is_game_over = false;
+
+    Env() : board(std::make_shared<Board>()) {}
 };
+
+class InitGameMessage {
+public:
+    int piece_cnt = 0;
+    int id = 0;
+    std::shared_ptr<Board> board;
+};
+
+class PieceArg {
+public:
+    int strength = 0;
+    int intelligence = 0;
+    int dexterity = 0;
+    Point equip{0, 0};
+    Point pos{0, 0};
+};
+
+class InitPolicyMessage {
+public:
+    std::vector<PieceArg> piece_args;
+}; 

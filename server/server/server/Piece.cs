@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace server
+namespace Server
 {
     class Piece
     {
@@ -22,6 +22,8 @@ namespace server
         public float max_movement { get; private set; }//行动力
 
         public int id; //专属id，由初始行动序列分配，有棋子死亡时不重新分配
+
+        public string type; // 棋子类型（战士/法师/弓箭手等)
 
         // 属性项
         public int strength { get; private set; }
@@ -149,6 +151,15 @@ namespace server
                 else p.intelligence = value;
             }
 
+            public void SetTypeTo(int value)
+            {
+                if(value < 0) throw new ArgumentOutOfRangeException("Type cannot be negative.");
+                else if (value==1 || value==2) p.type= "Warrior";
+                else if (value == 4) p.type = "Mage";
+                else if (value == 3) p.type = "Archer";
+                else throw new ArgumentOutOfRangeException("Type out of range.");
+            }
+
             public void SetActionPointsTo(int value) => p.action_points = value;
             public void ChangeActionPointsBy(int delta) => p.action_points += delta;
 
@@ -159,6 +170,7 @@ namespace server
             public void SetDying(bool value) => p.is_dying = value;
 
             public void SetPosition(Point newPos) => p.position = newPos;
+            public void SetHeightTo(int value) => p.height = value;
 
             public void SetMagicResistBy(int value) => p.magic_resist -= value;
             public void SetPhysicResistBy(int value) => p.physical_resist -= value;
