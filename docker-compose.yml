@@ -1,0 +1,40 @@
+version: '3.8'
+
+services:
+  server:
+    build:
+      context: .
+      dockerfile: server/Dockerfile
+    ports:
+      - "50051:50051"
+    command: ["--urls", "http://0.0.0.0:50051"]
+    networks:
+      - game-network
+
+  client1:
+    build:
+      context: ./client/client_gRPC
+      dockerfile: Dockerfile
+    depends_on:
+      - server
+    command: ["--host", "server", "--port", "50051"]
+    networks:
+      - game-network
+    environment:
+      - PYTHONUNBUFFERED=1
+
+  client2:
+    build:
+      context: ./client/client_gRPC
+      dockerfile: Dockerfile
+    depends_on:
+      - server
+    command: ["--host", "server", "--port", "50051"]
+    networks:
+      - game-network
+    environment:
+      - PYTHONUNBUFFERED=1
+
+networks:
+  game-network:
+    driver: bridge 
