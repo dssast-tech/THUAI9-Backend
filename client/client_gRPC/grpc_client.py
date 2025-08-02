@@ -2,13 +2,15 @@ import grpc
 import message_pb2
 import message_pb2_grpc
 from strategy_factory import StrategyFactory
-from State import *
+from env import *
 from utils import *
 from converter import *
+from env import Environment
 import asyncio
 import threading
 import time
 import argparse
+
 
 async def subscribe_game_state(stub, player_id, action_strategy):
     """订阅游戏状态更新"""
@@ -73,50 +75,62 @@ def parse_args():
                       help='服务器主机名或IP地址 (默认: localhost)')
     parser.add_argument('--port', type=int, default=50051,
                       help='服务器端口号 (默认: 50051)')
+    parser.add_argument('--mode', type=str, choices=['local', 'remote'], default='remote',
+                      help='运行模式: local-本地控制台模式, remote-远程gRPC模式 (默认: remote)')
+    parser.add_argument('--board', type=str, default=None,
+                      help='棋盘文件路径 (仅本地模式使用)')
     return parser.parse_args()
 
 def run():
     # 解析命令行参数
     args = parse_args()
-    server_address = f'{args.host}:{args.port}'
-    print(f"连接到服务器: {server_address}")
     
-    # 选择策略
-    init_strategy = StrategyFactory.get_aggressive_init_strategy()
-    action_strategy = StrategyFactory.get_defensive_action_strategy()
-    
-    with grpc.insecure_channel(server_address) as channel:
-        stub = message_pb2_grpc.GameServiceStub(channel)
+    if args.mode == 'local':
+        print("启动本地控制台模式...")
+        env = Environment(local_mode=True)
+        env.run()
+    else:
+        # 远程gRPC模式
+        player = Player()
+        env = Environment(local_mode=False)
 
-        # 初始化游戏
-        response = stub.SendInit(message_pb2._InitRequest(message="Hello, Server!"))
-        print(f"初始化响应: {response.id}")
-        player.id = response.id
-
-        # 获取初始化游戏状态并应用初始化策略
-        init_policy = Converter.to_proto_piece_args(init_strategy(response))
+        server_address = f'{args.host}:{args.port}'
+        print(f"连接到服务器: {server_address}")
         
-        # 将init_policy转换为protobuf消息并发送
-        init_policy_response = stub.SendInitPolicy(message_pb2._InitPolicyRequest(playerId=player.id, pieceArgs=init_policy))
+        # 选择策略
+        init_strategy = StrategyFactory.get_aggressive_init_strategy()
+        action_strategy = StrategyFactory.get_defensive_action_strategy()
+        
+        with grpc.insecure_channel(server_address) as channel:
+            stub = message_pb2_grpc.GameServiceStub(channel)
 
-        print("初始化策略已发送")
+            # 初始化游戏
+            response = stub.SendInit(message_pb2._InitRequest(message="Hello, Server!"))
+            print(f"初始化响应: {response.id}")
+            player.id = response.id
 
-        # 启动游戏状态订阅
-        print("开始订阅游戏状态...")
-        subscription_thread = threading.Thread(
-            target=start_subscription,
-            args=(stub, player.id, action_strategy),
-            daemon=True  # 设置为守护线程，这样主程序退出时会自动结束
-        )
-        subscription_thread.start()
-        print("已完成订阅")
-        # 保持主线程运行
-        try:
-            subscription_thread.join()
-        except KeyboardInterrupt:
-            print("\n程序被用户中断")
+            # 获取初始化游戏状态并应用初始化策略
+            init_policy = Converter.to_proto_piece_args(init_strategy(response))
+            
+            # 将init_policy转换为protobuf消息并发送
+            init_policy_response = stub.SendInitPolicy(message_pb2._InitPolicyRequest(playerId=player.id, pieceArgs=init_policy))
+
+            print("初始化策略已发送")
+
+            # 启动游戏状态订阅
+            print("开始订阅游戏状态...")
+            subscription_thread = threading.Thread(
+                target=start_subscription,
+                args=(stub, player.id, action_strategy),
+                daemon=True  # 设置为守护线程，这样主程序退出时会自动结束
+            )
+            subscription_thread.start()
+            print("已完成订阅")
+            # 保持主线程运行
+            try:
+                subscription_thread.join()
+            except KeyboardInterrupt:
+                print("\n程序被用户中断")
 
 if __name__ == "__main__":
-    player = Player()
-    env = Env()  # 确保env是全局变量
     run()

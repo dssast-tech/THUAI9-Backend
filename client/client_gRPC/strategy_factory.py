@@ -1,7 +1,7 @@
 from typing import Callable, List
 import math
 from dataclasses import dataclass
-from State import *
+from env import *
 from converter import *
 from utils import *
 from message_pb2 import _InitResponse
@@ -67,9 +67,9 @@ class StrategyFactory:
         return strategy
 
     @staticmethod
-    def get_aggressive_action_strategy() -> Callable[[Env], ActionSet]:
+    def get_aggressive_action_strategy() -> Callable[[Environment], ActionSet]:
         """获取攻击型行动策略 - 主动接近并攻击敌人"""
-        def strategy(env: Env) -> ActionSet:
+        def strategy(env: Environment) -> ActionSet:
             action = ActionSet()
             current_piece = env.current_piece
             
@@ -125,9 +125,9 @@ class StrategyFactory:
         return strategy
 
     @staticmethod
-    def get_defensive_action_strategy() -> Callable[[Env], ActionSet]:
+    def get_defensive_action_strategy() -> Callable[[Environment], ActionSet]:
         """获取防御型行动策略 - 保持距离，使用远程攻击"""
-        def strategy(env: Env) -> ActionSet:
+        def strategy(env: Environment) -> ActionSet:
             action = ActionSet()
             current_piece = env.current_piece
             
@@ -207,11 +207,269 @@ class StrategyFactory:
         return random.choice(strategies)
 
     @staticmethod
-    def get_random_action_strategy() -> Callable[[Env], ActionSet]:
+    def get_random_action_strategy() -> Callable[[Environment], ActionSet]:
         """随机选择一个行动策略"""
         import random
         strategies = [
             StrategyFactory.get_aggressive_action_strategy(),
             StrategyFactory.get_defensive_action_strategy()
         ]
-        return random.choice(strategies) 
+        return random.choice(strategies)
+
+    @staticmethod
+    def get_alpha_beta_action_strategy(max_depth: int = 3) -> Callable[[Environment], ActionSet]:
+        """获取基于AlphaBeta剪枝的行动策略
+        
+        Args:
+            max_depth: 最大搜索深度
+            
+        Returns:
+            Callable[[Environment], ActionSet]: 策略函数
+        """
+        def alpha_beta(env: Environment, depth: int, alpha: float, beta: float, maximizing: bool) -> Tuple[float, Optional[ActionSet]]:
+            if depth == 0 or env.is_game_over:
+                return env.get_state_score(), None
+                
+            current_piece = env.current_piece
+            if maximizing:
+                max_eval = float('-inf')
+                best_action = None
+                
+                # 获取所有可能的移动
+                legal_moves = env.get_legal_moves()
+                attackable_targets = env.get_attackable_targets()
+                
+                # 尝试每个可能的行动组合
+                for move in [None] + legal_moves:
+                    for target in [None] + attackable_targets:
+                        action = ActionSet()
+                        
+                        # 设置移动
+                        if move is not None:
+                            action.move = True
+                            action.move_target = move
+                        else:
+                            action.move = False
+                            
+                        # 设置攻击
+                        if target is not None:
+                            action.attack = True
+                            action.attack_context = AttackContext()
+                            action.attack_context.attacker = current_piece
+                            action.attack_context.target = target
+                        else:
+                            action.attack = False
+                            
+                        # 暂不考虑法术
+                        action.spell = False
+                        
+                        # 模拟行动
+                        next_env = env.fork()
+                        next_env.execute_player_action(action)
+                        
+                        eval, _ = alpha_beta(next_env, depth - 1, alpha, beta, False)
+                        if eval > max_eval:
+                            max_eval = eval
+                            best_action = action
+                            
+                        alpha = max(alpha, eval)
+                        if beta <= alpha:
+                            break
+                            
+                return max_eval, best_action
+            else:
+                min_eval = float('inf')
+                best_action = None
+                
+                # 获取所有可能的移动
+                legal_moves = env.get_legal_moves()
+                attackable_targets = env.get_attackable_targets()
+                
+                # 尝试每个可能的行动组合
+                for move in [None] + legal_moves:
+                    for target in [None] + attackable_targets:
+                        action = ActionSet()
+                        
+                        # 设置移动
+                        if move is not None:
+                            action.move = True
+                            action.move_target = move
+                        else:
+                            action.move = False
+                            
+                        # 设置攻击
+                        if target is not None:
+                            action.attack = True
+                            action.attack_context = AttackContext()
+                            action.attack_context.attacker = current_piece
+                            action.attack_context.target = target
+                        else:
+                            action.attack = False
+                            
+                        # 暂不考虑法术
+                        action.spell = False
+                        
+                        # 模拟行动
+                        next_env = env.fork()
+                        next_env.execute_player_action(action)
+                        
+                        eval, _ = alpha_beta(next_env, depth - 1, alpha, beta, True)
+                        if eval < min_eval:
+                            min_eval = eval
+                            best_action = action
+                            
+                        beta = min(beta, eval)
+                        if beta <= alpha:
+                            break
+                            
+                return min_eval, best_action
+        
+        def strategy(env: Environment) -> ActionSet:
+            _, best_action = alpha_beta(env, max_depth, float('-inf'), float('inf'), True)
+            return best_action if best_action is not None else ActionSet()
+            
+        return strategy
+        
+    @staticmethod
+    def get_mcts_action_strategy(simulation_count: int = 100) -> Callable[[Environment], ActionSet]:
+        """获取基于MCTS的行动策略
+        
+        Args:
+            simulation_count: 每个决策点的模拟次数
+            
+        Returns:
+            Callable[[Environment], ActionSet]: 策略函数
+        """
+        class MCTSNode:
+            def __init__(self, env: Environment, parent=None, action: Optional[ActionSet] = None):
+                self.env = env
+                self.parent = parent
+                self.action = action
+                self.children = []
+                self.visits = 0
+                self.value = 0.0
+                
+            def expand(self):
+                """扩展当前节点"""
+                current_piece = self.env.current_piece
+                legal_moves = self.env.get_legal_moves()
+                attackable_targets = self.env.get_attackable_targets()
+                
+                # 生成所有可能的行动组合
+                for move in [None] + legal_moves:
+                    for target in [None] + attackable_targets:
+                        action = ActionSet()
+                        
+                        # 设置移动
+                        if move is not None:
+                            action.move = True
+                            action.move_target = move
+                        else:
+                            action.move = False
+                            
+                        # 设置攻击
+                        if target is not None:
+                            action.attack = True
+                            action.attack_context = AttackContext()
+                            action.attack_context.attacker = current_piece
+                            action.attack_context.target = target
+                        else:
+                            action.attack = False
+                            
+                        # 暂不考虑法术
+                        action.spell = False
+                        
+                        # 创建子节点
+                        next_env = self.env.fork()
+                        next_env.execute_player_action(action)
+                        child = MCTSNode(next_env, self, action)
+                        self.children.append(child)
+                        
+            def select(self) -> 'MCTSNode':
+                """选择最有希望的子节点"""
+                if not self.children:
+                    return self
+                    
+                # UCB1公式选择节点
+                def ucb1(node: MCTSNode) -> float:
+                    if node.visits == 0:
+                        return float('inf')
+                    return node.value / node.visits + math.sqrt(2 * math.log(self.visits) / node.visits)
+                    
+                return max(self.children, key=ucb1)
+                
+            def simulate(self) -> float:
+                """模拟到游戏结束"""
+                sim_env = self.env.fork()
+                max_steps = 50  # 防止无限循环
+                
+                while not sim_env.is_game_over and max_steps > 0:
+                    # 随机选择行动
+                    legal_moves = sim_env.get_legal_moves()
+                    attackable_targets = sim_env.get_attackable_targets()
+                    
+                    action = ActionSet()
+                    
+                    # 随机移动
+                    if legal_moves and random.random() < 0.7:
+                        action.move = True
+                        action.move_target = random.choice(legal_moves)
+                    else:
+                        action.move = False
+                        
+                    # 随机攻击
+                    if attackable_targets and random.random() < 0.8:
+                        action.attack = True
+                        action.attack_context = AttackContext()
+                        action.attack_context.attacker = sim_env.current_piece
+                        action.attack_context.target = random.choice(attackable_targets)
+                    else:
+                        action.attack = False
+                        
+                    action.spell = False
+                    
+                    sim_env.execute_player_action(action)
+                    max_steps -= 1
+                    
+                return sim_env.get_state_score()
+                
+            def backpropagate(self, value: float):
+                """反向传播模拟结果"""
+                node = self
+                while node is not None:
+                    node.visits += 1
+                    node.value += value
+                    node = node.parent
+                    value = -value  # 对抗游戏中，父节点的收益是子节点的相反数
+        
+        def strategy(env: Environment) -> ActionSet:
+            root = MCTSNode(env)
+            
+            # 运行MCTS
+            for _ in range(simulation_count):
+                node = root
+                
+                # 选择
+                while node.children:
+                    node = node.select()
+                    
+                # 扩展
+                if node.visits > 0:
+                    node.expand()
+                    if node.children:
+                        node = random.choice(node.children)
+                        
+                # 模拟
+                value = node.simulate()
+                
+                # 反向传播
+                node.backpropagate(value)
+                
+            # 选择访问次数最多的子节点对应的行动
+            if not root.children:
+                return ActionSet()
+                
+            best_child = max(root.children, key=lambda c: c.visits)
+            return best_child.action
+            
+        return strategy
