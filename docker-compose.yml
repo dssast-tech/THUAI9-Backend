@@ -17,7 +17,7 @@ services:
       dockerfile: Dockerfile
     depends_on:
       - server
-    command: ["--host", "server", "--port", "50051"]
+    command: ["--host", "server", "--port", "50051", "--mode", "remote", "--strategy", "mcts"]
     networks:
       - game-network
     environment:
@@ -29,7 +29,7 @@ services:
       dockerfile: Dockerfile
     depends_on:
       - server
-    command: ["--host", "server", "--port", "50051"]
+    command: ["--host", "server", "--port", "50051", "--mode", "remote", "--strategy", "aggressive"]
     networks:
       - game-network
     environment:

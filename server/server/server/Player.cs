@@ -87,48 +87,48 @@ namespace Server
             }
         }
       
-        public void localInit(Board board,int id)
-        {
-            //所有不涉及地图信息、对方信息的初始化在此进行
-            //如力量、敏捷、智力分配，棋子武器、防具分配
-            //env环境会调用此函数，利用返回值初始化设计地图交互的其他信息（如棋子位置等）
-            pieces= new List<Piece>();
+        // public void localInit(Board board,int id)
+        // {
+        //     //所有不涉及地图信息、对方信息的初始化在此进行
+        //     //如力量、敏捷、智力分配，棋子武器、防具分配
+        //     //env环境会调用此函数，利用返回值初始化设计地图交互的其他信息（如棋子位置等）
+        //     pieces= new List<Piece>();
 
-            for(int i=0;i<PIECECNT;i++){
-                Console.WriteLine($"现在为棋手 {this.id} 的第 {i + 1} 个棋子初始化");
-                pieces.Add(new Piece());
-                //没有初始化piece所在的高度 后面记得写
-                var accessor=pieces[i].GetAccessor();
-                accessor.SetTeamTo(id);
+        //     for(int i=0;i<PIECECNT;i++){
+        //         Console.WriteLine($"现在为棋手 {this.id} 的第 {i + 1} 个棋子初始化");
+        //         pieces.Add(new Piece());
+        //         //没有初始化piece所在的高度 后面记得写
+        //         var accessor=pieces[i].GetAccessor();
+        //         accessor.SetTeamTo(id);
               
-                List<int> feature = initInput(board,id);
-                piece_num++;
-                int strength = feature[0];int dexterity = feature[1];int intelligence = feature[2];
-                accessor.SetStrengthTo(strength);accessor.SetDexterityTo(dexterity);accessor.SetIntelligenceTo(intelligence);
-                int weapon = feature[3];int armor = feature[4];
+        //         List<int> feature = initInput(board,id);
+        //         piece_num++;
+        //         int strength = feature[0];int dexterity = feature[1];int intelligence = feature[2];
+        //         accessor.SetStrengthTo(strength);accessor.SetDexterityTo(dexterity);accessor.SetIntelligenceTo(intelligence);
+        //         int weapon = feature[3];int armor = feature[4];
 
-                accessor.SetMaxHealthTo(30+strength*2);
-                accessor.SetHealthTo(pieces[i].max_health);
+        //         accessor.SetMaxHealthTo(30+strength*2);
+        //         accessor.SetHealthTo(pieces[i].max_health);
 
-                accessor.SetMaxActionPoints();
-                accessor.SetActionPointsTo(pieces[i].max_action_points);
+        //         accessor.SetMaxActionPoints();
+        //         accessor.SetActionPointsTo(pieces[i].max_action_points);
 
-                accessor.SetMaxSpellSlots();
-                accessor.SetSpellSlotsTo(pieces[i].max_spell_slots);
+        //         accessor.SetMaxSpellSlots();
+        //         accessor.SetSpellSlotsTo(pieces[i].max_spell_slots);
 
-                accessor.SetMaxMovementTo(dexterity+(float)0.5*strength+10);
-                accessor.SetMovementTo(pieces[i].max_movement);
+        //         accessor.SetMaxMovementTo(dexterity+(float)0.5*strength+10);
+        //         accessor.SetMovementTo(pieces[i].max_movement);
 
-                SetWeapon(weapon,pieces[i]);
-                SetArmor(armor,pieces[i]);
+        //         SetWeapon(weapon,pieces[i]);
+        //         SetArmor(armor,pieces[i]);
                 
-                Point t=new Point();t.x=feature[5];t.y=feature[6];
-                accessor.SetPosition(t);
-                accessor.SetHeightTo(board.height_map[t.x,t.y]);
+        //         Point t=new Point();t.x=feature[5];t.y=feature[6];
+        //         accessor.SetPosition(t);
+                
             
-            }
+        //     }
             
-        }
+        // }
 
         public void localInit(InitPolicyMessage initMessage, Board board)
         {
@@ -178,13 +178,19 @@ namespace Server
                 accessor.SetMaxHealthTo(30 + arg.strength * 2);
                 accessor.SetHealthTo(piece.max_health);
                 accessor.SetMaxMovementTo(arg.dexterity + (float)(0.5 * arg.strength) + 10);
-
+                accessor.SetMovementTo(piece.max_movement);
                 // 装备系统初始化
                 SetWeapon(arg.equip.x, piece);
                 SetArmor(arg.equip.y, piece);
 
+                accessor.SetMaxActionPoints();
+                accessor.SetActionPointsTo(pieces[i].max_action_points);
+
+                accessor.SetMaxSpellSlots();
+                accessor.SetSpellSlotsTo(pieces[i].max_spell_slots);
                 // 位置初始化（已通过校验）
                 accessor.SetPosition(arg.pos);
+                accessor.SetHeightTo(board.height_map[arg.pos.x, arg.pos.y]);
 
                 piece_num++;
             }

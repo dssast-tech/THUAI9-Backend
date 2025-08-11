@@ -14,6 +14,7 @@ namespace Server
 {
     class Env
     {
+
         public int mode;// 0 for local, 1 for http
         public List<Piece> action_queue; // 棋子的行动队列
         public Piece current_piece; // 当前行动的棋子
@@ -32,6 +33,9 @@ namespace Server
         public InitWaiter initWaiter;
         public ActionWaiter actionWaiter;
         public int Idcnt = 0; 
+
+        // 最大回合数（实例级），可调整
+        public int max_rounds = 100;
 
         // 添加输入方法管理器
         public InputMethodManager inputMethodManager;
@@ -60,7 +64,10 @@ namespace Server
             
             // 初始化输入方法管理器
             inputMethodManager = new InputMethodManager(this);
+
         }
+
+
 
         public async Task initialize()
         {
@@ -200,6 +207,7 @@ namespace Server
             for (int i = 0; i < action_queue.Count(); i++)
             {
                 action_queue[i].id = i;
+
             }
 
             board.init_pieces_location(player1.pieces, player2.pieces);
@@ -587,6 +595,7 @@ namespace Server
             foreach (var piece in action_queue.Where(p => p.is_alive))
             {
                 piece.setActionPoints(piece.max_action_points);
+                Console.WriteLine($"Piece {piece.id} action points: {piece.action_points}");
             }
 
             //处理行动队列
@@ -609,7 +618,7 @@ namespace Server
             if (inputMethodManager.IsRemoteInput(current_player))
             {
                 // 使用远程输入方法（通过actionWaiter）
-                action = Converter.FromProto(await actionWaiter.WaitForPlayerActionAsync(current_player, TimeSpan.FromSeconds(2)), this);
+                action = Converter.FromProto(await actionWaiter.WaitForPlayerActionAsync(current_player, TimeSpan.FromSeconds(10)), this);  //在这里设置策略限时
             }
             else
             {
@@ -624,6 +633,8 @@ namespace Server
 
             if (current_piece.action_points > 0 && action.move)
             {
+                Console.WriteLine("Now begin moving");
+                Console.WriteLine($"[Move] movement: {current_piece.movement}"); // 输出当前行动点和攻击状态
                 // 从玩家获取移动目标
                 var moveAction = action.move_target;
                 // 调用棋盘移动验证
@@ -636,6 +647,7 @@ namespace Server
                 );
                 if (moveSuccess)
                 {
+                    Console.WriteLine("[Move] Success");
                     current_piece.setActionPoints(current_piece.getActionPoints() - 1);
                     var accessor = current_piece.GetAccessor();
                     accessor.SetPosition(moveAction);
@@ -721,10 +733,30 @@ namespace Server
 
 
             // 游戏结束检查
-            isGameOver = !player1.pieces.Any(p => p.is_alive) ||
-         
-            !player2.pieces.Any(p => p.is_alive);
+            isGameOver = !player1.pieces.Any(p => p.is_alive) || !player2.pieces.Any(p => p.is_alive);
             logdata.finishRound(round_number, action_queue, player1.pieces.Count, player2.pieces.Count, isGameOver);
+
+            // 最大回合数上限判定：若达到上限且未结束，则根据双方总血量判断胜负/平局并终止游戏
+            if (!isGameOver && round_number >= max_rounds)
+            {
+                int team1Health = player1.pieces.Where(p => p.is_alive).Sum(p => p.health);
+                int team2Health = player2.pieces.Where(p => p.is_alive).Sum(p => p.health);
+
+                Console.WriteLine($"[RoundCap] 达到最大回合数 {max_rounds}。双方总血量：P1={team1Health}, P2={team2Health}");
+                if (team1Health > team2Health)
+                {
+                    Console.WriteLine("[RoundCap] 按总血量判定：玩家1胜利");
+                }
+                else if (team2Health > team1Health)
+                {
+                    Console.WriteLine("[RoundCap] 按总血量判定：玩家2胜利");
+                }
+                else
+                {
+                    Console.WriteLine("[RoundCap] 按总血量判定：平局");
+                }
+                isGameOver = true;
+            }
         }
 
         void log(int mode)
@@ -812,6 +844,7 @@ namespace Server
          
             
             await initialize(); // 初始化游戏
+            // board.init_pieces_location(player1.pieces, player2.pieces);
             Console.WriteLine("游戏初始化完成，开始游戏！");
             VisualizeArray(board.grid);
 

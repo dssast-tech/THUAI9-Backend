@@ -50,8 +50,8 @@ class Converter:
         """将Python Cell对象转换为protobuf Cell消息"""
         return msg._Cell(
             state=py_cell.state,
-            playerId=py_cell.playerId,
-            pieceId=py_cell.pieceId
+            playerId=py_cell.player_id,
+            pieceId=py_cell.piece_id
         )
 
     @staticmethod
@@ -59,8 +59,8 @@ class Converter:
         """将protobuf Cell消息转换为Python Cell对象"""
         return Cell(
             state=proto_cell.state,
-            playerId=proto_cell.playerId,
-            pieceId=proto_cell.pieceId
+            player_id=proto_cell.playerId,
+            piece_id=proto_cell.pieceId
         )
 
     @staticmethod
@@ -84,7 +84,9 @@ class Converter:
     @staticmethod
     def from_proto_board(proto_board: msg._Board) -> Board:
         """将protobuf Board消息转换为Python Board对象"""
-        board = Board(width=proto_board.width, height=proto_board.height)
+        board = Board()
+        board.width = proto_board.width
+        board.height = proto_board.height
         
         # 转换grid
         grid_1d = np.array([Converter.from_proto_cell(cell) for cell in proto_board.grid], dtype=object)
@@ -137,7 +139,7 @@ class Converter:
             position=Converter.to_proto_point(py_piece.position),
             height=py_piece.height,
             attack_range=py_piece.attack_range,
-            deathRound=py_piece.deathRound,
+            deathRound=py_piece.death_round,
             team=py_piece.team,
             queue_index=py_piece.queue_index,
             is_alive=py_piece.is_alive,
@@ -172,7 +174,8 @@ class Converter:
         piece.position = Converter.from_proto_point(proto_piece.position)
         piece.height = proto_piece.height
         piece.attack_range = proto_piece.attack_range
-        piece.spell_list = np.array(proto_piece.spell_list, dtype=int)
+        piece.spell_list = np.array(list(proto_piece.spell_list), dtype=int)
+        piece.death_round = proto_piece.deathRound
         piece.team = proto_piece.team
         piece.queue_index = proto_piece.queue_index
         piece.is_alive = proto_piece.is_alive
@@ -206,50 +209,138 @@ class Converter:
     @staticmethod
     def to_proto_attack_context(py_attack_context: AttackContext) -> msg._AttackContext:
         """将Python AttackContext对象转换为protobuf AttackContext消息"""
+        attacker_id = -1
+        target_id = -1
+        
+        if py_attack_context.attacker is not None:
+            attacker_id = py_attack_context.attacker.id
+        if py_attack_context.target is not None:
+            target_id = py_attack_context.target.id
+            
         return msg._AttackContext(
-            attacker=py_attack_context.attacker,
-            target=py_attack_context.target
+            attacker=attacker_id,
+            target=target_id
         )
 
     @staticmethod
-    def from_proto_attack_context(proto_attack_context: msg._AttackContext) -> AttackContext:
-        """将protobuf AttackContext消息转换为Python AttackContext对象"""
-        return AttackContext(
-            attacker=proto_attack_context.attacker,
-            target=proto_attack_context.target
-        )
+    def from_proto_attack_context(proto_attack_context: msg._AttackContext, env=None) -> AttackContext:
+        """将protobuf AttackContext消息转换为Python AttackContext对象
+        
+        Args:
+            proto_attack_context: protobuf攻击上下文
+            env: 环境对象，用于根据ID查找Piece对象
+        """
+        attack_context = AttackContext()
+        
+        if env is not None:
+            # 根据ID查找Piece对象
+            for piece in env.action_queue:
+                if piece.id == proto_attack_context.attacker:
+                    attack_context.attacker = piece
+                if piece.id == proto_attack_context.target:
+                    attack_context.target = piece
+
+            
+        return attack_context
 
     @staticmethod
     def to_proto_spell_context(py_spell_context: SpellContext) -> msg._SpellContext:
         """将Python SpellContext对象转换为protobuf SpellContext消息"""
+        caster_id = -1
+        target_id = -1
+        spell_id = 0
+        target_type = msg._TargetType.Single  # 使用protobuf enum常量
+        spell_lifespan = 0
+        
+        # 提取施法者ID
+        if py_spell_context.caster is not None:
+            caster_id = py_spell_context.caster.id
+            
+        # 提取目标ID
+        if py_spell_context.target is not None:
+            target_id = py_spell_context.target.id
+            
+        # 提取法术ID
+        if py_spell_context.spell is not None:
+            spell_id = py_spell_context.spell.id
+            
+        # 提取目标类型
+        if py_spell_context.target_type is not None:
+            if py_spell_context.target_type == TargetType.SINGLE:
+                target_type = msg._TargetType.Single
+            elif py_spell_context.target_type == TargetType.AREA:
+                target_type = msg._TargetType.Area
+            elif py_spell_context.target_type == TargetType.SELF:
+                target_type = msg._TargetType.Self
+            elif py_spell_context.target_type == TargetType.CHAIN:
+                target_type = msg._TargetType.Chain
+                
+        # 提取法术持续时间
+        if hasattr(py_spell_context, 'spell_lifespan'):
+            spell_lifespan = py_spell_context.spell_lifespan
+        
         proto_spell_context = msg._SpellContext(
-            caster=py_spell_context.caster,
-            spellID=py_spell_context.spellID,
-            targetType=py_spell_context.targetType,
-            target=py_spell_context.target,
-            spellLifespan=py_spell_context.spellLifespan
+            caster=caster_id,
+            spellID=spell_id,
+            targetType=target_type,
+            target=target_id,
+            spellLifespan=spell_lifespan
         )
-        if py_spell_context.targetArea:
+        
+        # 添加目标区域
+        if py_spell_context.target_area:
             proto_spell_context.targetArea.CopyFrom(
-                Converter.to_proto_area(py_spell_context.targetArea)
+                Converter.to_proto_area(py_spell_context.target_area)
             )
+            
         return proto_spell_context
 
     @staticmethod
-    def from_proto_spell_context(proto_spell_context: msg._SpellContext) -> SpellContext:
-        """将protobuf SpellContext消息转换为Python SpellContext对象"""
-        target_area = None
-        if proto_spell_context.HasField('targetArea'):
-            target_area = Converter.from_proto_area(proto_spell_context.targetArea)
+    def from_proto_spell_context(proto_spell_context: msg._SpellContext, env=None) -> SpellContext:
+        """将protobuf SpellContext消息转换为Python SpellContext对象
         
-        return SpellContext(
-            caster=proto_spell_context.caster,
-            spellID=proto_spell_context.spellID,
-            targetType=proto_spell_context.targetType,
-            target=proto_spell_context.target,
-            targetArea=target_area,
-            spellLifespan=proto_spell_context.spellLifespan
-        ) 
+        Args:
+            proto_spell_context: protobuf法术上下文
+            env: 环境对象，用于根据ID查找Piece对象和Spell对象
+        """
+        spell_context = SpellContext()
+        
+        # 转换目标区域
+        if proto_spell_context.HasField('targetArea'):
+            spell_context.target_area = Converter.from_proto_area(proto_spell_context.targetArea)
+            
+        # 转换目标类型
+        if proto_spell_context.targetType == msg._TargetType.Single:
+            spell_context.target_type = TargetType.SINGLE
+        elif proto_spell_context.targetType == msg._TargetType.Area:
+            spell_context.target_type = TargetType.AREA
+        elif proto_spell_context.targetType == msg._TargetType.Self:
+            spell_context.target_type = TargetType.SELF
+        elif proto_spell_context.targetType == msg._TargetType.Chain:
+            spell_context.target_type = TargetType.CHAIN
+            
+        # 设置法术持续时间
+        spell_context.spell_lifespan = proto_spell_context.spellLifespan
+        
+        if env is not None:
+            # 根据ID查找Piece对象
+            for piece in env.action_queue:
+                if piece.id == proto_spell_context.caster:
+                    spell_context.caster = piece
+                if piece.id == proto_spell_context.target:
+                    spell_context.target = piece
+                    
+            # 根据ID查找Spell对象
+            from utils import SpellFactory
+            spell_context.spell = SpellFactory.get_spell_by_id(proto_spell_context.spellID)
+        else:
+            # 如果没有env，只存储ID
+            spell_context.caster = proto_spell_context.caster
+            spell_context.target = proto_spell_context.target
+            # 存储spell ID用于后续查找
+            spell_context.spell = proto_spell_context.spellID
+            
+        return spell_context 
 
     @staticmethod
     def to_proto_action(py_action: ActionSet, player_id: int) -> msg._actionSet:
@@ -289,16 +380,20 @@ class Converter:
         return proto_action
 
     @staticmethod
-    def from_proto_action(proto_action: msg._actionSet) -> ActionSet:
+    def from_proto_action(proto_action: msg._actionSet, env=None) -> ActionSet:
         """将protobuf _actionSet消息转换为Python ActionSet对象
         
         Args:
             proto_action: protobuf格式的行动集合
+            env: 环境对象，用于根据ID查找Piece对象
             
         Returns:
             Python格式的行动集合
         """
         py_action = ActionSet()
+        
+        # 设置移动标志
+        py_action.move = proto_action.move
         
         # 转换移动相关
         if proto_action.move:
@@ -307,14 +402,31 @@ class Converter:
         # 转换攻击相关
         py_action.attack = proto_action.attack
         if proto_action.attack:
-            py_action.attack_context = Converter.from_proto_attack_context(proto_action.attack_context)
+            py_action.attack_context = Converter.from_proto_attack_context(proto_action.attack_context, env)
         
         # 转换法术相关
         py_action.spell = proto_action.spell
         if proto_action.spell:
-            py_action.spell_context = Converter.from_proto_spell_context(proto_action.spell_context)
+            py_action.spell_context = Converter.from_proto_spell_context(proto_action.spell_context, env)
         
         return py_action
+
+    @staticmethod
+    def from_proto_init_response(proto_init: msg._InitResponse) -> InitGameMessage:
+        """将protobuf _InitResponse消息转换为Python InitGameMessage对象
+        
+        Args:
+            proto_init: protobuf格式的初始化响应
+            
+        Returns:
+            Python格式的初始化消息
+        """
+        init_message = InitGameMessage()
+        init_message.piece_cnt = proto_init.pieceCnt
+        init_message.id = proto_init.id
+        if proto_init.board:
+            init_message.board = Converter.from_proto_board(proto_init.board)
+        return init_message
 
     @staticmethod
     def from_proto_game_state(proto_state: msg._GameStateResponse, env) -> None:
@@ -335,7 +447,7 @@ class Converter:
                 break
         
         # 更新延迟法术
-        env.delayed_spells = np.array([Converter.from_proto_spell_context(spell) for spell in proto_state.delayedSpells], dtype=object)
+        env.delayed_spells = np.array([Converter.from_proto_spell_context(spell, env) for spell in proto_state.delayedSpells], dtype=object)
         # 更新玩家信息
         if not env.player1:
             env.player1 = Player()
