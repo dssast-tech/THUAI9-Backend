@@ -492,11 +492,11 @@
     {
       "ID": 0,
       "soldierType": "Archer",
-      "camp": "Red",
+      "camp": "Blue",
       "position": {
-        "x": 3,
-        "y": 0,
-        "z": 3
+        "x": 15,
+        "y": 1,
+        "z": 16
       },
       "stats": {
         "health": 40,
@@ -507,11 +507,11 @@
     {
       "ID": 1,
       "soldierType": "Archer",
-      "camp": "Blue",
+      "camp": "Red",
       "position": {
-        "x": 15,
-        "y": 1,
-        "z": 16
+        "x": 3,
+        "y": 0,
+        "z": 3
       },
       "stats": {
         "health": 40,
@@ -527,96 +527,6 @@
         {
           "actionType": "Movement",
           "soldierId": 0,
-          "path": [
-            {
-              "x": 2,
-              "y": 0,
-              "z": 3
-            },
-            {
-              "x": 1,
-              "y": 0,
-              "z": 3
-            },
-            {
-              "x": 1,
-              "y": 0,
-              "z": 2
-            },
-            {
-              "x": 0,
-              "y": 1,
-              "z": 2
-            },
-            {
-              "x": 0,
-              "y": 1,
-              "z": 1
-            },
-            {
-              "x": 0,
-              "y": 1,
-              "z": 0
-            }
-          ],
-          "remainingMovement": 27,
-          "damageDealt": null,
-          "oldStats": null,
-          "newStats": null,
-          "targetId": 0,
-          "ability": null,
-          "targetPosition": null,
-          "intelligenceCost": 0,
-          "oldRedScore": 0,
-          "oldBlueScore": 0,
-          "newRedScore": 0,
-          "newBlueScore": 0,
-          "winner": null,
-          "cause": null
-        }
-      ],
-      "stats": [
-        {
-          "soldierId": 1,
-          "survived": "true",
-          "position": {
-            "x": 15,
-            "y": 1,
-            "z": 16
-          },
-          "Stats": {
-            "health": 40,
-            "strength": 5,
-            "intelligence": 10
-          }
-        },
-        {
-          "soldierId": 0,
-          "survived": "true",
-          "position": {
-            "x": 0,
-            "y": 1,
-            "z": 0
-          },
-          "Stats": {
-            "health": 40,
-            "strength": 5,
-            "intelligence": 10
-          }
-        }
-      ],
-      "score": {
-        "redScore": 0,
-        "blueScore": 0
-      },
-      "end": "false"
-    },
-    {
-      "roundNumber": 2,
-      "actions": [
-        {
-          "actionType": "Movement",
-          "soldierId": 1,
           "path": [
             {
               "x": 14,
@@ -772,12 +682,102 @@
       ],
       "stats": [
         {
+          "soldierId": 1,
+          "survived": "true",
+          "position": {
+            "x": 3,
+            "y": 0,
+            "z": 3
+          },
+          "Stats": {
+            "health": 40,
+            "strength": 5,
+            "intelligence": 10
+          }
+        },
+        {
           "soldierId": 0,
           "survived": "true",
           "position": {
             "x": 0,
             "y": 1,
-            "z": 0
+            "z": 4
+          },
+          "Stats": {
+            "health": 40,
+            "strength": 5,
+            "intelligence": 10
+          }
+        }
+      ],
+      "score": {
+        "redScore": 0,
+        "blueScore": 0
+      },
+      "end": "false"
+    },
+    {
+      "roundNumber": 2,
+      "actions": [
+        {
+          "actionType": "Movement",
+          "soldierId": 1,
+          "path": [
+            {
+              "x": 2,
+              "y": 0,
+              "z": 3
+            },
+            {
+              "x": 1,
+              "y": 0,
+              "z": 3
+            },
+            {
+              "x": 1,
+              "y": 0,
+              "z": 2
+            },
+            {
+              "x": 0,
+              "y": 1,
+              "z": 2
+            },
+            {
+              "x": 0,
+              "y": 1,
+              "z": 1
+            },
+            {
+              "x": 0,
+              "y": 1,
+              "z": 0
+            }
+          ],
+          "remainingMovement": 27,
+          "damageDealt": null,
+          "oldStats": null,
+          "newStats": null,
+          "targetId": 0,
+          "ability": null,
+          "targetPosition": null,
+          "intelligenceCost": 0,
+          "oldRedScore": 0,
+          "oldBlueScore": 0,
+          "newRedScore": 0,
+          "newBlueScore": 0,
+          "winner": null,
+          "cause": null
+        }
+      ],
+      "stats": [
+        {
+          "soldierId": 0,
+          "survived": "true",
+          "position": {
+            "x": 0,
+            "y": 1,
+            "z": 4
           },
           "Stats": {
             "health": 40,
@@ -791,7 +791,7 @@
           "position": {
             "x": 0,
             "y": 1,
-            "z": 4
+            "z": 0
           },
           "Stats": {
             "health": 40,
@@ -817,7 +817,7 @@
           "damageDealt": [
             {
               "targetId": 1,
-              "damage": 0
+              "damage": 16
             }
           ],
           "oldStats": null,
@@ -841,10 +841,10 @@
           "position": {
             "x": 0,
             "y": 1,
-            "z": 4
+            "z": 0
           },
           "Stats": {
-            "health": 40,
+            "health": 32,
             "strength": 5,
             "intelligence": 10
           }
@@ -855,7 +855,7 @@
           "position": {
             "x": 0,
             "y": 1,
-            "z": 0
+            "z": 4
           },
           "Stats": {
             "health": 40,
@@ -905,7 +905,7 @@
           "position": {
             "x": 0,
             "y": 1,
-            "z": 0
+            "z": 4
           },
           "Stats": {
             "health": 32,
@@ -919,10 +919,10 @@
           "position": {
             "x": 0,
             "y": 1,
-            "z": 4
+            "z": 0
           },
           "Stats": {
-            "health": 40,
+            "health": 32,
             "strength": 5,
             "intelligence": 10
           }
@@ -945,7 +945,7 @@
           "damageDealt": [
             {
               "targetId": 1,
-              "damage": 16
+              "damage": 32
             }
           ],
           "oldStats": null,
@@ -969,10 +969,10 @@
           "position": {
             "x": 0,
             "y": 1,
-            "z": 4
+            "z": 0
           },
           "Stats": {
-            "health": 32,
+            "health": 8,
             "strength": 5,
             "intelligence": 10
           }
@@ -983,7 +983,7 @@
           "position": {
             "x": 0,
             "y": 1,
-            "z": 0
+            "z": 4
           },
           "Stats": {
             "health": 32,
@@ -1033,7 +1033,7 @@
           "position": {
             "x": 0,
             "y": 1,
-            "z": 0
+            "z": 4
           },
           "Stats": {
             "health": 32,
@@ -1047,10 +1047,10 @@
           "position": {
             "x": 0,
             "y": 1,
-            "z": 4
+            "z": 0
           },
           "Stats": {
-            "health": 32,
+            "health": 8,
             "strength": 5,
             "intelligence": 10
           }
@@ -1064,262 +1064,6 @@
     },
     {
       "roundNumber": 7,
-      "actions": [
-        {
-          "actionType": "Attack",
-          "soldierId": 0,
-          "path": null,
-          "remainingMovement": 0,
-          "damageDealt": [
-            {
-              "targetId": 1,
-              "damage": 0
-            }
-          ],
-          "oldStats": null,
-          "newStats": null,
-          "targetId": 1,
-          "ability": null,
-          "targetPosition": null,
-          "intelligenceCost": 0,
-          "oldRedScore": 0,
-          "oldBlueScore": 0,
-          "newRedScore": 0,
-          "newBlueScore": 0,
-          "winner": null,
-          "cause": null
-        }
-      ],
-      "stats": [
-        {
-          "soldierId": 1,
-          "survived": "true",
-          "position": {
-            "x": 0,
-            "y": 1,
-            "z": 4
-          },
-          "Stats": {
-            "health": 32,
-            "strength": 5,
-            "intelligence": 10
-          }
-        },
-        {
-          "soldierId": 0,
-          "survived": "true",
-          "position": {
-            "x": 0,
-            "y": 1,
-            "z": 0
-          },
-          "Stats": {
-            "health": 32,
-            "strength": 5,
-            "intelligence": 10
-          }
-        }
-      ],
-      "score": {
-        "redScore": 0,
-        "blueScore": 0
-      },
-      "end": "false"
-    },
-    {
-      "roundNumber": 8,
-      "actions": [
-        {
-          "actionType": "Attack",
-          "soldierId": 1,
-          "path": null,
-          "remainingMovement": 0,
-          "damageDealt": [
-            {
-              "targetId": 0,
-              "damage": 16
-            }
-          ],
-          "oldStats": null,
-          "newStats": null,
-          "targetId": 0,
-          "ability": null,
-          "targetPosition": null,
-          "intelligenceCost": 0,
-          "oldRedScore": 0,
-          "oldBlueScore": 0,
-          "newRedScore": 0,
-          "newBlueScore": 0,
-          "winner": null,
-          "cause": null
-        }
-      ],
-      "stats": [
-        {
-          "soldierId": 0,
-          "survived": "true",
-          "position": {
-            "x": 0,
-            "y": 1,
-            "z": 0
-          },
-          "Stats": {
-            "health": 24,
-            "strength": 5,
-            "intelligence": 10
-          }
-        },
-        {
-          "soldierId": 1,
-          "survived": "true",
-          "position": {
-            "x": 0,
-            "y": 1,
-            "z": 4
-          },
-          "Stats": {
-            "health": 32,
-            "strength": 5,
-            "intelligence": 10
-          }
-        }
-      ],
-      "score": {
-        "redScore": 0,
-        "blueScore": 0
-      },
-      "end": "false"
-    },
-    {
-      "roundNumber": 9,
-      "actions": [
-        {
-          "actionType": "Attack",
-          "soldierId": 0,
-          "path": null,
-          "remainingMovement": 0,
-          "damageDealt": [
-            {
-              "targetId": 1,
-              "damage": 32
-            }
-          ],
-          "oldStats": null,
-          "newStats": null,
-          "targetId": 1,
-          "ability": null,
-          "targetPosition": null,
-          "intelligenceCost": 0,
-          "oldRedScore": 0,
-          "oldBlueScore": 0,
-          "newRedScore": 0,
-          "newBlueScore": 0,
-          "winner": null,
-          "cause": null
-        }
-      ],
-      "stats": [
-        {
-          "soldierId": 1,
-          "survived": "true",
-          "position": {
-            "x": 0,
-            "y": 1,
-            "z": 4
-          },
-          "Stats": {
-            "health": 8,
-            "strength": 5,
-            "intelligence": 10
-          }
-        },
-        {
-          "soldierId": 0,
-          "survived": "true",
-          "position": {
-            "x": 0,
-            "y": 1,
-            "z": 0
-          },
-          "Stats": {
-            "health": 24,
-            "strength": 5,
-            "intelligence": 10
-          }
-        }
-      ],
-      "score": {
-        "redScore": 0,
-        "blueScore": 0
-      },
-      "end": "false"
-    },
-    {
-      "roundNumber": 10,
-      "actions": [
-        {
-          "actionType": "Attack",
-          "soldierId": 1,
-          "path": null,
-          "remainingMovement": 0,
-          "damageDealt": [
-            {
-              "targetId": 0,
-              "damage": 16
-            }
-          ],
-          "oldStats": null,
-          "newStats": null,
-          "targetId": 0,
-          "ability": null,
-          "targetPosition": null,
-          "intelligenceCost": 0,
-          "oldRedScore": 0,
-          "oldBlueScore": 0,
-          "newRedScore": 0,
-          "newBlueScore": 0,
-          "winner": null,
-          "cause": null
-        }
-      ],
-      "stats": [
-        {
-          "soldierId": 0,
-          "survived": "true",
-          "position": {
-            "x": 0,
-            "y": 1,
-            "z": 0
-          },
-          "Stats": {
-            "health": 16,
-            "strength": 5,
-            "intelligence": 10
-          }
-        },
-        {
-          "soldierId": 1,
-          "survived": "true",
-          "position": {
-            "x": 0,
-            "y": 1,
-            "z": 4
-          },
-          "Stats": {
-            "health": 8,
-            "strength": 5,
-            "intelligence": 10
-          }
-        }
-      ],
-      "score": {
-        "redScore": 0,
-        "blueScore": 0
-      },
-      "end": "false"
-    },
-    {
-      "roundNumber": 11,
       "actions": [
         {
           "actionType": "Death",
@@ -1348,7 +1092,7 @@
           "damageDealt": [
             {
               "targetId": 1,
-              "damage": 16
+              "damage": 32
             }
           ],
           "oldStats": null,
@@ -1372,10 +1116,10 @@
           "position": {
             "x": 0,
             "y": 1,
-            "z": 0
+            "z": 4
           },
           "Stats": {
-            "health": 16,
+            "health": 32,
             "strength": 5,
             "intelligence": 10
           }

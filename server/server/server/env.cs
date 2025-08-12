@@ -733,7 +733,29 @@ namespace Server
 
 
             // 游戏结束检查
-            isGameOver = !player1.pieces.Any(p => p.is_alive) || !player2.pieces.Any(p => p.is_alive);
+            bool player1Alive = player1.pieces.Any(p => p.is_alive);
+            bool player2Alive = player2.pieces.Any(p => p.is_alive);
+            isGameOver = !player1Alive || !player2Alive;
+            
+            string winner = null;
+            
+            // 常规胜负判定
+            if (isGameOver)
+            {
+                if (player1Alive && !player2Alive)
+                {
+                    winner = "玩家1";
+                }
+                else if (player2Alive && !player1Alive)
+                {
+                    winner = "玩家2";
+                }
+                else if (!player1Alive && !player2Alive)
+                {
+                    winner = "平局";
+                }
+            }
+            
             logdata.finishRound(round_number, action_queue, player1.pieces.Count, player2.pieces.Count, isGameOver);
 
             // 最大回合数上限判定：若达到上限且未结束，则根据双方总血量判断胜负/平局并终止游戏
@@ -746,16 +768,99 @@ namespace Server
                 if (team1Health > team2Health)
                 {
                     Console.WriteLine("[RoundCap] 按总血量判定：玩家1胜利");
+                    winner = "玩家1";
                 }
                 else if (team2Health > team1Health)
                 {
                     Console.WriteLine("[RoundCap] 按总血量判定：玩家2胜利");
+                    winner = "玩家2";
                 }
                 else
                 {
                     Console.WriteLine("[RoundCap] 按总血量判定：平局");
+                    winner = "平局";
                 }
                 isGameOver = true;
+            }
+            
+            // 如果游戏结束，显示醒目的胜利信息并断开客户端连接
+            if (isGameOver && winner != null)
+            {
+                await DisplayGameEndMessage(winner);
+                await DisconnectAllClients();
+            }
+        }
+
+        /// <summary>
+        /// 显示醒目的游戏结束信息
+        /// </summary>
+        /// <param name="winner">胜利方信息</param>
+        private async Task DisplayGameEndMessage(string winner)
+        {
+            // 清屏并显示醒目的游戏结束信息
+            Console.Clear();
+            
+            // 设置控制台颜色
+            Console.ForegroundColor = ConsoleColor.Yellow;
+            Console.BackgroundColor = ConsoleColor.DarkBlue;
+            
+            string border = "═══════════════════════════════════════════════════════════════";
+            string emptyLine = "║                                                             ║";
+            
+            Console.WriteLine($"╔{border}╗");
+            Console.WriteLine(emptyLine);
+            Console.WriteLine("║                        🎮 游戏结束 🎮                        ║");
+            Console.WriteLine(emptyLine);
+            
+            // 根据胜利方显示不同的信息和颜色
+            if (winner == "平局")
+            {
+                Console.ForegroundColor = ConsoleColor.White;
+                Console.WriteLine("║                        🤝 平局 🤝                          ║");
+                Console.WriteLine("║                   双方势均力敌，不分胜负！                   ║");
+            }
+            else
+            {
+                Console.ForegroundColor = winner == "玩家1" ? ConsoleColor.Red : ConsoleColor.Cyan;
+                string winnerMessage = $"🏆 {winner} 胜利！ 🏆";
+                string spaces = new string(' ', (63 - winnerMessage.Length) / 2);
+                Console.WriteLine($"║{spaces}{winnerMessage}{spaces}║");
+                
+                Console.ForegroundColor = ConsoleColor.Yellow;
+                string congratsMessage = winner == "玩家1" ? "恭喜红方获得胜利！" : "恭喜蓝方获得胜利！";
+                string congratsSpaces = new string(' ', (63 - congratsMessage.Length) / 2);
+                Console.WriteLine($"║{congratsSpaces}{congratsMessage}{congratsSpaces}║");
+            }
+            
+            Console.WriteLine(emptyLine);
+            Console.WriteLine($"║                      回合数: {round_number,3}                        ║");
+            Console.WriteLine(emptyLine);
+            Console.WriteLine($"╚{border}╝");
+            
+            // 恢复默认颜色
+            Console.ResetColor();
+            
+            // 等待一段时间让用户看到结果
+            await Task.Delay(2000);
+            
+            Console.WriteLine("\n游戏统计信息：");
+            Console.WriteLine($"- 总回合数: {round_number}");
+            Console.WriteLine($"- 玩家1剩余棋子: {player1.pieces.Count(p => p.is_alive)}");
+            Console.WriteLine($"- 玩家2剩余棋子: {player2.pieces.Count(p => p.is_alive)}");
+            Console.WriteLine($"- 玩家1总血量: {player1.pieces.Where(p => p.is_alive).Sum(p => p.health)}");
+            Console.WriteLine($"- 玩家2总血量: {player2.pieces.Where(p => p.is_alive).Sum(p => p.health)}");
+        }
+
+        /// <summary>
+        /// 断开所有客户端连接
+        /// </summary>
+        private async Task DisconnectAllClients()
+        {
+            if (mode == 1 && GameServiceImpl.Instance != null)
+            {
+                Console.WriteLine("正在断开所有客户端连接...");
+                await GameServiceImpl.Instance.DisconnectAllClients();
+                Console.WriteLine("所有客户端连接已断开。");
             }
         }
 
