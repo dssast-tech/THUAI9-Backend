@@ -1,6 +1,7 @@
 import math
 import numpy as np
 from enum import Enum
+from typing import Optional, List
 
 
 class Point:
@@ -16,6 +17,44 @@ class ActionSet:
         self.attack_context = None  # AttackContext
         self.spell = False
         self.spell_context = None  # SpellContext
+        
+    def __str__(self) -> str:
+        """返回动作集的可读字符串表示"""
+        parts = []
+        
+        # 移动部分
+        if hasattr(self, 'move_target'):
+            parts.append(f"移动: {'是' if hasattr(self, 'move') and self.move else '否'}")
+            if hasattr(self, 'move') and self.move:
+                parts.append(f"  目标位置: ({self.move_target.x}, {self.move_target.y})")
+        
+        # 攻击部分
+        if hasattr(self, 'attack'):
+            parts.append(f"攻击: {'是' if self.attack else '否'}")
+            if self.attack and self.attack_context:
+                parts.append("  攻击详情:")
+                if hasattr(self.attack_context, 'attacker') and self.attack_context.attacker:
+                    parts.append(f"    攻击者ID: {self.attack_context.attacker.id}")
+                if hasattr(self.attack_context, 'target') and self.attack_context.target:
+                    parts.append(f"    目标ID: {self.attack_context.target.id}")
+                if hasattr(self.attack_context, 'damage_dealt'):
+                    parts.append(f"    伤害值: {self.attack_context.damage_dealt}")
+        
+        # 法术部分
+        if hasattr(self, 'spell'):
+            parts.append(f"法术: {'是' if self.spell else '否'}")
+            if self.spell and self.spell_context:
+                parts.append("  法术详情:")
+                if hasattr(self.spell_context, 'spell') and self.spell_context.spell:
+                    parts.append(f"    名称: {self.spell_context.spell.name}")
+                    parts.append(f"    效果类型: {self.spell_context.spell.effect_type.value if self.spell_context.spell.effect_type else 'Unknown'}")
+                    parts.append(f"    基础值: {self.spell_context.spell.base_value}")
+                if hasattr(self.spell_context, 'target') and self.spell_context.target:
+                    parts.append(f"    目标ID: {self.spell_context.target.id}")
+                if hasattr(self.spell_context, 'target_area') and self.spell_context.target_area:
+                    parts.append(f"    目标区域: ({self.spell_context.target_area.x}, {self.spell_context.target_area.y}), 半径: {self.spell_context.target_area.radius}")
+        
+        return "\n".join(parts)
 
 
 class InitializationSet:
@@ -61,11 +100,20 @@ class InitializationSet:
         )
 
 
-class Message:
-    """通信预留转接类"""
-    pass
+class PieceArg:
+    """棋子参数类"""
+    def __init__(self):
+        self.strength: int = 0  # 力量
+        self.intelligence: int = 0  # 智力
+        self.dexterity: int = 0  # 敏捷
+        self.equip: Point = Point()  # 装备 (weapon, armor)
+        self.pos: Point = Point()  # 位置
 
-
+class InitPolicyMessage:
+    """初始化策略消息"""
+    def __init__(self):
+        self.piece_args = []  # 使用列表以支持PieceArg对象
+        
 class AttackContext:
     def __init__(self):
         self.attacker = None  # Piece
@@ -166,4 +214,130 @@ class Spell:
         self.is_area_effect = is_area_effect
         self.is_delay_spell = is_delay_spell
         self.is_locking_spell = is_locking_spell
+
+
+class SpellFactory:
+    """法术工厂类，提供所有可用的法术"""
+    
+    @staticmethod
+    def get_all_spells() -> List[Spell]:
+        """获取所有可用的法术列表"""
+        return [
+            Spell(
+                id=1,
+                name="Fireball",
+                description="对范围内敌人造成火焰伤害",
+                effect_type=SpellEffectType.DAMAGE,
+                damage_type=DamageType.FIRE,
+                base_value=30,
+                range_=2,
+                area_radius=5,
+                spell_cost=1,
+                base_lifespan=0,
+                is_area_effect=True,
+                is_delay_spell=False,
+                is_locking_spell=False
+            ),
+            Spell(
+                id=2,
+                name="Heal",
+                description="治疗友方单位",
+                effect_type=SpellEffectType.HEAL,
+                damage_type=DamageType.NONE,
+                base_value=30,
+                range_=2,
+                area_radius=4,
+                spell_cost=1,
+                base_lifespan=0,
+                is_area_effect=False,
+                is_delay_spell=False,
+                is_locking_spell=True
+            ),
+            Spell(
+                id=3,
+                name="Arrow Hit",
+                description="箭击",
+                effect_type=SpellEffectType.DAMAGE,
+                damage_type=DamageType.PHYSICAL,
+                base_value=30,
+                range_=1,
+                area_radius=7,
+                spell_cost=1,
+                base_lifespan=0,
+                is_area_effect=False,
+                is_delay_spell=False,
+                is_locking_spell=True
+            ),
+            Spell(
+                id=4,
+                name="Trap",
+                description="陷阱",
+                effect_type=SpellEffectType.DAMAGE,
+                damage_type=DamageType.PHYSICAL,
+                base_value=30,
+                range_=1,
+                area_radius=0,
+                spell_cost=1,
+                base_lifespan=2,
+                is_area_effect=False,
+                is_delay_spell=True,
+                is_locking_spell=False
+            ),
+            Spell(
+                id=5,
+                name="Teleport",
+                description="瞬间移动",
+                effect_type=SpellEffectType.MOVE,
+                damage_type=DamageType.PHYSICAL,
+                base_value=30,
+                range_=100,
+                area_radius=100,
+                spell_cost=1,
+                base_lifespan=2,
+                is_area_effect=False,
+                is_delay_spell=False,
+                is_locking_spell=True
+            )
+        ]
+    
+    @staticmethod
+    def get_spell_by_id(spell_id: int) -> Optional[Spell]:
+        """根据ID获取法术"""
+        return next((spell for spell in SpellFactory.get_all_spells() if spell.id == spell_id), None)
+    
+    @staticmethod
+    def get_available_spells(piece) -> List[Spell]:
+        """获取指定棋子可用的法术列表
+        
+        根据棋子类型和属性返回可用的法术列表：
+        - 战士：主要是物理伤害和增益法术
+        - 法师：主要是魔法伤害和控制法术
+        - 弓箭手：主要是远程攻击和陷阱法术
+        """
+        all_spells = SpellFactory.get_all_spells()
+        available_spells = []
+        
+        # 根据棋子类型筛选法术
+        if piece.type == "Warrior":
+            available_spells.extend([
+                spell for spell in all_spells
+                if spell.damage_type == DamageType.PHYSICAL
+                or spell.effect_type == SpellEffectType.BUFF
+            ])
+        elif piece.type == "Mage":
+            available_spells.extend([
+                spell for spell in all_spells
+                if spell.damage_type in [DamageType.FIRE, DamageType.ICE, DamageType.LIGHTNING]
+                or spell.effect_type in [SpellEffectType.DAMAGE, SpellEffectType.DEBUFF]
+            ])
+        elif piece.type == "Archer":
+            available_spells.extend([
+                spell for spell in all_spells
+                if spell.name in ["Arrow Hit", "Trap"]
+                or spell.effect_type == SpellEffectType.MOVE
+            ])
+            
+        # 根据智力值限制法术数量
+        max_spells = piece.intelligence // 5 + 1
+        return available_spells[:max_spells]
 

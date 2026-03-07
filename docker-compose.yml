@@ -10,6 +10,7 @@ services:
     command: ["--urls", "http://0.0.0.0:50051"]
     networks:
       - game-network
+    tty: true
 
   client1:
     build:
@@ -17,11 +18,12 @@ services:
       dockerfile: Dockerfile
     depends_on:
       - server
-    command: ["--host", "server", "--port", "50051"]
+    command: ["--host", "server", "--port", "50051", "--mode", "remote", "--strategy", "mcts"]
     networks:
       - game-network
     environment:
       - PYTHONUNBUFFERED=1
+    tty: true
 
   client2:
     build:
@@ -29,11 +31,12 @@ services:
       dockerfile: Dockerfile
     depends_on:
       - server
-    command: ["--host", "server", "--port", "50051"]
+    command: ["--host", "server", "--port", "50051", "--mode", "remote", "--strategy", "aggressive"]
     networks:
       - game-network
     environment:
       - PYTHONUNBUFFERED=1
+    tty: true
 
 networks:
   game-network:

@@ -1,266 +1,480 @@
-# 游戏策略函数设计指南
+# Warchess Server 项目说明文档
 
-本文档将指导您如何设计自己的策略函数并在游戏中使用不同的输入模式。
+## 项目概述
 
-## 目录
+本项目是一个战棋游戏服务端，基于 **ASP.NET Core + gRPC** 实现，目标框架为 **.NET 8.0**。
 
-- [项目概要](#项目概要)
-- [输入模式概述](#输入模式概述)
-- [如何切换输入模式](#如何切换输入模式)
-- [设计自定义策略函数](#设计自定义策略函数)
-  - [初始化策略函数](#初始化策略函数)
-  - [行动策略函数](#行动策略函数)
-- [重要数据结构](#重要数据结构)
-- [示例策略](#示例策略)
-- [项目整体结构说明](#项目整体结构说明)
+服务端负责：
+- 管理游戏核心逻辑（地图、棋子、战斗、法术）
+- 通过 **gRPC** 与 AI 客户端（玩家 Agent）进行双向通信
+- 输出 **JSON 格式的回放日志**供前端渲染使用
+- 支持本地输入（控制台/函数策略）和远程输入（gRPC）两种模式
 
-## 项目概要
-本项目为软件学院THUAI-8的服务器端代码，使用C#语言开发，主要负责游戏逻辑的后端运行，同时也支持本地的调试和游玩。
+---
 
-当前，该server将作为游戏试玩版向选手公布，选手可以修改代码在本地运行自己的AI，或者在cmd中手动熟悉游戏。但是在之后的正式比赛中，选手将使用c++/python编写AI。
+## 编译与运行
 
+### 依赖环境
 
-## 输入模式概述
+- .NET 8.0 SDK
+- NuGet 包（自动还原）：
+  - `Google.Protobuf 3.30.2`
+  - `Grpc.AspNetCore 2.71.0`
+  - `Grpc.Tools 2.71.0`
 
-游戏系统支持三种不同的输入模式：
+### 编译
 
-1. **控制台输入**：通过命令行交互获取玩家输入
-2. **函数式本地输入**：通过自定义策略函数来运行AI输入
-3. **远程输入**：适配GRPC框架的远程输入（目前不支持，在最终线上评测时会使用）
-
-## 如何切换输入模式
-
-在`env.cs`文件的`initialize`函数中，您可以通过修改以下代码来切换输入模式：
-
-```csharp
-// 默认设置玩家1为控制台输入
-inputMethodManager.SetConsoleInputMethod(1);
-
-// 设置玩家2为本地函数输入，使用攻击型策略
-inputMethodManager.SetFunctionLocalInputMethod(2, 
-    StrategyFactory.GetAggressiveInitStrategy(), 
-    StrategyFactory.GetAggressiveActionStrategy());
-
-// 其他可能的设置方式：
-// 设置玩家1为本地函数输入，使用防御型策略
-// inputMethodManager.SetFunctionLocalInputMethod(1,
-//     StrategyFactory.GetDefensiveInitStrategy(),
-//     StrategyFactory.GetDefensiveActionStrategy());
-
-// 设置玩家2为本地函数输入，使用法师型策略
-// inputMethodManager.SetFunctionLocalInputMethod(2,
-//     StrategyFactory.GetMageInitStrategy(),
-//     StrategyFactory.GetMageActionStrategy());
-
-// 设置玩家1为本地函数输入，使用随机策略
-// inputMethodManager.SetFunctionLocalInputMethod(1,
-//     StrategyFactory.GetRandomInitStrategy(),
-//     StrategyFactory.GetRandomActionStrategy());
-
-// 设置玩家为远程输入
-// inputMethodManager.SetRemoteInputMethod(1);
+```bash
+dotnet build
 ```
 
-您只需要取消注释相应的行，或者根据需要修改输入方式设置。
+或构建 Release 版本：
 
-## 设计自定义策略函数
-
-### 初始化策略函数
-
-初始化策略函数用于在游戏开始时设置棋子的属性和位置。函数签名如下：
-
-```csharp
-Func<InitGameMessage, InitPolicyMessage> 
+```bash
+dotnet build -c Release
 ```
 
-该函数接收一个`InitGameMessage`参数，返回一个`InitPolicyMessage`对象。
+### 运行
 
-#### InitGameMessage包含：
-
-- `pieceCnt`：可放置的棋子数量
-- `id`：玩家ID（1或2）
-- `board`：棋盘对象，包含棋盘大小和格子状态信息
-
-#### InitPolicyMessage包含：
-
-- `pieceArgs`：棋子参数列表，每个`pieceArg`定义一个棋子的属性
-
-#### pieceArg包含：
-
-- `strength`：力量值（影响物理攻击）
-- `intelligence`：智力值（影响法术）
-- `dexterity`：敏捷值（影响闪避）
-- `equip`：装备选择，格式为`new Point(武器类型, 防具类型)`
-  - 武器类型：1-长剑, 2-短剑, 3-弓, 4-法杖
-  - 防具类型：1-轻甲, 2-中甲, 3-重甲
-- `pos`：初始位置，格式为`new Point(x, y)`
-
-**注意**：
-- 所有属性值之和不能超过30
-- 法杖(4)只能搭配轻甲(1)
-- 玩家1和玩家2应该分别在棋盘的对立面放置棋子
-
-### 行动策略函数
-
-行动策略函数用于在游戏进行中决定棋子的行动。函数签名如下：
-
-```csharp
-Func<Env, actionSet>
+```bash
+dotnet run
 ```
 
-该函数接收游戏环境`Env`对象，返回一个`actionSet`对象。
+默认监听地址：`http://localhost:50051`，可通过命令行参数覆盖：
 
-#### Env包含：
+```bash
+dotnet run -- --urls http://0.0.0.0:50051
+```
 
-- `current_piece`：当前行动的棋子
-- `action_queue`：所有棋子的行动队列
-- `board`：棋盘对象
-- `player1`/`player2`：玩家对象
-- `round_number`：当前回合数
+若 `--urls` 的 host 为 `0.0.0.0`，则监听所有网卡；否则仅监听本地回环。
 
-#### actionSet包含：
+---
 
-- `move`：是否移动（布尔值）
-- `move_target`：移动目标位置，格式为`new Point(x, y)`
-- `attack`：是否攻击（布尔值）
-- `attack_context`：攻击上下文，包含攻击者、目标等信息
-- `spell`：是否使用法术（布尔值）
-- `spell_context`：法术上下文，包含施法者、法术类型等信息
+## 代码文件结构与职责
 
-## 重要数据结构
+| 文件 | 职责说明 |
+|------|----------|
+| `Program.cs` | 程序入口，配置 Kestrel HTTP/2 服务器、注册 gRPC 服务与 DI 容器，启动游戏主循环 |
+| `env.cs` | 游戏核心控制器（`Env` 类），管理行动队列、延时法术、游戏循环、攻击/法术逻辑、轮结算 |
+| `Piece.cs` | 棋子类，持有所有棋子属性；通过内部 `Accessor` 类限制对属性的写权限，只允许 `Env` 层修改 |
+| `Player.cs` | 玩家类，持有棋子列表，负责棋子初始化验证与装备/属性设置 |
+| `board.cs` | 棋盘类，维护地图网格（`Cell[,]`）与高度图（`int[,]`），实现 A* 寻路和棋子位移 |
+| `utils.cs` | 辅助数据结构，包含 `Point`、`actionSet`、`AttackContext`、`SpellContext`、`Spell`、`Area`、`SpellFactory`、相关枚举 |
+| `GameMessage.cs` | 通信消息结构定义：`InitGameMessage`、`InitPolicyMessage`、`GameMessage`、`PolicyMessage`、`pieceArg` |
+| `ServerCommunicator.cs` | gRPC 服务实现（`GameServiceImpl`），处理客户端连接、初始化、行动接收、游戏状态广播；同时包含 `InitWaiter` 和 `ActionWaiter` 同步辅助类 |
+| `LocalInput.cs` | 本地输入系统：`IInputMethod` 接口、`ConsoleInputMethod`（控制台输入）、`FunctionLocalInputMethod`（函数策略注入）、`RemoteInputMethod`（gRPC 占位）、`InputMethodManager`、`StrategyFactory`（内置 AI 策略） |
+| `ProtoConverter.cs` | Proto 消息与 C# 内部对象的双向转换工具类（`Converter`） |
+| `LogConverter.cs` | 将游戏过程序列化为前端消费的 JSON 格式（`log.json`），记录地图、棋子初态、每轮动作与统计 |
+| `FrontClasses.cs` | 前端 JSON 数据结构定义：`GameData`、`GameRound`、`BattleAction`、`SoldierData` 等，供 `LogConverter` 序列化使用 |
+| `Protos/message.proto` | gRPC 接口定义文件，定义所有消息格式和 `GameService` 服务 |
+| `BoardCase/case1.txt` | 地图数据文件，第一行为宽高，后接 grid 状态矩阵和高度图矩阵 |
 
-### Point结构
+---
 
-```csharp
-struct Point
-{
-    public int x, y;
+## 接口说明
+
+### 一、gRPC 接口（与 AI 客户端通信）
+
+协议文件：`Protos/message.proto`，服务名 `GameService`，默认端口 **50051**，使用 HTTP/2 明文传输。
+
+#### 1. `SendInit`
+
+客户端连接时第一步调用，获取玩家 ID 和地图信息。
+
+**请求 `_InitRequest`：**
+
+```
+message _InitRequest {
+    string message = 1;  // 预留字段，当前未使用，填空字符串即可
 }
 ```
 
-### AttackContext结构
+**响应 `_InitResponse`：**
 
-```csharp
-struct AttackContext
-{
-    public Piece attacker;       // 攻击发起者
-    public Piece target;         // 攻击目标
-    public AttackType attackType;// 攻击类型（物理/法术/卓越等）
-    public Point attackPosition; // 攻击发起位置
-    // 其他字段略
+```
+message _InitResponse {
+    int32 pieceCnt = 1;   // 棋子数量（当前固定为 1）
+    int32 id = 2;         // 服务端分配的玩家 ID（1 或 2，按连接顺序分配）
+    _Board board = 3;     // 地图信息
 }
 ```
 
-### SpellContext结构
+`_Board` 结构：
 
-```csharp
-struct SpellContext
-{
-    public Piece caster;         // 施法者
-    public Spell spell;          // 关联的法术数据模板
-    public Piece target;         // 单体目标（当targetType=Single时使用）
-    public Area targetArea;      // 区域目标（圆心+半径）
-    public bool isDelaySpell;    // 是否为延时法术
-    // 其他字段略
+```
+message _Board {
+    int32 width = 1;              // 地图宽度
+    int32 height = 2;             // 地图高度
+    repeated _Cell grid = 3;      // 展开为一维的格子数组（行优先），共 width*height 个
+    repeated int32 height_map = 4; // 展开为一维的高度图，共 width*height 个
+    int32 boarder = 5;            // 分界线 y 坐标（= height / 2）
 }
 ```
 
-### Spell结构
+`_Cell` 结构：
 
-```csharp
-struct Spell
-{
-    public int id;                      // 法术ID
-    public string name;                 // 法术名称
-    public string description;          // 法术描述
-    public SpellEffectType effectType;  // 法术效果类型
-    public int baseValue;               // 基础伤害/治疗/效果值
-    public int range;                   // 施法距离
-    public int areaRadius;              // 作用半径（0为单体）
-    // 其他字段略
+```
+message _Cell {
+    int32 state = 1;    // -1:禁止, 1:可行走, 2:被占据
+    int32 playerId = 2; // 占据该格的玩家ID（-1表示无人）
+    int32 pieceId = 3;  // 占据该格的棋子ID（-1表示无棋子）
 }
 ```
 
-### Area类
+---
 
-```csharp
-class Area
-{
-    public int x { get; set; }
-    public int y { get; set; }
-    public int radius { get; set; }
+#### 2. `SendInitPolicy`
+
+在调用 `SendInit` 之后，客户端发送己方棋子的初始化配置。
+
+**请求 `_InitPolicyRequest`：**
+
+```
+message _InitPolicyRequest {
+    int32 playerId = 1;             // 玩家 ID（由 SendInit 获得）
+    repeated _pieceArg pieceArgs = 2; // 每个棋子的初始化参数列表
 }
 ```
 
-## 示例策略
+`_pieceArg` 结构：
 
-系统内置了几种预定义的策略，这些策略函数由AI生成，不保证行动合法性，但您可以直接使用以进行简单测试：
+```
+message _pieceArg {
+    int32 strength = 1;     // 力量（0~30，三属性之和 ≤ 30）
+    int32 intelligence = 2; // 智力
+    int32 dexterity = 3;    // 敏捷
+    _Point equip = 4;       // 装备：equip.x = 武器类型(1-4)，equip.y = 防具类型(1-3)
+    _Point pos = 5;         // 初始坐标：pos.x, pos.y
+}
+```
 
-1. **攻击型策略**：高力量、中敏捷、低智力，偏向前线位置
-   ```csharp
-   StrategyFactory.GetAggressiveInitStrategy()
-   StrategyFactory.GetAggressiveActionStrategy()
-   ```
+武器类型：`1=长剑, 2=短剑, 3=弓, 4=法杖`（法杖必须搭配防具类型 1=轻甲）
 
-2. **防御型策略**：中力量、高敏捷、中智力，偏向后方位置
-   ```csharp
-   StrategyFactory.GetDefensiveInitStrategy()
-   StrategyFactory.GetDefensiveActionStrategy()
-   ```
+防具类型：`1=轻甲, 2=中甲, 3=重甲`
 
-3. **法师型策略**：低力量、中敏捷、高智力，中间位置
-   ```csharp
-   StrategyFactory.GetMageInitStrategy()
-   StrategyFactory.GetMageActionStrategy()
-   ```
+**响应 `_InitPolicyResponse`：**
 
-4. **随机策略**：随机选择上述三种策略之一
-   ```csharp
-   StrategyFactory.GetRandomInitStrategy()
-   StrategyFactory.GetRandomActionStrategy()
-   ```
+```
+message _InitPolicyResponse {
+    bool success = 1;  // 是否成功
+    string mes = 2;    // 提示消息
+}
+```
 
-您可以查看`LocalInput.cs`中的`StrategyFactory`类了解这些策略的具体实现，并以此为基础设计自己的策略函数。
+---
 
-## 项目整体结构说明
+#### 3. `BroadcastGameState`（服务端流）
 
-项目由以下主要文件组成，各自承担不同的功能，您不必理解其中全部运行逻辑：
+客户端订阅游戏状态推送。服务端在每个棋子行动前广播当前状态，客户端应在连接后立即调用此方法并保持连接。
 
-### 核心文件
+**请求 `_GameStateRequest`：**
 
-- **env.cs**: 环境类，游戏的核心控制器，管理所有游戏逻辑和状态。包含游戏初始化、回合步进和主循环的实现。
+```
+message _GameStateRequest {
+    int32 playerID = 1; // 客户端的玩家 ID
+}
+```
 
-- **LocalInput.cs**: 输入系统的实现，包含三种输入方法（控制台、函数式本地、远程）和`StrategyFactory`类，提供各种预定义策略。
+**流式响应 `_GameStateResponse`（持续接收）：**
 
-- **Program.cs**: 程序入口点，启动游戏服务器和gRPC服务。
+```
+message _GameStateResponse {
+    int32 currentRound = 1;             // 当前回合数
+    int32 currentPlayerId = 2;          // 当前行动棋子所属玩家 ID
+    int32 currentPieceID = 3;           // 当前行动棋子的 ID
+    repeated _Piece actionQueue = 4;    // 所有存活棋子的行动队列
+    _Board board = 5;                   // 当前地图状态
+    repeated _SpellContext delayedSpells = 6; // 当前延时法术列表
+    bool isGameOver = 7;                // 是否游戏结束
+}
+```
 
-- **board.cs**: 棋盘类，维护棋盘状态、棋子位置和移动逻辑。包含路径查找算法和高度地图。
+`_Piece` 结构见 proto 文件，包含棋子的全部属性（血量、攻击、防御、位置、高度等）。
 
-- **Player.cs**: 玩家类，管理玩家的棋子集合和初始化逻辑。
+当 `isGameOver = true` 时，客户端应关闭连接。
 
-- **Piece.cs**: 棋子类，定义棋子的属性、行动能力和状态。
+---
 
-### 辅助文件
+#### 4. `SendAction`
 
-- **utils.cs**: 包含各种辅助数据结构，如Point、ActionSet、AttackContext、SpellContext等。
+客户端在收到广播、轮到己方棋子行动时，发送行动指令。
 
-- **GameMessage.cs**: 定义与游戏通信相关的消息结构，用于输入系统和游戏逻辑之间的交互。
+**请求 `_actionSet`：**
+
+```
+message _actionSet {
+    bool move = 1;                    // 是否执行移动
+    _Point move_target = 2;           // 移动目标坐标（move=true 时有效）
+    bool attack = 3;                  // 是否执行物理攻击
+    _AttackContext attack_context = 4; // 攻击上下文（attack=true 时有效）
+    bool spell = 5;                   // 是否施放法术
+    _SpellContext spell_context = 6;  // 法术上下文（spell=true 时有效）
+    int32 playerId = 7;               // 发送方玩家 ID
+}
+```
+
+`_AttackContext`：
+
+```
+message _AttackContext {
+    int32 attacker = 1; // 攻击者棋子 ID
+    int32 target = 2;   // 被攻击棋子 ID
+}
+```
+
+`_SpellContext`：
+
+```
+message _SpellContext {
+    int32 caster = 1;          // 施法者棋子 ID
+    int32 spellID = 2;         // 法术 ID（参见 SpellFactory 定义）
+    _TargetType targetType = 4; // 目标类型
+    int32 target = 5;          // 单体目标棋子 ID（非锁定法术时为 -1）
+    _Area targetArea = 6;      // 目标区域（圆心 + 半径）
+    int32 spellLifespan = 7;   // 法术持续回合（延时法术时填）
+}
+```
+
+**响应 `_actionResponse`：**
+
+```
+message _actionResponse {
+    bool success = 1;  // 是否被接受（仅在该玩家轮次发送时 true）
+    string mes = 2;    // 提示消息
+}
+```
+
+---
+
+#### gRPC 客户端对接流程
+
+```
+1. 调用 BroadcastGameState(playerID)  → 建立长连接，等待状态推送
+2. 调用 SendInit("")                  → 获取玩家 ID 和地图
+3. 调用 SendInitPolicy(playerId, ...) → 发送棋子初始化配置
+4. 循环：
+   - 接收 _GameStateResponse 推送
+   - 若 currentPlayerId == 己方 ID，则调用 SendAction(...)
+   - 若 isGameOver == true，则断开连接
+```
+
+---
+
+### 二、前端 JSON 接口（回放日志）
+
+游戏结束后，`LogConverter` 将全局游戏数据序列化为 `log.json`，保存在可执行文件的工作目录中。前端通过读取此文件进行回放渲染。
+
+#### 整体结构 `GameData`
+
+```json
+{
+  "mapdata": { ... },
+  "playerData": { ... },
+  "soldiersData": [ ... ],
+  "gameRounds": [ ... ]
+}
+```
+
+---
+
+#### `mapdata`（地图数据）
+
+```json
+{
+  "mapWidth": 20,
+  "rows": [
+    { "row": [1, 2, 1, ...] },  // 每行为高度图数据（原始值 + 1）
+    ...
+  ]
+}
+```
+
+`rows` 数组长度为地图宽度（`width`），每个 `row` 长度为地图高度（`height`），遍历顺序为 x 维度 → y 维度。高度值已在输出时加 1（即地面为 1，高地为 2、3）。
+
+---
+
+#### `playerData`（玩家信息）
+
+```json
+{
+  "player1": "Red",
+  "player2": "Blue"
+}
+```
+
+---
+
+#### `soldiersData`（棋子初始信息列表）
+
+```json
+[
+  {
+    "ID": 0,
+    "soldierType": "Warrior",    // Warrior / Archer / Mage
+    "camp": "Red",               // Red / Blue
+    "position": { "x": 3, "y": 1, "z": 5 },  // x/z 为平面坐标，y 为高度（已+1）
+    "stats": {
+      "health": 60,
+      "strength": 15,
+      "intelligence": 5
+    }
+  }
+]
+```
+
+---
+
+#### `gameRounds`（每回合数据列表）
+
+```json
+[
+  {
+    "roundNumber": 1,
+    "actions": [ ... ],   // 本回合所有动作列表
+    "stats": [ ... ],     // 本回合结束时所有棋子状态
+    "score": {
+      "redScore": 0,      // 蓝方已死亡棋子数
+      "blueScore": 0      // 红方已死亡棋子数
+    },
+    "end": "false"        // 是否为最终回合 ("true"/"false")
+  }
+]
+```
+
+---
+
+#### `actions`（动作列表）
+
+每个动作为 `BattleAction` 对象，通过 `actionType` 字段区分类型：
+
+**移动（Movement）：**
+
+```json
+{
+  "actionType": "Movement",
+  "soldierId": 0,
+  "path": [
+    { "x": 3, "y": 1, "z": 5 },
+    { "x": 4, "y": 1, "z": 5 }
+  ],
+  "remainingMovement": 7
+}
+```
+
+`path` 为 `Vector3Serializable` 数组，`x/z` 为平面坐标，`y` 为高度（已+1）。
+
+**攻击（Attack）：**
+
+```json
+{
+  "actionType": "Attack",
+  "soldierId": 0,
+  "targetId": 1,
+  "damageDealt": [
+    { "targetId": 1, "damage": 12 }
+  ]
+}
+```
+
+`damage` 为实际命中伤害，未命中时为 0。
+
+**法术（Ability）：**
+
+```json
+{
+  "actionType": "Ability",
+  "soldierId": 0,
+  "targetPosition": { "x": 8, "y": 1, "z": 10 },
+  "damageDealt": [
+    { "targetId": 1, "damage": 30 }   // 正数为伤害，负数为治疗
+  ]
+}
+```
+
+**死亡（Death）：**
+
+```json
+{
+  "actionType": "Death",
+  "soldierId": 1
+}
+```
+
+---
+
+#### `stats`（回合末棋子状态列表）
+
+```json
+[
+  {
+    "soldierId": 0,
+    "survived": "true",
+    "position": { "x": 4, "y": 1, "z": 5 },
+    "Stats": {
+      "health": 48,
+      "strength": 15,
+      "intelligence": 5
+    }
+  }
+]
+```
+
+---
+
+## 地图文件格式（BoardCase）
+
+地图文件为纯文本格式，路径为 `BoardCase/case1.txt`，格式如下：
+
+```
+<width> <height>
+<空行>
+<grid 矩阵，共 height 行，每行 width 个以逗号分隔的整数>
+  -1: 不可通行
+   1: 可通行
+<空行>
+<height_map 矩阵，共 height 行，每行 width 个以逗号分隔的整数>
+  高度值：0=地面，1=一阶高地，2=二阶高地，-1=不可通行区域的高度（无实义）
+```
+
+---
+
+## 内置法术列表（SpellFactory）
+
+| ID | 名称 | 效果类型 | 伤害类型 | 基础值 | 范围 | 区域半径 | 是否延时 | 是否锁定 |
+|----|------|---------|---------|-------|------|---------|---------|---------|
+| 1 | Fireball | Damage | Fire | 30 | 2 | 5 | 否 | 否 |
+| 2 | Heal | Heal | None | 30 | 2 | 4 | 否 | 是 |
+| 3 | arrowHit | Damage | Physical | 30 | 1 | 7 | 否 | 是 |
+| 4 | trap | Damage | Physical | 30 | 1 | 0 | 是（2回合）| 否 |
+| 5 | move | Move | - | - | 100 | 100 | 否 | 是 |
+
+---
+
+## 核心游戏规则概要
+
+- 每轮所有棋子各行动一次，按**先攻值**（`1d20 + 敏捷值`）排序
+- 单棋子每轮可执行：移动、攻击、施法（各最多一次，均消耗行动位）
+- **物理攻击命中判定**：`1d20 + 力量调整值 + 优势值 > 目标物理豁免 + 目标敏捷调整值`
+- 1 大失败，20 大成功（无视判定直接生效）
+- 暴击伤害翻倍
+- **死亡检定**：血量 ≤ 0 时掷 1d20，20 则回复 1 HP，否则死亡
+- 达到最大回合数（100轮）未分胜负时，按双方总剩余血量判定
+- 游戏结束后输出 `log.json` 回放文件
 
 
-### 通信相关（用于远程模式）
-
-- **ProtoConverter.cs**: 负责在不同数据格式之间进行转换
-
-- **ServerCommunicator.cs**: 实现gRPC服务接口，处理远程客户端的请求。
-
-### 前端相关（用于输出前端回放的log文件）
-
-- **LogConverter.cs**: 用于生成和保存游戏日志，记录游戏过程。
-
-- **FrontClasses.cs**: 前端格式的类定义。
-
-### 配置文件
-
-- **BoardCase/**: 包含棋盘布局的文本文件，定义棋盘的大小、地形和高度信息。（目前仅支持一种棋盘）
-
-
+## 开发进度与注意点
+1. 当前server代码可以编译运行，可与client交互
+2. 由于存在多种装备和机制，测试很不完全，存在相当数量的错误，以下为AI总结的部分错误
+```
+严重错误（会导致运行结果明显错误）
+1.Player.cs SetArmor 重甲分支写错了 setter：case 3 调用的是 SetPhysicalDamageTo/SetMagicDamageTo/SetRangeTo，实际应是 SetPhysicalResistTo/SetMagicResistTo/SetMaxMovementBy(-3)，穿重甲的棋子完全无法获得防御加成。
+2. env.cs 先攻计算双方用了不同属性：player1 用 intelligence，player2 用 dexterity，双方先攻规则不对等，正确应都用敏捷（dexterity）。
+3. env.cs Heal 效果 Math.Max 应为 Math.Min：Math.Max(target.health + baseValue, target.max_health) 逻辑相反，治疗后血量应当不超过上限（Min），当前实现会在某些情况下超出上限或逻辑混乱。
+4. ProtoConverter.cs 法术目标未赋值：SpellContext 转换中 if (proto.Target != -1) env.action_queue.Find(...) 的查找结果没有赋值给 temp.target，导致远程模式下所有单体法术目标永远为 null，法术施放时会报空引用。
+🟡 设计风险（不一定崩溃，但行为可能偏离预期）
+1. RollDice 每次 new Random()，同一毫秒多次调用会产生相同随机数，实际骰子缺乏随机性；且 n（骰子数量）参数未被使用，实际只投了 1 次骰子。
+2. 延时法术每个小回合（每个棋子行动后）都倒计时，而非按"轮"处理，法术触发频率可能是预期的若干倍。
+3. 移动扣行动位，使得只有 1 个行动位的棋子（力量≤13）无法同时移动和攻击，需确认是否为有意设计。
+4. SendInitPolicy gRPC 并发无保护，多棋子场景下有竞态条件风险。
+LogConverter 高度图的遍历轴向需与前端对齐确认，外层遍历是 x 维度，每行 row 对应某一 x 列，不是通常意义上的"行"。
+``` 

@@ -107,6 +107,65 @@ namespace Server
             }
         }
 
+        /// <summary>
+        /// 断开所有客户端连接
+        /// </summary>
+        public async Task DisconnectAllClients()
+        {
+            Console.WriteLine($"开始断开 {_clients.Count} 个客户端连接...");
+            
+            // 发送最终的游戏状态（包含isGameOver=true）
+            var finalGameState = new _GameStateResponse
+            {
+                CurrentRound = env.round_number,
+                CurrentPlayerId = env.current_piece?.team ?? 0,
+                ActionQueue = { env.action_queue.Select(Converter.ToProto) },
+                CurrentPieceID = env.current_piece?.id ?? -1,
+                DelayedSpells = { env.delayed_spells.Select(Converter.ToProto) },
+                Board = Converter.ToProto(env.board),
+                IsGameOver = true  // 确保客户端知道游戏已结束
+            };
+
+            // 向所有客户端发送最终状态
+            foreach (var client in _clients.ToList())
+            {
+                try
+                {
+                    await client.Value.WriteAsync(finalGameState);
+                    Console.WriteLine($"已向客户端 {client.Key} 发送最终游戏状态");
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"向客户端 {client.Key} 发送最终状态失败: {ex.Message}");
+                }
+            }
+
+            // 等待一段时间确保消息发送完成
+            await Task.Delay(1000);
+
+            // 清空所有客户端连接
+            var disconnectedClients = new List<int>();
+            foreach (var client in _clients.ToList())
+            {
+                try
+                {
+                    // 移除客户端连接
+                    if (_clients.TryRemove(client.Key, out _))
+                    {
+                        disconnectedClients.Add(client.Key);
+                        Console.WriteLine($"客户端 {client.Key} 连接已断开");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"断开客户端 {client.Key} 时出错: {ex.Message}");
+                }
+            }
+
+            Console.WriteLine($"已断开 {disconnectedClients.Count} 个客户端连接");
+            Console.WriteLine($"剩余连接数: {_clients.Count}");
+        }
+
         // 1. SendInit 实现
         public override Task<_InitResponse> SendInit(_InitRequest request, ServerCallContext context)
         {
