@@ -6,6 +6,9 @@ from converter import *
 from utils import *
 from message_pb2 import _InitResponse
 
+# 控制 MCTS 是否输出调试日志，设为 False 可关闭所有 [MCTS] 输出
+MCTS_VERBOSE: bool = False
+
 class StrategyFactory:
     """策略工厂类 - 提供不同的游戏策略"""
     
@@ -551,19 +554,19 @@ class StrategyFactory:
                 for move in [None] + legal_moves:
                     # 如果已经没有行动点，跳过移动
                     if move is not None and current_piece.action_points <= 0:
-                        print("[MCTS] 跳过移动：没有足够的行动点")
+                        if MCTS_VERBOSE: print("[MCTS] 跳过移动：没有足够的行动点")
                         continue
                         
                     for target in [None] + attackable_targets:
                         # 如果已经没有行动点，跳过攻击
                         if target is not None and current_piece.action_points <= 0:
-                            print("[MCTS] 跳过攻击：没有足够的行动点")
+                            if MCTS_VERBOSE: print("[MCTS] 跳过攻击：没有足够的行动点")
                             continue
                             
                         for spell in [None] + spells:
                             # 如果已经没有行动点或法术位，跳过法术
                             if spell is not None and (current_piece.action_points <= 0 or current_piece.spell_slots <= 0):
-                                print("[MCTS] 跳过法术：没有足够的资源")
+                                if MCTS_VERBOSE: print("[MCTS] 跳过法术：没有足够的资源")
                                 continue
                                 
                             action = ActionSet()
@@ -577,7 +580,7 @@ class StrategyFactory:
                                 action.move_target = move
                                 remaining_points -= 1
                                 has_action = True
-                                print(f"[MCTS] 添加移动到 ({move.x}, {move.y})")
+                                if MCTS_VERBOSE: print(f"[MCTS] 添加移动到 ({move.x}, {move.y})")
                             else:
                                 action.move = False
                             
@@ -589,7 +592,7 @@ class StrategyFactory:
                                 action.attack_context.target = target
                                 remaining_points -= 1
                                 has_action = True
-                                print(f"[MCTS] 添加攻击目标 {target.id}")
+                                if MCTS_VERBOSE: print(f"[MCTS] 添加攻击目标 {target.id}")
                             else:
                                 action.attack = False
                             
@@ -598,7 +601,7 @@ class StrategyFactory:
                                 # 获取法术可选目标
                                 spell_targets = self.env.get_spell_targets(spell, current_piece)
                                 if not spell_targets and not spell.is_area_effect:
-                                    print("[MCTS] 跳过法术：没有有效目标")
+                                    if MCTS_VERBOSE: print("[MCTS] 跳过法术：没有有效目标")
                                     continue
                                     
                                 has_action = True
@@ -607,7 +610,7 @@ class StrategyFactory:
                                 action.spell_context = SpellContext()
                                 action.spell_context.caster = current_piece
                                 action.spell_context.spell = spell
-                                print(f"[MCTS] 添加法术 {spell.name}")
+                                if MCTS_VERBOSE: print(f"[MCTS] 添加法术 {spell.name}")
                                 
                                 # 设置目标和范围
                                 if spell.is_area_effect:
@@ -643,15 +646,15 @@ class StrategyFactory:
                             
                             # 如果有行动点但没有执行任何动作，跳过这个组合
                             if current_piece.action_points > 0 and not has_action:
-                                print("[MCTS] 跳过：有行动点但未执行任何动作")
+                                if MCTS_VERBOSE: print("[MCTS] 跳过：有行动点但未执行任何动作")
                                 continue
                                 
                             # 创建子节点并执行完整的步进
-                            print(f"[MCTS] 尝试动作: {action}")
+                            if MCTS_VERBOSE: print(f"[MCTS] 尝试动作: {action}")
                             next_env.step_with_action(action)
                             child = MCTSNode(next_env, self, action)
                             self.children.append(child)
-                            print(f"[MCTS] 成功添加子节点，当前共有 {len(self.children)} 个子节点")
+                            if MCTS_VERBOSE: print(f"[MCTS] 成功添加子节点，当前共有 {len(self.children)} 个子节点")
                         
             def select(self) -> 'MCTSNode':
                 """选择最有希望的子节点"""
@@ -766,19 +769,22 @@ class StrategyFactory:
                 
             # 选择访问次数最多的子节点对应的行动
             if not root.children:
-                print("\n[MCTS] 警告: 没有生成任何子节点!")
-                print(f"[MCTS] 当前棋子: ID={env.current_piece.id if env.current_piece else None}")
-                print(f"[MCTS] 可移动位置数量: {len(env.get_legal_moves())}")
-                print(f"[MCTS] 可攻击目标数量: {len(env.get_attackable_targets())}")
-                print(f"[MCTS] 可用法术数量: {len(env.get_available_spells())}")
-                print(f"[MCTS] 当前行动点: {env.current_piece.action_points if env.current_piece else 0}")
-                print(f"[MCTS] 当前法术位: {env.current_piece.spell_slots if env.current_piece else 0}")
+                if MCTS_VERBOSE:
+                    print("\n[MCTS] 警告: 没有生成任何子节点!")
+                    print(f"[MCTS] 当前棋子: ID={env.current_piece.id if env.current_piece else None}")
+                    print(f"[MCTS] 可移动位置数量: {len(env.get_legal_moves())}")
+                    print(f"[MCTS] 可攻击目标数量: {len(env.get_attackable_targets())}")
+                    print(f"[MCTS] 可用法术数量: {len(env.get_available_spells())}")
+                    print(f"[MCTS] 当前行动点: {env.current_piece.action_points if env.current_piece else 0}")
+                    print(f"[MCTS] 当前法术位: {env.current_piece.spell_slots if env.current_piece else 0}")
                 return ActionSet()
                 
-            print(f"\n[MCTS] 找到 {len(root.children)} 个可能的动作")
+            if MCTS_VERBOSE:
+                print(f"\n[MCTS] 找到 {len(root.children)} 个可能的动作")
             best_child = max(root.children, key=lambda c: c.visits)
-            print(f"[MCTS] 选择最佳动作: 访问次数={best_child.visits}, 评分={best_child.value}")
-            print(f"[MCTS] 动作详情:\n{best_child.action}")
+            if MCTS_VERBOSE:
+                print(f"[MCTS] 选择最佳动作: 访问次数={best_child.visits}, 评分={best_child.value}")
+                print(f"[MCTS] 动作详情:\n{best_child.action}")
             return best_child.action
         
         return strategy

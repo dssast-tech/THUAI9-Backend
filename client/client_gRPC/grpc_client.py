@@ -6,17 +6,15 @@ from env import *
 from utils import *
 from converter import *
 from env import Environment
-import asyncio
 import threading
-import time
 import argparse
 
 
-async def subscribe_game_state(stub, player_id, action_strategy, env):
+def subscribe_game_state(stub, player_id, action_strategy, env):
     """订阅游戏状态更新"""
     try:
         request = message_pb2._GameStateRequest(playerID=player_id)
-        for state in stub.BroadcastGameState(request):  # 改为普通的 for 循环
+        for state in stub.BroadcastGameState(request):
             print(f"\n收到游戏状态更新:")
             print(f"当前回合: {state.currentRound}")
             print(f"当前行动玩家: {state.currentPlayerId}")
@@ -25,7 +23,7 @@ async def subscribe_game_state(stub, player_id, action_strategy, env):
             
             # 如果是当前玩家的回合，生成并发送行动
             if state.currentPlayerId == player_id:
-                await send_action(stub, state, player_id, action_strategy, env)
+                send_action(stub, state, player_id, action_strategy, env)
 
             if state.isGameOver:
                 print("游戏结束！")
@@ -35,11 +33,8 @@ async def subscribe_game_state(stub, player_id, action_strategy, env):
     except Exception as e:
         print(f"处理游戏状态时出错: {e}")
 
-async def send_action(stub, state, player_id, action_strategy, env):
+def send_action(stub, state, player_id, action_strategy, env):
     try:
-        # 等待一小段时间，确保服务器准备好接收行动
-        await asyncio.sleep(0.1)
-        
         # 将游戏状态转换为策略函数需要的格式
         Converter.from_proto_game_state(state, env)
         
@@ -63,11 +58,8 @@ async def send_action(stub, state, player_id, action_strategy, env):
         raise  # 重新抛出异常以便查看完整的错误堆栈
 
 def start_subscription(stub, player_id, action_strategy, env):
-    """在新线程中启动异步订阅"""
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    loop.run_until_complete(subscribe_game_state(stub, player_id, action_strategy, env))
-    loop.close()
+    """在新线程中启动订阅"""
+    subscribe_game_state(stub, player_id, action_strategy, env)
 
 def parse_args():
     parser = argparse.ArgumentParser(description='gRPC游戏客户端')

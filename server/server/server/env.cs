@@ -618,7 +618,18 @@ namespace Server
             if (inputMethodManager.IsRemoteInput(current_player))
             {
                 // 使用远程输入方法（通过actionWaiter）
-                action = Converter.FromProto(await actionWaiter.WaitForPlayerActionAsync(current_player, TimeSpan.FromSeconds(10)), this);  //在这里设置策略限时
+                try
+                {
+                    action = Converter.FromProto(await actionWaiter.WaitForPlayerActionAsync(current_player, TimeSpan.FromSeconds(10)), this);  //在这里设置策略限时
+                }
+                catch (ApplicationException)
+                {
+                    // 客户端超时未响应，跳过本棋子行动，继续游戏
+                    Console.WriteLine($"[Timeout] Player {current_player} (piece {current_piece.id}) timed out, skipping turn.");
+                    action_queue.RemoveAt(0);
+                    action_queue.Add(current_piece);
+                    return;
+                }
             }
             else
             {

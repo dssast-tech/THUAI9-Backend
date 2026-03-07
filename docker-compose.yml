@@ -10,6 +10,7 @@ services:
     command: ["--urls", "http://0.0.0.0:50051"]
     networks:
       - game-network
+    tty: true
 
   client1:
     build:
@@ -22,6 +23,7 @@ services:
       - game-network
     environment:
       - PYTHONUNBUFFERED=1
+    tty: true
 
   client2:
     build:
@@ -34,6 +36,7 @@ services:
       - game-network
     environment:
       - PYTHONUNBUFFERED=1
+    tty: true
 
 networks:
   game-network:
