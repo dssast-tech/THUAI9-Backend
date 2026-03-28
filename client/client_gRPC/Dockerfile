@@ -1,5 +1,5 @@
-# 使用Python基础镜像
-FROM python:3.9-slim
+# 使用Python基础镜像（国内镜像源 - 网易云镜像）
+FROM hub-mirror.c.163.com/library/python:3.9-slim
 
 WORKDIR /app
 
