@@ -101,10 +101,12 @@ def run():
     
     if args.mode == 'local':
         print("启动本地控制台模式...")
+        env.enable_replay = True  # 启用回放记录
         env.run()
         
     elif args.mode == 'function':
         print("启动函数式输入模式...")
+        env.enable_replay = True  # 启用回放记录
         
         # 设置玩家1为函数式输入（AI），玩家2为控制台输入
         env.input_manager.set_function_input_method(1, init_strategy, action_strategy)

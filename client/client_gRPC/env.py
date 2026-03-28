@@ -813,9 +813,10 @@ from local_input import InputMethodManager, ConsoleInputMethod, FunctionInputMet
 
 class Environment:
     """环境类 - 游戏核心控制器"""
-    def __init__(self, local_mode: bool = True, if_log: int = 1):
+    def __init__(self, local_mode: bool = True, if_log: int = 1, enable_replay: bool = False):
         self.mode = 0 if local_mode else 1  # 0 for local, 1 for remote
         self.if_log = if_log  # 日志控制，1启用，0禁用
+        self.enable_replay = enable_replay  # 是否启用回放记录
         self.input_manager = InputMethodManager(self)
         self.action_queue = []
         self.current_piece = None
@@ -827,6 +828,13 @@ class Environment:
         self.is_game_over = False
         self.new_dead_this_round = np.array([], dtype=object)
         self.last_round_dead_pieces = np.array([], dtype=object)
+        
+        # 初始化回放管理器
+        if self.enable_replay:
+            from replay import ReplayManager
+            self.replay_manager = ReplayManager(self)
+        else:
+            self.replay_manager = None
 
     def roll_dice(self, n: int, sides: int):
         """投掷骰子"""
@@ -1307,6 +1315,10 @@ class Environment:
         # 更新死亡列表
         self.last_round_dead_pieces = np.array(self.new_dead_this_round, dtype=object)
         self.new_dead_this_round = np.array([], dtype=object)
+        
+        # 记录回放数据
+        if self.enable_replay and self.replay_manager:
+            self.replay_manager.record_round(action)
 
     def execute_player_action(self, action: ActionSet):
         """执行玩家行动
@@ -1613,6 +1625,19 @@ class Environment:
         
         return new_env
 
+    def save_replay_to_json(self, filepath: str = None):
+        """保存回放数据到JSON文件
+        
+        Args:
+            filepath: 保存路径，如果为None则自动生成文件名
+        """
+        if self.replay_manager:
+            return self.replay_manager.save_to_json(filepath)
+        else:
+            if self.if_log:
+                print("[Replay] 回放功能未启用")
+            return None
+
     def run(self):
         """运行游戏主循环"""
         self.initialize()
@@ -1631,6 +1656,10 @@ class Environment:
                 isinstance(self.input_manager.get_input_method(2), ConsoleInputMethod)):
                 if input("\n继续下一回合? (y/n): ").lower() != 'y':
                     break
+        
+        # 游戏结束后保存回放数据
+        if self.enable_replay and self.replay_manager:
+            self.replay_manager.save_to_json()
 
 
 if __name__ == "__main__":
