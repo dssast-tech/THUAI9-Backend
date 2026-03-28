@@ -32,7 +32,8 @@ namespace Server
 
             try
             {
-                var pieceArgs = JsonSerializer.Deserialize<pieceArg[]>(piecesJson);
+                var options = new JsonSerializerOptions { IncludeFields = true };
+                var pieceArgs = JsonSerializer.Deserialize<pieceArg[]>(piecesJson, options);
                 if (pieceArgs == null)
                 {
                     return false;
@@ -72,15 +73,12 @@ namespace Server
 
                 return true;
             }
-            catch
+            catch (Exception ex)
             {
+                Console.WriteLine($"[GameEngine] SetPlayerPieces error: {ex.Message}\n{ex.StackTrace}");
                 return false;
             }
         }
-
-        /// <summary>
-        /// 导出当前游戏状态为 JSON，结构参考 message.proto 的 _GameStateResponse。
-        /// </summary>
         public string GetStateJson()
         {
             if (env == null) throw new InvalidOperationException("Engine not initialized.");

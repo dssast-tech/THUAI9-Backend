@@ -27,6 +27,9 @@ def parse_args():
     parser.add_argument(
         "--mcts-simulations", type=int, default=25, help="MCTS模拟次数 (默认: 25)"
     )
+    parser.add_argument(
+        "--player-id", type=int, default=-1, help="Saiblo 玩家ID (0或1)，本地测试用"
+    )
     return parser.parse_args()
 
 
@@ -42,7 +45,7 @@ def run():
         action_strategy = StrategyFactory.get_mcts_action_strategy(args.mcts_simulations)
 
     env = Environment(local_mode=False, if_log=0)
-    player_id = -1  # 由第一条回合消息确定
+    player_id = args.player_id  # 本地测试时由命令行指定，Saiblo 部署时为 -1（自动推断）
 
     print("[INFO] 等待初始化消息...", file=sys.stderr)
 
@@ -105,7 +108,9 @@ def run():
         env_from_state_json(state_data, env)
 
         if env.current_piece is None:
-            print("[WARN] current_piece 为空，跳过", file=sys.stderr)
+            print("[WARN] current_piece 为空，发送空动作", file=sys.stderr)
+            empty = {"player": player_id, "content": json.dumps({"move": False, "attack": False, "spell": False})}
+            SaibloClient.write_message(empty)
             continue
 
         # 运行策略

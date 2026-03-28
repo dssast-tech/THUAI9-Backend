@@ -2,9 +2,7 @@ from typing import Callable, List
 import math
 from dataclasses import dataclass
 from env import *
-from converter import *
 from utils import *
-from message_pb2 import _InitResponse
 
 # 控制 MCTS 是否输出调试日志，设为 False 可关闭所有 [MCTS] 输出
 MCTS_VERBOSE: bool = False
@@ -276,7 +274,7 @@ class StrategyFactory:
         return strategy
 
     @staticmethod
-    def get_random_init_strategy() -> Callable[[_InitResponse], List[PieceArg]]:
+    def get_random_init_strategy() -> Callable[['InitGameMessage'], List[PieceArg]]:
         """随机选择一个初始化策略"""
         import random
         strategies = [
