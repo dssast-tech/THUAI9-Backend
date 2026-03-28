@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -22,6 +22,9 @@ namespace Server
         public float max_movement { get; private set; }//行动力
 
         public int id; //专属id，由初始行动序列分配，有棋子死亡时不重新分配
+
+        /// <summary>武器类型 1~4（长剑/短剑/弓/法杖），与 SetTypeTo 入参一致。</summary>
+        public int weapon_type;
 
         public string type; // 棋子类型（战士/法师/弓箭手等)
 
@@ -158,6 +161,7 @@ namespace Server
                 else if (value == 4) p.type = "Mage";
                 else if (value == 3) p.type = "Archer";
                 else throw new ArgumentOutOfRangeException("Type out of range.");
+                p.weapon_type = value;
             }
 
             public void SetActionPointsTo(int value) => p.action_points = value;

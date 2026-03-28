@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -20,7 +20,8 @@ namespace Server
     public class SoldierData
     {
         public int ID { get; set; }
-        public string soldierType { get; set; }
+        /// <summary>武器类型编号 1~4：长剑/短剑/弓/法杖</summary>
+        public int soldierType { get; set; }
         public string camp { get; set; }
         public Vector3Serializable position { get; set; }
         public SoldierStats stats { get; set; }
