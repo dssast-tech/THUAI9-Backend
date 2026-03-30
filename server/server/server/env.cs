@@ -80,7 +80,7 @@ namespace Server
 
             foreach (var piece in player1.pieces)
             {
-                int priority = RollDice(1, 20) + piece.intelligence;
+                int priority = RollDice(1, 20) + piece.dexterity;
                 piecePriority[piece] = priority;
             }
 
