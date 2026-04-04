@@ -147,7 +147,6 @@ namespace Server
 
         public void addSpell(SpellContext context, Board board)
         {
-            //TODO
             BattleAction temp = new BattleAction();
             temp.actionType = "Ability";
             temp.soldierId = context.caster.id;
@@ -207,6 +206,11 @@ namespace Server
             Console.WriteLine($"JSON已保存到: {filePath}");
             Console.WriteLine("按下回车键继续...");
             Console.ReadLine();
+        }
+
+        public string ToJson()
+        {
+            return JsonSerializer.Serialize(gamedata, new JsonSerializerOptions { WriteIndented = true });
         }
     }
 }

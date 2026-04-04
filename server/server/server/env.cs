@@ -15,7 +15,6 @@ namespace Server
     class Env
     {
 
-        public int mode;// 0 for local, 1 for http
         public List<Piece> action_queue; // 棋子的行动队列
         public Piece current_piece; // 当前行动的棋子
         public int round_number; // 当前回合数
@@ -27,82 +26,26 @@ namespace Server
         public List<Piece> newDeadThisRound; // 记录本回合新死亡的棋子列表
         public List<Piece> lastRoundDeadPieces;
         public LogConverter logdata;
-        // public ServerCommunicator communicator;
 
-        public InitWaiter connectWaiter;
-        public InitWaiter initWaiter;
-        public ActionWaiter actionWaiter;
-        public int Idcnt = 0; 
+        // 战斗是否已经初始化（行动队列 / 日志 ）
+        public bool isBattleInitialized;
 
         // 最大回合数（实例级），可调整
         public int max_rounds = 100;
 
-        // 添加输入方法管理器
-        public InputMethodManager inputMethodManager;
-
-        public bool action_received;
-        public int input_allowed; //0for forbidden; 1 for player1; 2 for player 2
-
-        private async Task BroadcastGameState()
-        {
-            if (mode == 1 && GameServiceImpl.Instance != null)
-            {
-                await GameServiceImpl.Instance.BroadcastToAllClients();
-            }
-        }
-
         public Env()
         {
-            // communicator = new ServerCommunicator(
-            //     "address1",
-            //     "address2"
-            //     );
-            mode = 0;
-            connectWaiter = new InitWaiter(2, TimeSpan.FromSeconds(10),22);
-            initWaiter = new InitWaiter(2, TimeSpan.FromSeconds(10),11);
-            actionWaiter = new ActionWaiter();
-            
-            // 初始化输入方法管理器
-            inputMethodManager = new InputMethodManager(this);
-
+            isBattleInitialized = false;
         }
 
 
 
-        public async Task initialize()
+        /// <summary>
+        /// 初始化棋盘与玩家对象，不包含棋子配置与战斗初始化。
+        /// 棋子会由外部通过 Player.localInit / GameEngine.SetPlayerPieces 完成。
+        /// </summary>
+        public Task initialize()
         {
-            //执行各类初始化
-            //注：对于player类，先调用player的localInit函数进行初始化，并根据Init返回值进行地图信息的初始化（需要进行各种合法性检查，如初始位置是否越过双方边界线）
-            
-            // 默认设置双方为控制台输入方式
-            // inputMethodManager.SetConsoleInputMethod(1);
-            // inputMethodManager.SetConsoleInputMethod(2);
-            
-            // 示例：如何设置其他输入方式
-            // 1. 设置玩家1为远程输入方式
-            inputMethodManager.SetRemoteInputMethod(1);
-            inputMethodManager.SetRemoteInputMethod(2);
-            
-            // 2. 设置玩家2为本地函数输入，使用攻击型策略
-            // inputMethodManager.SetFunctionLocalInputMethod(2, 
-            //     StrategyFactory.GetAggressiveInitStrategy(), 
-            //     StrategyFactory.GetAggressiveActionStrategy());
-
-            // 3. 设置玩家1为本地函数输入，使用防御型策略
-            // inputMethodManager.SetFunctionLocalInputMethod(1,
-            //     StrategyFactory.GetDefensiveInitStrategy(),
-            //     StrategyFactory.GetDefensiveActionStrategy());
-
-            // 4. 设置玩家2为本地函数输入，使用法师型策略
-            // inputMethodManager.SetFunctionLocalInputMethod(2,
-            //     StrategyFactory.GetMageInitStrategy(),
-            //     StrategyFactory.GetMageActionStrategy());
-
-            // 5. 设置玩家1为本地函数输入，使用随机策略
-            // inputMethodManager.SetFunctionLocalInputMethod(1,
-            //     StrategyFactory.GetRandomInitStrategy(),
-            //     StrategyFactory.GetRandomActionStrategy());
-
             board = new Board();
             string filePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "BoardCase", "case1.txt");
             board.init(filePath);
@@ -112,80 +55,29 @@ namespace Server
             player1.id = 1;
             player2.id = 2;
 
-            // 如果有任何玩家使用远程输入，设置模式为远程模式
-            if (inputMethodManager.IsRemoteInput(1) || inputMethodManager.IsRemoteInput(2))
-            {
-                mode = 1;
-            }
-
-            if (mode == 0)
-            {
-                // 本地模式 - 使用本地输入方法
-                // 初始化player1
-                if (!inputMethodManager.IsRemoteInput(1))
-                {
-                    // 准备InitGameMessage
-                    var initMessage = new InitGameMessage
-                    {
-                        pieceCnt = Player.PIECECNT,
-                        id = 1,
-                        board = board
-                    };
-                    
-                    // 使用本地输入方法处理初始化
-                    var initPolicy = inputMethodManager.HandleInitInput(1, initMessage);
-                    player1.localInit(initPolicy, board);
-                }
-                
-                // 初始化player2
-                if (!inputMethodManager.IsRemoteInput(2))
-                {
-                    // 准备InitGameMessage
-                    var initMessage = new InitGameMessage
-                    {
-                        pieceCnt = Player.PIECECNT,
-                        id = 2,
-                        board = board
-                    };
-                    
-                    // 使用本地输入方法处理初始化
-                    var initPolicy = inputMethodManager.HandleInitInput(2, initMessage);
-                    player2.localInit(initPolicy, board);
-                }
-            }
-            else
-            {
-                try
-                {
-                    Console.WriteLine($"Waiting for 2 clients to initialize...");
-
-                    // ⏳ 阻塞在这里，直到所有client都初始化完成，或超时
-                    await initWaiter.WaitForAllClientsAsync();
-
-                    Console.WriteLine("All clients initialized, game starting...");
-                    // 远程模式下不需要额外操作，因为远程输入是通过gRPC通道自动处理的
-                }
-                catch (TimeoutException)
-                {
-                    Console.WriteLine("Game starting despite timeout...");
-                    // 如果超时，可以选择自动开始游戏
-                }
-            }
-
-
-            // 以下是原有初始化代码，无需修改
-            action_queue = new List<Piece>();
             delayed_spells = new List<SpellContext>();
             isGameOver = false;
             round_number = 0;
             newDeadThisRound = new List<Piece>();
-
-            // 初始化行动列表
             action_queue = new List<Piece>();
+            lastRoundDeadPieces = new List<Piece>();
+            isBattleInitialized = false;
+
+            return Task.CompletedTask;
+        }
+
+        /// <summary>
+        /// 在双方棋子已经配置完成后，根据当前棋子列表初始化行动队列、棋盘占据信息以及日志。
+        /// </summary>
+        public void SetupBattle()
+        {
+            if (player1.pieces == null || player2.pieces == null)
+            {
+                throw new InvalidOperationException("玩家棋子尚未配置完成，无法初始化战斗。");
+            }
 
             Dictionary<Piece, int> piecePriority = new Dictionary<Piece, int>();
 
-            // 为每个棋子计算优先级
             foreach (var piece in player1.pieces)
             {
                 int priority = RollDice(1, 20) + piece.intelligence;
@@ -198,47 +90,22 @@ namespace Server
                 piecePriority[piece] = priority;
             }
 
-            // 按优先级从大到小排序并添加到行动队列
             action_queue = piecePriority
                 .OrderByDescending(pair => pair.Value)
                 .Select(pair => pair.Key)
                 .ToList();
 
-            for (int i = 0; i < action_queue.Count(); i++)
+            for (int i = 0; i < action_queue.Count; i++)
             {
                 action_queue[i].id = i;
-
             }
 
             board.init_pieces_location(player1.pieces, player2.pieces);
 
             logdata = new LogConverter();
             logdata.init(action_queue, board);
-            lastRoundDeadPieces = new List<Piece>();
-        }
-        // 获取当前棋子的行动指令集
-        actionSet getAction(int mode = 0)
-        {
-            // 确定当前玩家ID
-            int currentPlayerId = current_piece.team;
-            
-            // 根据模式决定如何处理输入
-            if (mode == 1 || inputMethodManager.IsRemoteInput(currentPlayerId))
-            {
-                // 远程模式下，使用actionWaiter等待远程输入
-                // 这里通常由GRPC处理器处理，等待客户端响应
-                throw new NotImplementedException("此函数不会在远程模式下直接调用，Step方法中会处理远程输入");
-                }
-                else
-                {
-                // 使用本地输入方法获取行动
-                return inputMethodManager.HandleActionInput(currentPlayerId);
-            }
-        }
 
-        actionSet getAction(actionSet inputAction)
-        {
-            throw new NotImplementedException();
+            isBattleInitialized = true;
         }
 
         // 投掷骰子  
@@ -570,26 +437,24 @@ namespace Server
         }
 
         //-----------------------------------------------------------------核心逻辑------------------------------------------------------------//
-        // 单回合步进逻辑
-        public async Task step()
+        /// <summary>
+        /// 回合开始：递增回合数、为所有存活棋子重置行动点，并确定当前应行动棋子。
+        /// 不执行任何玩家操作，适合作为对外广播/获取状态的时机。
+        /// </summary>
+        public void BeginTurn()
         {
+            if (!isBattleInitialized)
+            {
+                throw new InvalidOperationException("战斗尚未初始化，请先调用 SetupBattle。");
+            }
 
-            //***ForDebug***//
-            //手动结束游戏
-            // Console.WriteLine("输入exit结束游戏：");
-            // string input = Console.ReadLine();
-            // if (input == "exit")
-            // {
-            //     isGameOver = true;
-            //     return;
-            // }
+            if (isGameOver)
+            {
+                return;
+            }
 
-            //**************//
-
-            //回合初始化
-            round_number++;  // 回合计数器递增
-            action_received = false;
-            input_allowed = 0;
+            // 回合计数器递增
+            round_number++;
 
             // 重置所有存活棋子的行动点
             foreach (var piece in action_queue.Where(p => p.is_alive))
@@ -598,49 +463,29 @@ namespace Server
                 Console.WriteLine($"Piece {piece.id} action points: {piece.action_points}");
             }
 
-            //处理行动队列
-            int processedCount = 0;  // 已处理棋子计数器
-            current_piece = action_queue[0];  // 取队列第一个
-            int current_player = current_piece.team;
+            // 当前行动棋子为队列首
+            current_piece = action_queue[0];
 
+            // 记录回合开始日志
             logdata.addRound(round_number, action_queue);
             log(0);
-            
-            // 在回合开始时广播游戏状态
-            Console.WriteLine("Broadcasting game state...");
-            await BroadcastGameState();
-            Console.WriteLine("Broadcasting game state done");
+        }
 
-            // 获取行动
-            actionSet action;
-            
-            // 根据当前玩家的输入方法决定如何获取行动
-            if (inputMethodManager.IsRemoteInput(current_player))
+        /// <summary>
+        /// 执行当前棋子的行动指令集（移动/攻击/施法/延时法术推进），不负责轮转队列与胜负判定。
+        /// 必须在 BeginTurn 之后调用。
+        /// </summary>
+        public void ApplyAction(actionSet action)
+        {
+            if (!isBattleInitialized)
             {
-                // 使用远程输入方法（通过actionWaiter）
-                try
-                {
-                    action = Converter.FromProto(await actionWaiter.WaitForPlayerActionAsync(current_player, TimeSpan.FromSeconds(10)), this);  //在这里设置策略限时
-                }
-                catch (ApplicationException)
-                {
-                    // 客户端超时未响应，跳过本棋子行动，继续游戏
-                    Console.WriteLine($"[Timeout] Player {current_player} (piece {current_piece.id}) timed out, skipping turn.");
-                    action_queue.RemoveAt(0);
-                    action_queue.Add(current_piece);
-                    return;
-                }
-            }
-            else
-            {
-                // 使用本地输入方法
-                action = inputMethodManager.HandleActionInput(current_player);
+                throw new InvalidOperationException("战斗尚未初始化，请先调用 SetupBattle。");
             }
 
-            // 更新行动队列
-            action_queue.RemoveAt(0);
-            action_queue.Add(current_piece);
-            processedCount++;
+            if (isGameOver || current_piece == null)
+            {
+                return;
+            }
 
             if (current_piece.action_points > 0 && action.move)
             {
@@ -733,24 +578,35 @@ namespace Server
             {
                 Console.WriteLine("[Spell] 当前无延时法术。");
             }
-            //！移除操作已由攻击组完成
-            // 移除死亡单位
-            //var deadPieces = action_queue.Where(p => !p.is_alive).ToList();
-            //foreach (var dead in deadPieces)
-            //{
-            //    board.removePiece(dead);
-            //   action_queue.Remove(dead);
-            //}
+        }
 
+        /// <summary>
+        /// 回合结束：轮转行动队列、执行胜负与回合上限判定、写入回合结束日志。
+        /// 必须在 ApplyAction 之后调用。
+        /// </summary>
+        public void EndTurn()
+        {
+            if (!isBattleInitialized)
+            {
+                throw new InvalidOperationException("战斗尚未初始化，请先调用 SetupBattle。");
+            }
+
+            if (isGameOver || current_piece == null)
+            {
+                return;
+            }
+
+            // 将当前棋子移到队列末尾
+            action_queue.RemoveAt(0);
+            action_queue.Add(current_piece);
 
             // 游戏结束检查
             bool player1Alive = player1.pieces.Any(p => p.is_alive);
             bool player2Alive = player2.pieces.Any(p => p.is_alive);
             isGameOver = !player1Alive || !player2Alive;
-            
-            string winner = null;
-            
+
             // 常规胜负判定
+            string winner = null;
             if (isGameOver)
             {
                 if (player1Alive && !player2Alive)
@@ -766,7 +622,7 @@ namespace Server
                     winner = "平局";
                 }
             }
-            
+
             logdata.finishRound(round_number, action_queue, player1.pieces.Count, player2.pieces.Count, isGameOver);
 
             // 最大回合数上限判定：若达到上限且未结束，则根据双方总血量判断胜负/平局并终止游戏
@@ -792,86 +648,6 @@ namespace Server
                     winner = "平局";
                 }
                 isGameOver = true;
-            }
-            
-            // 如果游戏结束，显示醒目的胜利信息并断开客户端连接
-            if (isGameOver && winner != null)
-            {
-                await DisplayGameEndMessage(winner);
-                await DisconnectAllClients();
-            }
-        }
-
-        /// <summary>
-        /// 显示醒目的游戏结束信息
-        /// </summary>
-        /// <param name="winner">胜利方信息</param>
-        private async Task DisplayGameEndMessage(string winner)
-        {
-            // 清屏并显示醒目的游戏结束信息
-            Console.Clear();
-            
-            // 设置控制台颜色
-            Console.ForegroundColor = ConsoleColor.Yellow;
-            Console.BackgroundColor = ConsoleColor.DarkBlue;
-            
-            string border = "═══════════════════════════════════════════════════════════════";
-            string emptyLine = "║                                                             ║";
-            
-            Console.WriteLine($"╔{border}╗");
-            Console.WriteLine(emptyLine);
-            Console.WriteLine("║                        🎮 游戏结束 🎮                        ║");
-            Console.WriteLine(emptyLine);
-            
-            // 根据胜利方显示不同的信息和颜色
-            if (winner == "平局")
-            {
-                Console.ForegroundColor = ConsoleColor.White;
-                Console.WriteLine("║                        🤝 平局 🤝                          ║");
-                Console.WriteLine("║                   双方势均力敌，不分胜负！                   ║");
-            }
-            else
-            {
-                Console.ForegroundColor = winner == "玩家1" ? ConsoleColor.Red : ConsoleColor.Cyan;
-                string winnerMessage = $"🏆 {winner} 胜利！ 🏆";
-                string spaces = new string(' ', (63 - winnerMessage.Length) / 2);
-                Console.WriteLine($"║{spaces}{winnerMessage}{spaces}║");
-                
-                Console.ForegroundColor = ConsoleColor.Yellow;
-                string congratsMessage = winner == "玩家1" ? "恭喜红方获得胜利！" : "恭喜蓝方获得胜利！";
-                string congratsSpaces = new string(' ', (63 - congratsMessage.Length) / 2);
-                Console.WriteLine($"║{congratsSpaces}{congratsMessage}{congratsSpaces}║");
-            }
-            
-            Console.WriteLine(emptyLine);
-            Console.WriteLine($"║                      回合数: {round_number,3}                        ║");
-            Console.WriteLine(emptyLine);
-            Console.WriteLine($"╚{border}╝");
-            
-            // 恢复默认颜色
-            Console.ResetColor();
-            
-            // 等待一段时间让用户看到结果
-            await Task.Delay(2000);
-            
-            Console.WriteLine("\n游戏统计信息：");
-            Console.WriteLine($"- 总回合数: {round_number}");
-            Console.WriteLine($"- 玩家1剩余棋子: {player1.pieces.Count(p => p.is_alive)}");
-            Console.WriteLine($"- 玩家2剩余棋子: {player2.pieces.Count(p => p.is_alive)}");
-            Console.WriteLine($"- 玩家1总血量: {player1.pieces.Where(p => p.is_alive).Sum(p => p.health)}");
-            Console.WriteLine($"- 玩家2总血量: {player2.pieces.Where(p => p.is_alive).Sum(p => p.health)}");
-        }
-
-        /// <summary>
-        /// 断开所有客户端连接
-        /// </summary>
-        private async Task DisconnectAllClients()
-        {
-            if (mode == 1 && GameServiceImpl.Instance != null)
-            {
-                Console.WriteLine("正在断开所有客户端连接...");
-                await GameServiceImpl.Instance.DisconnectAllClients();
-                Console.WriteLine("所有客户端连接已断开。");
             }
         }
 
@@ -953,27 +729,6 @@ namespace Server
                 Console.WriteLine();
             }
         }
-
-        // 游戏主循环
-        public async Task run()
-        {
-         
-            
-            await initialize(); // 初始化游戏
-            // board.init_pieces_location(player1.pieces, player2.pieces);
-            Console.WriteLine("游戏初始化完成，开始游戏！");
-            VisualizeArray(board.grid);
-
-            await Task.Delay(1000);
-            // 游戏主循环
-            while (!isGameOver) 
-            {
-                await step();
-            }
-            
-            logdata.save();
-        }
-        
 
     }
 }
