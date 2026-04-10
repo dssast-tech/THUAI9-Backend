@@ -22,7 +22,7 @@ namespace Server
 
     class InitPolicyMessage
     {
-        public List<pieceArg> pieceArgs;
+        public List<pieceArg> pieceArgs { get; set; }
     }
     class GameMessage
     {
@@ -41,11 +41,11 @@ namespace Server
 
     class pieceArg
     {
-        public int strength;
-        public int intelligence;
-        public int dexterity;
-        public Point equip;
-        public Point pos;
+        public int strength { get; set; }
+        public int intelligence { get; set; }
+        public int dexterity { get; set; }
+        public Point equip { get; set; }
+        public Point pos { get; set; }
     }
 
 }

@@ -1,6 +1,12 @@
 #pragma once
 #include <cmath>
 #include <memory>
+#include <string>
+#include <vector>
+
+// 前向声明，让 ActionSet 可以持有 shared_ptr
+class AttackContext;
+class SpellContext;
 
 struct Point {
     int x = 0;

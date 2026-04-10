@@ -11,7 +11,8 @@ namespace Server
 {
     struct Point(int x, int y)//添加构造函数
     {
-        public int x = x, y = y;
+        public int x { get; set; } = x;
+        public int y { get; set; } = y;
     }
 
     struct actionSet
