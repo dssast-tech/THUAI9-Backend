@@ -889,7 +889,7 @@ class Environment:
         piece_priority = {}
         
         for piece in self.player1.pieces:
-            priority = self.roll_dice(1, 20) + piece.intelligence
+            priority = self.roll_dice(1, 20) + piece.dexterity
             piece_priority[piece] = priority
             
         for piece in self.player2.pieces:
