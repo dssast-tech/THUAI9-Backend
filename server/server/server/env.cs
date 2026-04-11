@@ -188,7 +188,7 @@ namespace Server
             // 4. 命中后伤害处理
             if (isHit)
             {
-                int damage = context.attacker.physical_damage;
+                int damage = context.attacker.physical_damage + context.attacker.strength;
                 if (isCritical)
                     damage *= 2;
 

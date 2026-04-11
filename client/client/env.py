@@ -1046,7 +1046,7 @@ class Environment:
                 print(f"[Attack] Roll: {attack_roll} → Total Attack: {attack_throw}, Defense: {defense_value}, Hit: {is_hit}")
 
         if is_hit:
-            damage = attack_context.attacker.physical_damage
+            damage = attack_context.attacker.physical_damage + attack_context.attacker.strength
             if is_critical:
                 damage *= 2
             
