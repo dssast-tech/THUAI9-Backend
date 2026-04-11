@@ -77,9 +77,9 @@ namespace Server
                     accessor.SetMagicResistTo(13);
                     break;
                 case 3:
-                    accessor.SetPhysicalDamageTo(23);
-                    accessor.SetMagicDamageTo(17);
-                    accessor.SetRangeTo(-3);
+                    accessor.SetPhysicalResistTo(23);
+                    accessor.SetMagicResistTo(17);
+                    accessor.SetMaxMovementBy(-3);
                     break;
                 default:
                     throw new ArgumentException("wrong armor type!");
