@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
@@ -61,7 +61,7 @@ namespace Server
                 temp.ID = piece.id;
                 temp.camp = piece.team == 1 ? "Red" : "Blue";
                 temp.position = new Vector3Serializable(piece.position.x, piece.height, piece.position.y );
-                temp.soldierType = piece.type;
+                temp.soldierType = piece.weapon_type;
                 temp.stats = new SoldierStats();
                 temp.stats.health = piece.health;
                 temp.stats.strength = piece.strength;
@@ -197,13 +197,10 @@ namespace Server
 
             string json = JsonSerializer.Serialize(gamedata, new JsonSerializerOptions { WriteIndented = true });
 
-            // 获取当前目录
-            string currentDirectory = Directory.GetCurrentDirectory();
+            string logDir = Path.Combine(Directory.GetCurrentDirectory(), "logs");
+            Directory.CreateDirectory(logDir);
+            string filePath = Path.Combine(logDir, "log.json");
 
-            // 定义文件路径
-            string filePath = Path.Combine(currentDirectory, "log.json");
-
-            // 将JSON写入文件
             File.WriteAllText(filePath, json);
 
             Console.WriteLine($"JSON已保存到: {filePath}");
