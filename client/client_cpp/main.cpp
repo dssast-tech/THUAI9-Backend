@@ -1,127 +1,133 @@
+/**
+ * THUAI9 C++ Client - Saiblo stdin/stdout 版本
+ * 替代原 gRPC main.cpp
+ *
+ * 协议说明：
+ *   judger -> AI:  [4字节长度(大端序)] + [JSON]
+ *   AI -> judger:  [4字节长度(大端序)] + [JSON]
+ *
+ * 游戏状态 JSON 由 game-host 发送，字段对应 GameEngine.cs::GetStateJson()。
+ * 行动 JSON 由 Converter::to_json_action() 构造，对应 GameEngine.cs::ExecuteAction()。
+ */
+
 #include <iostream>
 #include <memory>
 #include <string>
-#include <thread>
-#include <chrono>
-#include <grpcpp/grpcpp.h>
-#include "message.grpc.pb.h"
+#include <nlohmann/json.hpp>
+
+#include "SaibloClient.h"
 #include "State.h"
 #include "Converter.h"
 #include "StrategyFactory.h"
 
-using grpc::Channel;
-using grpc::ClientContext;
-using grpc::Status;
-using server::GameService;
-
-// 全局变量
-std::shared_ptr<Player> player = std::make_shared<Player>();
-std::shared_ptr<Env> env = std::make_shared<Env>();
-
-void subscribe_game_state(std::shared_ptr<GameService::Stub> stub, int player_id, 
-                         const std::function<ActionSet(const Env&)>& action_strategy) {
-    server::_GameStateRequest request;
-    request.set_playerid(player_id);
-    
-    ClientContext context;
-    std::unique_ptr<grpc::ClientReader<server::_GameStateResponse>> reader(
-        stub->BroadcastGameState(&context, request));
-
-    server::_GameStateResponse state;
-    while (reader->Read(&state)) {
-        std::cout << "\n收到游戏状态更新:" << std::endl;
-        std::cout << "当前回合: " << state.currentround() << std::endl;
-        std::cout << "当前行动玩家: " << state.currentplayerid() << std::endl;
-        std::cout << "当前行动棋子: " << state.currentpieceid() << std::endl;
-        std::cout << "游戏是否结束: " << state.isgameover() << std::endl;
-
-        // 如果是当前玩家的回合，生成并发送行动
-        if (state.currentplayerid() == player_id) {
-            // 等待一小段时间，确保服务器准备好接收行动
-            std::this_thread::sleep_for(std::chrono::milliseconds(100));
-
-            try {
-                // 将游戏状态转换为策略函数需要的格式
-                Converter::from_proto_game_state(state, env);
-
-                // 使用策略生成行动
-                ActionSet action = action_strategy(*env);
-
-                // 将行动转换为protobuf格式
-                auto action_proto = Converter::to_proto_action(action, player_id);
-
-                std::cout << "发送行动" << std::endl;
-
-                // 发送行动到服务器
-                ClientContext action_context;
-                server::_actionResponse response;
-                Status status = stub->SendAction(&action_context, action_proto, &response);
-
-                if (status.ok() && response.success()) {
-                    std::cout << "行动已被接受" << std::endl;
-                } else {
-                    std::cout << "行动被拒绝: " << response.mes() << std::endl;
-                }
-            } catch (const std::exception& e) {
-                std::cout << "发送行动时出错: " << e.what() << std::endl;
-            }
-        }
-
-        if (state.isgameover()) {
-            std::cout << "游戏结束！" << std::endl;
-            break;
-        }
-    }
-}
+static const std::vector<std::string> ERROR_MAP = {"RE", "TLE", "OLE"};
 
 int main() {
-    // 创建Channel
-    std::shared_ptr<Channel> channel = grpc::CreateChannel(
-        "localhost:50051", grpc::InsecureChannelCredentials());
-    std::shared_ptr<GameService::Stub> stub = GameService::NewStub(channel);
+    // 关闭 cout/cin 同步，提高 stdin/stdout 二进制读写性能
+    std::ios::sync_with_stdio(false);
+    std::cin.tie(nullptr);
 
-    // 选择策略
-    auto init_strategy = StrategyFactory::get_aggressive_init_strategy();
-    auto action_strategy = StrategyFactory::get_defensive_action_strategy();
+    // 选择策略（可通过编译宏或命令行参数切换）
+    auto action_strategy = StrategyFactory::get_aggressive_action_strategy();
 
-    // 初始化游戏
-    server::_InitRequest init_request;
-    init_request.set_message("Hello, Server!");
-    ClientContext init_context;
-    server::_InitResponse init_response;
-    
-    Status status = stub->SendInit(&init_context, init_request, &init_response);
-    if (!status.ok()) {
-        std::cout << "初始化失败" << std::endl;
-        return 1;
+    auto env = std::make_shared<Env>();
+    int player_id = -1;  // Saiblo 0-based，首次从消息中推断
+
+    std::cerr << "[INFO] 等待初始化消息..." << std::endl;
+
+    while (true) {
+        nlohmann::json msg;
+        try {
+            msg = SaibloClient::read_message();
+        } catch (const std::exception& e) {
+            std::cerr << "[INFO] 连接关闭: " << e.what() << std::endl;
+            break;
+        }
+
+        int state = msg.value("state", 0);
+
+        // --- 游戏结束 ---
+        if (state == -1) {
+            std::cerr << "[INFO] 游戏结束" << std::endl;
+            break;
+        }
+
+        // --- AI 异常消息（player == -1） ---
+        if (msg.value("player", 0) == -1) {
+            try {
+                auto err = nlohmann::json::parse(msg.value("content", std::string("{}")));
+                int etype = err.value("error", 0);
+                std::cerr << "[ERROR] AI 异常: "
+                          << (etype < static_cast<int>(ERROR_MAP.size()) ? ERROR_MAP[etype] : "UNKNOWN")
+                          << std::endl;
+            } catch (...) {}
+            break;
+        }
+
+        // --- 正常回合消息 ---
+        auto players     = msg.value("player",  std::vector<int>{});
+        auto content_list = msg.value("content", std::vector<std::string>{});
+        auto listen      = msg.value("listen",  std::vector<int>{});
+
+        // 首次推断自己的 player_id
+        if (player_id == -1 && !players.empty()) {
+            player_id = players[0];
+            std::cerr << "[INFO] 我的 player_id = " << player_id << std::endl;
+        }
+
+        // 只在轮到我们时行动
+        bool my_turn = false;
+        for (int pid : listen) { if (pid == player_id) { my_turn = true; break; } }
+        if (!my_turn) continue;
+
+        // 取对应状态 JSON
+        int idx = 0;
+        for (int i = 0; i < static_cast<int>(players.size()); ++i) {
+            if (players[i] == player_id) { idx = i; break; }
+        }
+        if (idx >= static_cast<int>(content_list.size())) continue;
+
+        nlohmann::json state_data;
+        try {
+            state_data = nlohmann::json::parse(content_list[idx]);
+        } catch (const std::exception& e) {
+            std::cerr << "[ERROR] 解析状态 JSON 失败: " << e.what() << std::endl;
+            continue;
+        }
+
+        // 更新环境
+        Converter::from_json_game_state(state_data, env);
+
+        if (!env->current_piece) {
+            std::cerr << "[WARN] current_piece 为空，发送空动作" << std::endl;
+            nlohmann::json empty = {
+                {"player", player_id},
+                {"content", nlohmann::json{{"move", false}, {"attack", false}, {"spell", false}}.dump()}
+            };
+            SaibloClient::write_message(empty);
+            continue;
+        }
+
+        // 运行策略
+        ActionSet action;
+        try {
+            action = action_strategy(*env);
+        } catch (const std::exception& e) {
+            std::cerr << "[ERROR] 策略执行失败: " << e.what() << std::endl;
+        }
+
+        // 序列化并发送（C# 侧 player_id 是 1-based）
+        int csharp_pid = player_id + 1;
+        nlohmann::json action_json = Converter::to_json_action(action, csharp_pid);
+
+        nlohmann::json response = {
+            {"player",  player_id},
+            {"content", action_json.dump()}
+        };
+        SaibloClient::write_message(response);
+        std::cerr << "[INFO] 回合 " << state_data.value("currentRound", 0)
+                  << ": 已发送行动" << std::endl;
     }
 
-    std::cout << "初始化响应: " << init_response.id() << std::endl;
-    player->id = init_response.id();
-
-    // 获取初始化游戏状态并应用初始化策略
-    auto init_policy = Converter::to_proto_piece_args(init_strategy(init_response));
-
-    // 将init_policy转换为protobuf消息并发送
-    server::_InitPolicyRequest init_policy_request;
-    init_policy_request.set_playerid(player->id);
-    *init_policy_request.mutable_pieceargs() = {init_policy.begin(), init_policy.end()};
-
-    ClientContext init_policy_context;
-    server::_InitPolicyResponse init_policy_response;
-    status = stub->SendInitPolicy(&init_policy_context, init_policy_request, &init_policy_response);
-
-    std::cout << "初始化策略已发送" << std::endl;
-
-    // 启动游戏状态订阅
-    std::cout << "开始订阅游戏状态..." << std::endl;
-    std::thread subscription_thread(subscribe_game_state, stub, player->id, action_strategy);
-    subscription_thread.detach();
-    std::cout << "已完成订阅" << std::endl;
-
-    // 保持主线程运行
-    std::string input;
-    std::getline(std::cin, input);
-
     return 0;
-} 
+}
