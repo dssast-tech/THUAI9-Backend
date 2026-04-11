@@ -1021,42 +1021,19 @@ class Environment:
                 print("[Attack] Failed: Out of range.")
             return
 
-        attack_roll = self.roll_dice(1, 20)
-        is_hit = False
-        is_critical = False
+        # 攻击必定命中
+        if self.if_log:
+            print("[Attack] Auto hit - no roll needed.")
 
-        if attack_roll == 1:
-            if self.if_log:
-                print("[Attack] Natural 1 - Critical Miss.")
-            is_hit = False
-        elif attack_roll == 20:
-            if self.if_log:
-                print("[Attack] Natural 20 - Critical Hit!")
-            is_hit = True
-            is_critical = True
-        else:
-            attack_throw = attack_roll + self.step_modified_func(attack_context.attacker.strength) + \
-                          self.calculate_advantage_value(attack_context.attacker, attack_context.target)
-            
-            defense_value = attack_context.target.physical_resist + \
-                          self.step_modified_func(attack_context.target.dexterity)
-            
-            is_hit = attack_throw > defense_value
-            if self.if_log:
-                print(f"[Attack] Roll: {attack_roll} → Total Attack: {attack_throw}, Defense: {defense_value}, Hit: {is_hit}")
+        damage = attack_context.attacker.physical_damage + attack_context.attacker.strength
 
-        if is_hit:
-            damage = attack_context.attacker.physical_damage + attack_context.attacker.strength
-            if is_critical:
-                damage *= 2
-            
-            if self.if_log:
-                print(f"[Attack] Dealing {damage} {'(Critical) ' if is_critical else ''}damage to target.")
-            attack_context.target.receive_damage(damage, "physical")
-            attack_context.damage_dealt = damage
-            
-            if attack_context.target.health <= 0:
-                self.handle_death_check(attack_context.target)
+        if self.if_log:
+            print(f"[Attack] Dealing {damage} damage to target.")
+        attack_context.target.receive_damage(damage, "physical")
+        attack_context.damage_dealt = damage
+
+        if attack_context.target.health <= 0:
+            self.handle_death_check(attack_context.target)
 
         attack_context.attacker.get_accessor().change_action_points_by(-1)
 
