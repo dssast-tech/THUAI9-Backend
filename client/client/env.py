@@ -258,11 +258,11 @@ class Player:
         accessor.set_type_to(weapon)
         
         if weapon == 1:
-            accessor.set_physical_damage_to(18)
+            accessor.set_physical_damage_to(8)
             accessor.set_magic_damage_to(0)
             accessor.set_range_to(5)
         elif weapon == 2:
-            accessor.set_physical_damage_to(24)
+            accessor.set_physical_damage_to(10)
             accessor.set_magic_damage_to(0)
             accessor.set_range_to(3)
         elif weapon == 3:
@@ -758,7 +758,7 @@ class Area:
 
     def contains(self, point: Point):
         """检查点是否在区域内"""
-        distance = math.sqrt((point.x - self.x) ** 2 + (point.y - self.y) ** 2)
+        distance = abs(point.x - self.x) + abs(point.y - self.y)
         return distance <= self.radius
 
 
@@ -961,10 +961,7 @@ class Environment:
 
     def is_in_attack_range(self, attacker: Piece, target: Piece):
         """检查是否在攻击范围内"""
-        distance = math.sqrt(
-            (attacker.position.x - target.position.x) ** 2 +
-            (attacker.position.y - target.position.y) ** 2
-        )
+        distance = abs(attacker.position.x - target.position.x) + abs(attacker.position.y - target.position.y)
         return distance <= attacker.attack_range
 
     def calculate_advantage_value(self, attacker: Piece, target: Piece):
@@ -1076,10 +1073,7 @@ class Environment:
                 continue
                 
             # 计算距离
-            distance = math.sqrt(
-                (caster.position.x - piece.position.x) ** 2 +
-                (caster.position.y - piece.position.y) ** 2
-            )
+            distance = abs(caster.position.x - piece.position.x) + abs(caster.position.y - piece.position.y)
             
             # 检查是否在施法范围内
             if distance > spell.range:
@@ -1117,10 +1111,7 @@ class Environment:
             
         # 检查施法距离
         if spell_context.target is not None:
-            distance = math.sqrt(
-                (spell_context.caster.position.x - spell_context.target.position.x) ** 2 +
-                (spell_context.caster.position.y - spell_context.target.position.y) ** 2
-            )
+            distance = abs(spell_context.caster.position.x - spell_context.target.position.x) + abs(spell_context.caster.position.y - spell_context.target.position.y)
             if distance > spell_context.spell.range:
                 if self.if_log:
                     print("[Spell] Failed: Target out of range.")

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -309,8 +309,8 @@ namespace Server
                         continue;
                     }
                     
-                    if (Math.Sqrt(Math.Pow(_env.current_piece.position.x - x, 2) +
-                                  Math.Pow(_env.current_piece.position.y - y, 2)) > 100.0)
+                    if (Math.Abs(_env.current_piece.position.x - x) +
+                                  Math.Abs(_env.current_piece.position.y - y) > 100.0)
                     {
                         Console.WriteLine("施法范围超出限制，请重新输入。");
                         continue;
@@ -1056,7 +1056,7 @@ namespace Server
         // 辅助方法：计算两点之间的距离
         private static double CalculateDistance(Point p1, Point p2)
         {
-            return Math.Sqrt(Math.Pow(p1.x - p2.x, 2) + Math.Pow(p1.y - p2.y, 2));
+            return Math.Abs(p1.x - p2.x) + Math.Abs(p1.y - p2.y);
         }
     }
     

@@ -15,7 +15,7 @@ class StrategyFactory:
     @staticmethod
     def calculate_distance(p1: Point, p2: Point) -> float:
         """计算两点之间的距离"""
-        return math.sqrt((p1.x - p2.x) ** 2 + (p1.y - p2.y) ** 2)
+        return abs(p1.x - p2.x) + abs(p1.y - p2.y)
 
     @staticmethod
     def get_aggressive_init_strategy() -> Callable[['InitGameMessage'], List[PieceArg]]:

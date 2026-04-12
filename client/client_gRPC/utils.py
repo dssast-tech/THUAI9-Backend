@@ -193,7 +193,7 @@ class Area:
         self.radius = radius
 
     def contains(self, point):
-        distance = np.sqrt((point.x - self.x) ** 2 + (point.y - self.y) ** 2)
+        distance = abs(point.x - self.x) + abs(point.y - self.y)
         return distance <= self.radius
 
 

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -108,7 +108,7 @@ namespace Server
 
         public bool Contains(Point point)
         {
-            double distance = Math.Sqrt(Math.Pow(point.x - x, 2) + Math.Pow(point.y - y, 2));
+            double distance = Math.Abs(point.x - x) + Math.Abs(point.y - y);
             return distance <= radius;
         }
     }

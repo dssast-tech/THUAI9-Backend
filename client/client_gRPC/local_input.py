@@ -288,8 +288,7 @@ class ConsoleInputMethod(IInputMethod):
                     x, y = map(int, coords)
                     
                     # 检查施法距离
-                    distance = math.sqrt((env.current_piece.position.x - x) ** 2 +
-                                    (env.current_piece.position.y - y) ** 2)
+                    distance = abs(env.current_piece.position.x - x) + abs(env.current_piece.position.y - y)
                     if distance > spell.range:
                         print(f"施法范围超出限制！(最大范围: {spell.range})")
                         continue

@@ -80,7 +80,7 @@ struct Area {
     int radius = 0;
 
     bool contains(const Point& point) const {
-        double distance = std::sqrt(std::pow(point.x - x, 2) + std::pow(point.y - y, 2));
+        double distance = std::abs(point.x - x) + std::abs(point.y - y);
         return distance <= radius;
     }
 };

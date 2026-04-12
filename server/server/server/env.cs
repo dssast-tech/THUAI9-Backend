@@ -182,10 +182,7 @@ namespace Server
         // 辅助函数
         private bool IsInAttackRange(Piece attacker, Piece target)
         {
-            double distance = Math.Sqrt(
-                Math.Pow(attacker.position.x - target.position.x, 2) +
-                Math.Pow(attacker.position.y - target.position.y, 2)
-            );
+            double distance = Math.Abs(attacker.position.x - target.position.x) + Math.Abs(attacker.position.y - target.position.y);
 
             return distance <= attacker.attack_range;
         }
@@ -342,10 +339,7 @@ namespace Server
         // 辅助函数
         private bool IsInSpellRange(Piece target, Area targetArea)
         {
-            double distance = Math.Sqrt(
-                Math.Pow(target.position.x - targetArea.x, 2) +
-                Math.Pow(target.position.y - targetArea.y, 2)
-            );
+            double distance = Math.Abs(target.position.x - targetArea.x) + Math.Abs(target.position.y - targetArea.y);
             return distance <= targetArea.radius;
         }
 
