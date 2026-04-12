@@ -23,21 +23,21 @@ namespace Server
             // 设置武器
             // weapon: 1~长剑 2~短剑 3~弓 4~法杖
             /* 武器:         物伤值      法伤值     范围
-                    1~长剑       18           0         5
-                    2~短剑       24           0         3
+                    1~长剑        8           0         5
+                    2~短剑       10           0         3
                     3~弓         16           0         9
-                    4~法杖        0           22        12
+                    4~法杖        0           18        12
                 */
             var accessor=node.GetAccessor();
             accessor.SetTypeTo(weapon);
             switch(weapon){
                 case 1:
-                    accessor.SetPhysicalDamageTo(18);
+                    accessor.SetPhysicalDamageTo(8);
                     accessor.SetMagicDamageTo(0);
                     accessor.SetRangeTo(5);
                     break;
                 case 2:
-                    accessor.SetPhysicalDamageTo(24);
+                    accessor.SetPhysicalDamageTo(10);
                     accessor.SetMagicDamageTo(0);
                     accessor.SetRangeTo(3);
                     break;
@@ -48,7 +48,7 @@ namespace Server
                     break;
                 case 4:
                     accessor.SetPhysicalDamageTo(0);
-                    accessor.SetMagicDamageTo(22);
+                    accessor.SetMagicDamageTo(18);
                     accessor.SetRangeTo(12);
                     break;
                 default:
@@ -61,24 +61,24 @@ namespace Server
         {
             // 设置装备
             /* 防具:         物豁免值      法豁免值   行动力影响movement
-                1~轻甲         8            10        +3
-                2~中甲         15           13        0
-                3~重甲         23           17        -3
+                1~轻甲         8             0        +3
+                2~中甲         15            0        0
+                3~重甲         23            0        -3
             */
             var accessor=node.GetAccessor();
             switch(armor){
                 case 1:
                     accessor.SetPhysicalResistTo(8);
-                    accessor.SetMagicResistTo(10);
+                    accessor.SetMagicResistTo(0);
                     accessor.SetMaxMovementBy(3);
                     break;
                 case 2:
                     accessor.SetPhysicalResistTo(15);
-                    accessor.SetMagicResistTo(13);
+                    accessor.SetMagicResistTo(0);
                     break;
                 case 3:
                     accessor.SetPhysicalResistTo(23);
-                    accessor.SetMagicResistTo(17);
+                    accessor.SetMagicResistTo(0);
                     accessor.SetMaxMovementBy(-3);
                     break;
                 default:
@@ -300,14 +300,14 @@ namespace Server
 
                     Console.WriteLine("武器防具表展示如下：");
                     Console.WriteLine("武器:         物伤值      法伤值     范围");
-                    Console.WriteLine("1~长剑       18           0         5");
-                    Console.WriteLine("2~短剑       24           0         3");
+                    Console.WriteLine("1~长剑        8           0         5");
+                    Console.WriteLine("2~短剑       10           0         3");
                     Console.WriteLine("3~弓         16           0         9");
-                    Console.WriteLine("4~法杖        0           22        12");
+                    Console.WriteLine("4~法杖        0           18        12");
                     Console.WriteLine("防具:         物豁免值      法豁免值   行动力影响");
-                    Console.WriteLine("1~轻甲         8            10        +3");
-                    Console.WriteLine("2~中甲         15           13        0");
-                    Console.WriteLine("3~重甲         23           17        -3");
+                    Console.WriteLine("1~轻甲         8             0        +3");
+                    Console.WriteLine("2~中甲         15            0        0");
+                    Console.WriteLine("3~重甲         23            0        -3");
 
                     inputcorrect = false;
                     do

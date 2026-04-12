@@ -84,14 +84,14 @@ namespace Server
                 // 显示武器防具表
                 Console.WriteLine("武器防具表展示如下：");
                 Console.WriteLine("武器:         物伤值      法伤值     范围");
-                Console.WriteLine("1~长剑       18           0         5");
-                Console.WriteLine("2~短剑       24           0         3");
+                Console.WriteLine("1~长剑        8           0         5");
+                Console.WriteLine("2~短剑       10           0         3");
                 Console.WriteLine("3~弓         16           0         9");
-                Console.WriteLine("4~法杖        0           22        12");
+                Console.WriteLine("4~法杖        0           18        12");
                 Console.WriteLine("防具:         物豁免值      法豁免值   行动力影响");
-                Console.WriteLine("1~轻甲         8            10        +3");
-                Console.WriteLine("2~中甲         15           13        0");
-                Console.WriteLine("3~重甲         23           17        -3");
+                Console.WriteLine("1~轻甲         8             0        +3");
+                Console.WriteLine("2~中甲         15            0        0");
+                Console.WriteLine("3~重甲         23            0        -3");
                 
                 // 装备选择
                 inputCorrect = false;

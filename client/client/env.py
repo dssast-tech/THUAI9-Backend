@@ -271,7 +271,7 @@ class Player:
             accessor.set_range_to(9)
         elif weapon == 4:
             accessor.set_physical_damage_to(0)
-            accessor.set_magic_damage_to(22)
+            accessor.set_magic_damage_to(18)
             accessor.set_range_to(12)
         else:
             raise ValueError("Wrong weapon type!")
@@ -282,14 +282,14 @@ class Player:
         
         if armor == 1:
             accessor.set_physical_resist_to(8)
-            accessor.set_magic_resist_to(10)
+            accessor.set_magic_resist_to(0)
             accessor.set_max_movement_by(3)
         elif armor == 2:
             accessor.set_physical_resist_to(15)
-            accessor.set_magic_resist_to(13)
+            accessor.set_magic_resist_to(0)
         elif armor == 3:
             accessor.set_physical_resist_to(23)
-            accessor.set_magic_resist_to(17)
+            accessor.set_magic_resist_to(0)
             accessor.set_max_movement_by(-3)
         else:
             raise ValueError("Wrong armor type!")
@@ -372,14 +372,14 @@ class Player:
             # 显示武器防具表
             print("\n武器防具表展示如下：")
             print("武器:         物伤值      法伤值     范围")
-            print("1~长剑       18           0         5")
-            print("2~短剑       24           0         3")
+            print("1~长剑        8           0         5")
+            print("2~短剑       10           0         3")
             print("3~弓         16           0         9")
-            print("4~法杖        0           22        12")
+            print("4~法杖        0           18        12")
             print("防具:         物豁免值      法豁免值   行动力影响")
-            print("1~轻甲         8            10        +3")
-            print("2~中甲         15           13        0")
-            print("3~重甲         23           17        -3")
+            print("1~轻甲         8             0        +3")
+            print("2~中甲         15            0        0")
+            print("3~重甲         23            0        -3")
 
             # 装备选择
             while True:
