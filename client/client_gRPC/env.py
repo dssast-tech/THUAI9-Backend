@@ -258,11 +258,11 @@ class Player:
         accessor.set_type_to(weapon)
         
         if weapon == 1:
-            accessor.set_physical_damage_to(18)
+            accessor.set_physical_damage_to(8)
             accessor.set_magic_damage_to(0)
             accessor.set_range_to(5)
         elif weapon == 2:
-            accessor.set_physical_damage_to(24)
+            accessor.set_physical_damage_to(10)
             accessor.set_magic_damage_to(0)
             accessor.set_range_to(3)
         elif weapon == 3:
@@ -271,7 +271,7 @@ class Player:
             accessor.set_range_to(9)
         elif weapon == 4:
             accessor.set_physical_damage_to(0)
-            accessor.set_magic_damage_to(22)
+            accessor.set_magic_damage_to(18)
             accessor.set_range_to(12)
         else:
             raise ValueError("Wrong weapon type!")
@@ -282,14 +282,14 @@ class Player:
         
         if armor == 1:
             accessor.set_physical_resist_to(8)
-            accessor.set_magic_resist_to(10)
+            accessor.set_magic_resist_to(0)
             accessor.set_max_movement_by(3)
         elif armor == 2:
             accessor.set_physical_resist_to(15)
-            accessor.set_magic_resist_to(13)
+            accessor.set_magic_resist_to(0)
         elif armor == 3:
             accessor.set_physical_resist_to(23)
-            accessor.set_magic_resist_to(17)
+            accessor.set_magic_resist_to(0)
             accessor.set_max_movement_by(-3)
         else:
             raise ValueError("Wrong armor type!")
@@ -372,14 +372,14 @@ class Player:
             # 显示武器防具表
             print("\n武器防具表展示如下：")
             print("武器:         物伤值      法伤值     范围")
-            print("1~长剑       18           0         5")
-            print("2~短剑       24           0         3")
+            print("1~长剑        8           0         5")
+            print("2~短剑       10           0         3")
             print("3~弓         16           0         9")
-            print("4~法杖        0           22        12")
+            print("4~法杖        0           18        12")
             print("防具:         物豁免值      法豁免值   行动力影响")
-            print("1~轻甲         8            10        +3")
-            print("2~中甲         15           13        0")
-            print("3~重甲         23           17        -3")
+            print("1~轻甲         8             0        +3")
+            print("2~中甲         15            0        0")
+            print("3~重甲         23            0        -3")
 
             # 装备选择
             while True:
@@ -1021,42 +1021,19 @@ class Environment:
                 print("[Attack] Failed: Out of range.")
             return
 
-        attack_roll = self.roll_dice(1, 20)
-        is_hit = False
-        is_critical = False
+        # 攻击必定命中
+        if self.if_log:
+            print("[Attack] Auto hit - no roll needed.")
 
-        if attack_roll == 1:
-            if self.if_log:
-                print("[Attack] Natural 1 - Critical Miss.")
-            is_hit = False
-        elif attack_roll == 20:
-            if self.if_log:
-                print("[Attack] Natural 20 - Critical Hit!")
-            is_hit = True
-            is_critical = True
-        else:
-            attack_throw = attack_roll + self.step_modified_func(attack_context.attacker.strength) + \
-                          self.calculate_advantage_value(attack_context.attacker, attack_context.target)
-            
-            defense_value = attack_context.target.physical_resist + \
-                          self.step_modified_func(attack_context.target.dexterity)
-            
-            is_hit = attack_throw > defense_value
-            if self.if_log:
-                print(f"[Attack] Roll: {attack_roll} → Total Attack: {attack_throw}, Defense: {defense_value}, Hit: {is_hit}")
+        damage = attack_context.attacker.physical_damage + attack_context.attacker.strength
 
-        if is_hit:
-            damage = attack_context.attacker.physical_damage + attack_context.attacker.strength
-            if is_critical:
-                damage *= 2
-            
-            if self.if_log:
-                print(f"[Attack] Dealing {damage} {'(Critical) ' if is_critical else ''}damage to target.")
-            attack_context.target.receive_damage(damage, "physical")
-            attack_context.damage_dealt = damage
-            
-            if attack_context.target.health <= 0:
-                self.handle_death_check(attack_context.target)
+        if self.if_log:
+            print(f"[Attack] Dealing {damage} damage to target.")
+        attack_context.target.receive_damage(damage, "physical")
+        attack_context.damage_dealt = damage
+
+        if attack_context.target.health <= 0:
+            self.handle_death_check(attack_context.target)
 
         attack_context.attacker.get_accessor().change_action_points_by(-1)
 

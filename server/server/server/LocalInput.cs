@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -84,14 +84,14 @@ namespace Server
                 // 显示武器防具表
                 Console.WriteLine("武器防具表展示如下：");
                 Console.WriteLine("武器:         物伤值      法伤值     范围");
-                Console.WriteLine("1~长剑       18           0         5");
-                Console.WriteLine("2~短剑       24           0         3");
+                Console.WriteLine("1~长剑        8           0         5");
+                Console.WriteLine("2~短剑       10           0         3");
                 Console.WriteLine("3~弓         16           0         9");
-                Console.WriteLine("4~法杖        0           22        12");
+                Console.WriteLine("4~法杖        0           18        12");
                 Console.WriteLine("防具:         物豁免值      法豁免值   行动力影响");
-                Console.WriteLine("1~轻甲         8            10        +3");
-                Console.WriteLine("2~中甲         15           13        0");
-                Console.WriteLine("3~重甲         23           17        -3");
+                Console.WriteLine("1~轻甲         8             0        +3");
+                Console.WriteLine("2~中甲         15            0        0");
+                Console.WriteLine("3~重甲         23            0        -3");
                 
                 // 装备选择
                 inputCorrect = false;
@@ -309,8 +309,8 @@ namespace Server
                         continue;
                     }
                     
-                    if (Math.Sqrt(Math.Pow(_env.current_piece.position.x - x, 2) +
-                                  Math.Pow(_env.current_piece.position.y - y, 2)) > 100.0)
+                    if (Math.Abs(_env.current_piece.position.x - x) +
+                                  Math.Abs(_env.current_piece.position.y - y) > 100.0)
                     {
                         Console.WriteLine("施法范围超出限制，请重新输入。");
                         continue;
@@ -1056,7 +1056,7 @@ namespace Server
         // 辅助方法：计算两点之间的距离
         private static double CalculateDistance(Point p1, Point p2)
         {
-            return Math.Sqrt(Math.Pow(p1.x - p2.x, 2) + Math.Pow(p1.y - p2.y, 2));
+            return Math.Abs(p1.x - p2.x) + Math.Abs(p1.y - p2.y);
         }
     }
     

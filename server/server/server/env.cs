@@ -153,46 +153,14 @@ namespace Server
                 return;
             }
 
-            // 3. 掷骰子命中判定
-            int attackRoll = RollDice(1, 20);
-            bool isHit = false;
-            bool isCritical = false;
+            // 3. 攻击必定命中
+            Console.WriteLine("[Attack] Auto hit - no roll needed.");
 
-
-
-            if (attackRoll == 1)
-            {
-                Console.WriteLine("[Attack] Natural 1 - Critical Miss.");
-                isHit = false;
-            }
-            else if (attackRoll == 20) // 大成功
-            {
-                Console.WriteLine("[Attack] Natural 20 - Critical Hit!");
-                isHit = true;
-                isCritical = true;
-            }
-            else // 常规攻击计算
-            {
-                int attackThrow = attackRoll +
-                                Step_Modified_Func(context.attacker.strength) +
-                                CalculateAdvantageValue(context.attacker, context.target);
-
-                int defenseValue = context.target.physical_resist +
-                                Step_Modified_Func(context.target.dexterity);
-
-                isHit = attackThrow > defenseValue;
-
-                Console.WriteLine($"[Attack] Roll: {attackRoll} → Total Attack: {attackThrow}, Defense: {defenseValue}, Hit: {isHit}");
-            }
-
-            // 4. 命中后伤害处理
-            if (isHit)
+            // 4. 伤害处理
             {
                 int damage = context.attacker.physical_damage + context.attacker.strength;
-                if (isCritical)
-                    damage *= 2;
 
-                Console.WriteLine($"[Attack] Dealing {damage} {(isCritical ? "(Critical) " : "")}damage to target.");
+                Console.WriteLine($"[Attack] Dealing {damage} damage to target.");
 
                 context.target.receiveDamage(damage, "physical");
                 context.damageDealt = damage; // 记录实际造成的伤害
@@ -200,7 +168,6 @@ namespace Server
 
                 if (context.target.health <= 0)
                 {
-                    // Console.Write($"debug");// debug
                     HandleDeathCheck(context.target); // 执行死亡检定
                 }
             }
@@ -215,10 +182,7 @@ namespace Server
         // 辅助函数
         private bool IsInAttackRange(Piece attacker, Piece target)
         {
-            double distance = Math.Sqrt(
-                Math.Pow(attacker.position.x - target.position.x, 2) +
-                Math.Pow(attacker.position.y - target.position.y, 2)
-            );
+            double distance = Math.Abs(attacker.position.x - target.position.x) + Math.Abs(attacker.position.y - target.position.y);
 
             return distance <= attacker.attack_range;
         }
@@ -375,10 +339,7 @@ namespace Server
         // 辅助函数
         private bool IsInSpellRange(Piece target, Area targetArea)
         {
-            double distance = Math.Sqrt(
-                Math.Pow(target.position.x - targetArea.x, 2) +
-                Math.Pow(target.position.y - targetArea.y, 2)
-            );
+            double distance = Math.Abs(target.position.x - targetArea.x) + Math.Abs(target.position.y - targetArea.y);
             return distance <= targetArea.radius;
         }
 
