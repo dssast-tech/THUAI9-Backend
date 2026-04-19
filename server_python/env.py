@@ -1499,9 +1499,9 @@ class Environment:
         self.last_round_dead_pieces = np.array(self.new_dead_this_round, dtype=object)
         self.new_dead_this_round = np.array([], dtype=object)
 
-    def run(self, board_file: str = "./BoardCase/case1.txt"):
+    def run(self):
         """运行游戏主循环"""
-        self.initialize(board_file)
+        self.initialize()
 
         if self.if_log:
             print("游戏初始化完成，开始游戏！")

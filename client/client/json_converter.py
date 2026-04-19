@@ -1,13 +1,38 @@
 """
 将 GameEngine 返回的 JSON 状态反序列化为 Environment 对象
-字段名以 GameEngine.cs 中的 DTO 为准
+字段名以 GameEngine.cs / server_python game_engine DTO 为准
 """
+from typing import Any, Optional
+
 import numpy as np
+
 from env import (
-    Environment, Board, Cell, Piece, Player,
-    SpellContext, Area
+    Environment,
+    Board,
+    Cell,
+    Piece,
+    Player,
+    SpellContext,
+    Area,
 )
-from utils import Point, SpellFactory
+from utils import Point, SpellFactory, TargetType
+
+
+def _target_type_from_index(idx: int) -> TargetType:
+    members = list(TargetType)
+    if 0 <= int(idx) < len(members):
+        return members[int(idx)]
+    return TargetType.SINGLE
+
+
+def _piece_by_id(queue: Any, piece_id: Optional[int]) -> Optional[Piece]:
+    if piece_id is None or int(piece_id) < 0:
+        return None
+    pid = int(piece_id)
+    for p in queue:
+        if int(p.id) == pid:
+            return p
+    return None
 
 
 def env_from_state_json(state: dict, env: Environment) -> None:
@@ -76,7 +101,13 @@ def env_from_state_json(state: dict, env: Environment) -> None:
         piece.is_dying = p.get("is_dying", False)
         piece.death_round = p.get("deathRound", -1)
         piece.queue_index = p.get("queue_index", 0)
-        # 根据 attack_range 推断武器类型（法杖 range=12, 弓 range=9, 长剑 range=5, 短剑 range=3）
+        sl = p.get("spell_list")
+        if isinstance(sl, list):
+            piece.spell_list = [int(x) for x in sl]
+        else:
+            piece.spell_list = []
+        piece.weapon_type = int(p.get("weapon_type", p.get("weaponType", 0)))
+        # 根据 attack_range 推断职业（法杖 range=12, 弓 range=9, 长剑 range=5, 短剑 range=3）
         atk_range = piece.attack_range
         if piece.magic_damage > 0:
             piece.type = "Mage"
@@ -108,17 +139,23 @@ def env_from_state_json(state: dict, env: Environment) -> None:
         [p for p in env.action_queue if p.team == 2], dtype=object
     )
 
-    # 延迟法术
+    # 延迟法术（需在 action_queue 就绪后解析 caster/target）
     delayed = []
     for ds in state.get("delayedSpells", []):
         sc = SpellContext()
-        sc.spell_lifespan = ds.get("spellLifespan", 0)
-        spell_id = ds.get("spellID", 0)
+        sc.spell_lifespan = int(ds.get("spellLifespan", 0))
+        spell_id = int(ds.get("spellID", 0))
         sc.spell = SpellFactory.get_spell_by_id(spell_id)
+        sc.target_type = _target_type_from_index(int(ds.get("targetType", 0)))
+        sc.caster = _piece_by_id(env.action_queue, ds.get("caster"))
+        tid = ds.get("target", -1)
+        sc.target = _piece_by_id(env.action_queue, tid)
         area = ds.get("targetArea")
         if area:
             sc.target_area = Area(
-                area.get("x", 0), area.get("y", 0), area.get("radius", 0)
+                int(area.get("x", 0)),
+                int(area.get("y", 0)),
+                int(area.get("radius", 0)),
             )
         delayed.append(sc)
     env.delayed_spells = np.array(delayed, dtype=object)
@@ -146,9 +183,15 @@ def action_to_dict(action, player_id: int) -> dict:
 
     if d["spell"] and getattr(action, "spell_context", None):
         ctx = action.spell_context
+        tt = getattr(ctx, "target_type", None)
+        members = list(TargetType)
+        if tt in members:
+            tt_idx = members.index(tt)
+        else:
+            tt_idx = 0
         sc = {
             "spellID": ctx.spell.id if ctx.spell else 0,
-            "targetType": 0,  # Single=0 默认
+            "targetType": tt_idx,
             "target": ctx.target.id if ctx.target else -1,
             "spellLifespan": getattr(ctx, "spell_lifespan", 0),
         }

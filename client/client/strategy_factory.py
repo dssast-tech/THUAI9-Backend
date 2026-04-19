@@ -3,6 +3,13 @@ import math
 from dataclasses import dataclass
 from env import *
 from utils import *
+from strategy_utils import (
+    fork_environment,
+    get_attackable_targets,
+    get_legal_moves,
+    get_state_score,
+    step_with_action,
+)
 
 # 控制 MCTS 是否输出调试日志，设为 False 可关闭所有 [MCTS] 输出
 MCTS_VERBOSE: bool = False
@@ -153,7 +160,7 @@ class StrategyFactory:
             
             # 移动决策 - 向目标敌人移动
             # 获取所有合法移动位置
-            legal_moves = env.get_legal_moves()
+            legal_moves = get_legal_moves(env)
             if legal_moves:
                 # 找到最接近敌人的合法移动位置
                 best_move = None
@@ -219,7 +226,7 @@ class StrategyFactory:
             
             # 移动决策 - 保持在攻击范围内，但不要太近
             # 获取所有合法移动位置
-            legal_moves = env.get_legal_moves()
+            legal_moves = get_legal_moves(env)
             if legal_moves:
                 # 理想距离是攻击范围的70%
                 ideal_distance = current_piece.attack_range * 0.7
@@ -305,7 +312,7 @@ class StrategyFactory:
         """
         def alpha_beta(env: Environment, depth: int, alpha: float, beta: float, maximizing: bool) -> Tuple[float, Optional[ActionSet]]:
             if depth == 0 or env.is_game_over:
-                return env.get_state_score(), None
+                return get_state_score(env), None
                 
             current_piece = env.current_piece
             if maximizing:
@@ -313,8 +320,8 @@ class StrategyFactory:
                 best_action = None
                 
                 # 获取所有可能的行动
-                legal_moves = env.get_legal_moves()
-                attackable_targets = env.get_attackable_targets()
+                legal_moves = get_legal_moves(env)
+                attackable_targets = get_attackable_targets(env)
                 
                 # 获取当前棋子可用的法术
                 spells = env.get_available_spells(current_piece)
@@ -336,7 +343,7 @@ class StrategyFactory:
                                 continue
                                 
                             action = ActionSet()
-                            next_env = env.fork()
+                            next_env = fork_environment(env)
                             remaining_points = current_piece.action_points
                             
                             # 设置移动
@@ -395,8 +402,8 @@ class StrategyFactory:
                 best_action = None
                 
                 # 获取所有可能的行动
-                legal_moves = env.get_legal_moves()
-                attackable_targets = env.get_attackable_targets()
+                legal_moves = get_legal_moves(env)
+                attackable_targets = get_attackable_targets(env)
                 
                 # 创建基础法术列表
                 spells = []
@@ -425,7 +432,7 @@ class StrategyFactory:
                                 continue
                                 
                             action = ActionSet()
-                            next_env = env.fork()
+                            next_env = fork_environment(env)
                             remaining_points = current_piece.action_points
                             
                             # 设置移动
@@ -536,8 +543,8 @@ class StrategyFactory:
             def expand(self):
                 """扩展当前节点"""
                 current_piece = self.env.current_piece
-                legal_moves = self.env.get_legal_moves()
-                attackable_targets = self.env.get_attackable_targets()
+                legal_moves = get_legal_moves(self.env)
+                attackable_targets = get_attackable_targets(self.env)
                 
                 # 获取当前棋子可用的法术
                 spells = self.env.get_available_spells(current_piece)
@@ -568,7 +575,7 @@ class StrategyFactory:
                                 continue
                                 
                             action = ActionSet()
-                            next_env = self.env.fork()
+                            next_env = fork_environment(self.env)
                             remaining_points = current_piece.action_points
                             has_action = False  # 标记是否有任何动作
                             
@@ -649,7 +656,7 @@ class StrategyFactory:
                                 
                             # 创建子节点并执行完整的步进
                             if MCTS_VERBOSE: print(f"[MCTS] 尝试动作: {action}")
-                            next_env.step_with_action(action)
+                            step_with_action(next_env, action)
                             child = MCTSNode(next_env, self, action)
                             self.children.append(child)
                             if MCTS_VERBOSE: print(f"[MCTS] 成功添加子节点，当前共有 {len(self.children)} 个子节点")
@@ -674,14 +681,14 @@ class StrategyFactory:
                     float: 1.0 表示当前行动方胜利，-1.0 表示对手胜利，
                           如果达到最大步数，则根据双方棋子血量总和判断胜负
                 """
-                sim_env = self.env.fork()
+                sim_env = fork_environment(self.env)
                 max_steps = 50  # 最大模拟步数
                 initial_team = sim_env.current_piece.team  # 记录当前行动方
                 
                 while not sim_env.is_game_over and max_steps > 0:
                     # 随机选择行动
-                    legal_moves = sim_env.get_legal_moves()
-                    attackable_targets = sim_env.get_attackable_targets()
+                    legal_moves = get_legal_moves(sim_env)
+                    attackable_targets = get_attackable_targets(sim_env)
                     
                     action = ActionSet()
                     
@@ -704,7 +711,7 @@ class StrategyFactory:
                     action.spell = False
                     
                     # 执行模拟动作
-                    sim_env.step_with_action(action)
+                    step_with_action(sim_env, action)
                     max_steps -= 1
                 
                 # 如果游戏已经结束，直接根据胜负返回结果
@@ -770,8 +777,8 @@ class StrategyFactory:
                 if MCTS_VERBOSE:
                     print("\n[MCTS] 警告: 没有生成任何子节点!")
                     print(f"[MCTS] 当前棋子: ID={env.current_piece.id if env.current_piece else None}")
-                    print(f"[MCTS] 可移动位置数量: {len(env.get_legal_moves())}")
-                    print(f"[MCTS] 可攻击目标数量: {len(env.get_attackable_targets())}")
+                    print(f"[MCTS] 可移动位置数量: {len(get_legal_moves(env))}")
+                    print(f"[MCTS] 可攻击目标数量: {len(get_attackable_targets(env))}")
                     print(f"[MCTS] 可用法术数量: {len(env.get_available_spells())}")
                     print(f"[MCTS] 当前行动点: {env.current_piece.action_points if env.current_piece else 0}")
                     print(f"[MCTS] 当前法术位: {env.current_piece.spell_slots if env.current_piece else 0}")
