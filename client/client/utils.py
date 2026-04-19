@@ -275,7 +275,7 @@ class SpellFactory:
                 effect_type=SpellEffectType.DAMAGE,
                 damage_type=DamageType.PHYSICAL,
                 base_value=30,
-                range_=5,
+                range_=3,
                 area_radius=0,
                 spell_cost=1,
                 base_lifespan=2,
