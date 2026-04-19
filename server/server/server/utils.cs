@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -166,7 +166,7 @@ public static class SpellFactory
                 effectType = SpellEffectType.Damage,
                 damageType = DamageType.Fire,
                 baseValue = 30,
-                range = 2,
+                range = 12,
                 areaRadius = 5,
                 spellCost = 1,
                 baseLifespan = 0,
@@ -182,7 +182,7 @@ public static class SpellFactory
                 effectType = SpellEffectType.Heal,
                 damageType = DamageType.None,
                 baseValue = 30,
-                range = 2,
+                range = 5,
                 areaRadius = 4,
                 spellCost = 1,
                 baseLifespan = 0,
@@ -198,7 +198,7 @@ public static class SpellFactory
                 effectType = SpellEffectType.Damage,
                 damageType = DamageType.Physical,
                 baseValue = 30,
-                range = 1,
+                range = 9,
                 areaRadius = 7,
                 spellCost = 1,
                 baseLifespan = 0,
@@ -214,7 +214,7 @@ public static class SpellFactory
                 effectType = SpellEffectType.Damage,
                 damageType = DamageType.Physical,
                 baseValue = 30,
-                range = 1,
+                range = 3,
                 areaRadius = 0,
                 spellCost = 1,
                 baseLifespan = 2,
