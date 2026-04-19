@@ -1,0 +1,98 @@
+{
+  "mapdata": {
+    "mapWidth": 8,
+    "rows": [
+      {"row": [0, 0, 0, 0, 0, 0, 0, 0]},
+      {"row": [0, 0, 1, 1, 1, 1, 0, 0]},
+      {"row": [0, 1, 1, 2, 2, 1, 1, 0]},
+      {"row": [0, 1, 2, 2, -1, 1, 1, 0]},
+      {"row": [0, 1, 2, -1, -1, 1, 1, 0]},
+      {"row": [0, 1, 1, 1, 1, 2, 1, 0]},
+      {"row": [0, 0, 1, 1, 1, 1, 0, 0]},
+      {"row": [0, 0, 0, 0, 0, 0, 0, 0]}
+    ]
+  },
+  "playerData": {
+    "player1": "Red",
+    "player2": "Blue"
+  },
+  "soldiersData": [
+    {
+      "ID": 10,
+      "soldierType": "Archer",
+      "camp": "Red",
+      "position": {"x": 1, "y": 1, "z": 2},
+      "stats": {"health": 40, "strength": 5, "intelligence": 10}
+    },
+    {
+      "ID": 20,
+      "soldierType": "Archer",
+      "camp": "Blue",
+      "position": {"x": 6, "y": 6, "z": 12},
+      "stats": {"health": 40, "strength": 5, "intelligence": 10}
+    }
+  ],
+  "gameRounds": [
+    {
+      "roundNumber": 1,
+      "actions": [
+        {
+          "actionType": "Movement",
+          "soldierId": 10,
+          "path": [
+            {"x": 2, "y": 1, "z": 3},
+            {"x": 3, "y": 2, "z": 5}
+          ]
+        }
+      ]
+    },
+    {
+      "roundNumber": 2,
+      "actions": [
+        {
+          "actionType": "Movement",
+          "soldierId": 20,
+          "path": [
+            {"x": 5, "y": 5, "z": 10},
+            {"x": 5, "y": 4, "z": 9}
+          ]
+        }
+      ]
+    },
+    {
+      "roundNumber": 3,
+      "actions": [
+        {
+          "actionType": "Attack",
+          "soldierId": 10,
+          "path": []
+        }
+      ]
+    },
+    {
+      "roundNumber": 4,
+      "actions": [
+        {
+          "actionType": "Attack",
+          "soldierId": 20,
+          "path": []
+        }
+      ]
+    },
+    {
+      "roundNumber": 5,
+      "actions": [
+        {
+          "actionType": "Attack",
+          "soldierId": 10,
+          "path": []
+        },
+        {
+          "actionType": "Death",
+          "soldierId": 20,
+          "path": []
+        }
+      ]
+    }
+  ]
+}

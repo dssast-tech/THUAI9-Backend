@@ -1,0 +1,124 @@
+{
+  "mapdata": {
+    "mapWidth": 10,
+    "rows": [
+      {"row": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]},
+      {"row": [0, 0, 0, 1, 1, 1, 1, 0, 0, 0]},
+      {"row": [0, 0, 1, 1, 2, 1, 1, 1, 0, 0]},
+      {"row": [0, 1, 1, 2, 2, 1, 1, 1, 1, 0]},
+      {"row": [0, 1, 1, 1, -1, -1, 1, 1, 1, 0]},
+      {"row": [0, 1, 1, 1, -1, -1, 1, 1, 1, 0]},
+      {"row": [0, 1, 1, 1, 1, 1, 2, 1, 1, 0]},
+      {"row": [0, 0, 1, 1, 1, 2, 2, 1, 0, 0]},
+      {"row": [0, 0, 0, 1, 1, 1, 1, 0, 0, 0]},
+      {"row": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]}
+    ]
+  },
+  "playerData": {
+    "player1": "Red",
+    "player2": "Blue"
+  },
+  "soldiersData": [
+    {
+      "ID": 101,
+      "soldierType": "Warrior",
+      "camp": "Red",
+      "position": {"x": 1, "y": 4, "z": 5},
+      "stats": {"health": 55, "strength": 9, "intelligence": 6}
+    },
+    {
+      "ID": 202,
+      "soldierType": "Warrior",
+      "camp": "Blue",
+      "position": {"x": 8, "y": 5, "z": 13},
+      "stats": {"health": 55, "strength": 9, "intelligence": 6}
+    }
+  ],
+  "gameRounds": [
+    {
+      "roundNumber": 1,
+      "actions": [
+        {
+          "actionType": "Movement",
+          "soldierId": 101,
+          "path": [
+            {"x": 2, "y": 4, "z": 6},
+            {"x": 3, "y": 4, "z": 7},
+            {"x": 4, "y": 3, "z": 8}
+          ]
+        }
+      ]
+    },
+    {
+      "roundNumber": 2,
+      "actions": [
+        {
+          "actionType": "Movement",
+          "soldierId": 202,
+          "path": [
+            {"x": 7, "y": 5, "z": 12},
+            {"x": 6, "y": 5, "z": 11},
+            {"x": 5, "y": 6, "z": 10}
+          ]
+        }
+      ]
+    },
+    {
+      "roundNumber": 3,
+      "actions": [
+        {
+          "actionType": "Attack",
+          "soldierId": 101,
+          "path": []
+        }
+      ]
+    },
+    {
+      "roundNumber": 4,
+      "actions": [
+        {
+          "actionType": "Attack",
+          "soldierId": 202,
+          "path": []
+        }
+      ]
+    },
+    {
+      "roundNumber": 5,
+      "actions": [
+        {
+          "actionType": "Movement",
+          "soldierId": 101,
+          "path": [
+            {"x": 4, "y": 6, "z": 9}
+          ]
+        }
+      ]
+    },
+    {
+      "roundNumber": 6,
+      "actions": [
+        {
+          "actionType": "Attack",
+          "soldierId": 202,
+          "path": []
+        }
+      ]
+    },
+    {
+      "roundNumber": 7,
+      "actions": [
+        {
+          "actionType": "Attack",
+          "soldierId": 101,
+          "path": []
+        },
+        {
+          "actionType": "Death",
+          "soldierId": 202,
+          "path": []
+        }
+      ]
+    }
+  ]
+}
