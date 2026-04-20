@@ -54,7 +54,7 @@ class SaibloProtocol:
     @staticmethod
     def send_round_config(time: int, length: int):
         config = {"state": 0, "time": time, "length": length}
-        SaibloProtocol.write_message(config)
+        SaibloProtocol.write_message(config, target=-1)
         print(f"[INFO] 发送回合配置: time={time}s, length={length}bytes", file=sys.stderr)
 
     @staticmethod
@@ -65,7 +65,7 @@ class SaibloProtocol:
             "player": players,
             "content": content,
         }
-        SaibloProtocol.write_message(round_info)
+        SaibloProtocol.write_message(round_info, target=-1)
         print(f"[INFO] 发送回合 {state}: listen={listen}", file=sys.stderr)
 
     @staticmethod
@@ -80,7 +80,7 @@ class SaibloProtocol:
             "end_info": json.dumps(end_info),
             "end_state": json.dumps(end_state),
         }
-        SaibloProtocol.write_message(game_end)
+        SaibloProtocol.write_message(game_end, target=-1)
         print(f"[INFO] 发送游戏结束: {end_info}, {end_state}", file=sys.stderr)
 
     @staticmethod

@@ -2,8 +2,6 @@ import numpy as np
 import random
 import math
 import os
-from colorama import init, Fore, Back, Style
-init(autoreset=True)  # 初始化 colorama
 from typing import List, Tuple, Optional, Dict, Callable, Any
 from dataclasses import dataclass
 from utils import *
@@ -1377,33 +1375,28 @@ class Environment:
                 print("无效的法术目标")
 
     def visualize_board(self):
-        """可视化棋盘"""
+        """可视化棋盘（无颜色，不依赖终端着色库）。"""
         print("\n当前棋盘:")
-        # 打印列号
         print("   ", end="")
         for x in range(self.board.width):
             print(f"{x:2d} ", end="")
         print("\n")
-        
+
         for y in range(self.board.height):
-            # 打印行号
             print(f"{y:2d} ", end="")
             for x in range(self.board.width):
                 cell = self.board.grid[x][y]
                 if cell.state == 2:
                     piece = next((p for p in self.action_queue if p.id == cell.piece_id), None)
                     if piece:
-                        if piece.team == 1:
-                            print(f"{Fore.RED}{piece.id:2d} ", end="")
-                        else:
-                            print(f"{Fore.BLUE}{piece.id:2d} ", end="")
+                        print(f"{piece.id:2d} ", end="")
                     else:
                         print("X  ", end="")
                 elif cell.state == -1:
-                    print(f"{Fore.WHITE}{Back.BLACK}## ", end="")
+                    print("## ", end="")
                 else:
-                    print(f"{Fore.GREEN}{cell.state:2d} ", end="")
-            print(Style.RESET_ALL)  # 重置颜色
+                    print(f"{cell.state:2d} ", end="")
+            print()
         print()
 
     def init_board_only(self, board_file: Optional[str] = None) -> None:
