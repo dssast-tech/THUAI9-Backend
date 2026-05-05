@@ -242,7 +242,7 @@ class PieceAccessor:
 
 class Player:
     """玩家类"""
-    PIECE_CNT = 1
+    PIECE_CNT = 3
     
     def __init__(self):
         self.id = 0
@@ -925,11 +925,11 @@ class Environment:
         piece_priority = {}
         
         for piece in self.player1.pieces:
-            priority = self.roll_dice(1, 20) + piece.dexterity
+            priority = self.roll_dice(1, 10) + piece.dexterity
             piece_priority[piece] = priority
             
         for piece in self.player2.pieces:
-            priority = self.roll_dice(1, 20) + piece.dexterity
+            priority = self.roll_dice(1, 10) + piece.dexterity
             piece_priority[piece] = priority
 
         # 按优先级排序
@@ -1078,11 +1078,19 @@ class Environment:
         if self.if_log:
             print("[Attack] Auto hit - no roll needed.")
 
-        damage = attack_context.attacker.physical_damage + attack_context.attacker.strength
+        # 法杖（weapon_type==4）：真实伤害，固定 4，不受任何抗性影响
+        if getattr(attack_context.attacker, "weapon_type", 0) == 4:
+            damage = 4
+            if self.if_log:
+                print(f"[Attack] Staff true damage: {damage}")
+            accessor = attack_context.target.get_accessor()
+            accessor.set_health_to(max(attack_context.target.health - damage, 0))
+        else:
+            damage = attack_context.attacker.physical_damage + attack_context.attacker.strength
+            if self.if_log:
+                print(f"[Attack] Dealing {damage} damage to target.")
+            attack_context.target.receive_damage(damage, "physical")
 
-        if self.if_log:
-            print(f"[Attack] Dealing {damage} damage to target.")
-        attack_context.target.receive_damage(damage, "physical")
         attack_context.damage_dealt = damage
 
         if attack_context.target.health <= 0:
@@ -1433,9 +1441,9 @@ class Environment:
             raise ValueError("玩家2棋子尚未配置")
         piece_priority = {}
         for piece in self.player1.pieces:
-            piece_priority[piece] = self.roll_dice(1, 20) + piece.dexterity
+            piece_priority[piece] = self.roll_dice(1, 10) + piece.dexterity
         for piece in self.player2.pieces:
-            piece_priority[piece] = self.roll_dice(1, 20) + piece.dexterity
+            piece_priority[piece] = self.roll_dice(1, 10) + piece.dexterity
         sorted_pieces = sorted(piece_priority.keys(), key=lambda x: -piece_priority[x])
         self.action_queue = np.array(sorted_pieces, dtype=object)
         for i, piece in enumerate(self.action_queue):

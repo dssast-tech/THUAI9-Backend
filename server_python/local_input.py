@@ -26,7 +26,7 @@ class ConsoleInputMethod(IInputMethod):
     """控制台输入方法"""
     @property
     def name(self) -> str:
-        return "控制台输入"
+        return "console"
         
     def handle_init_input(self, init_message: 'InitGameMessage') -> 'InitPolicyMessage':
         """从控制台获取初始化输入"""
@@ -34,29 +34,29 @@ class ConsoleInputMethod(IInputMethod):
         policy.piece_args = []
         
         for i in range(init_message.piece_cnt):
-            print(f"现在为棋手 {init_message.id} 的第 {i + 1} 个棋子初始化")
+            print(f"Init piece {i + 1}/{init_message.piece_cnt} for player {init_message.id}")
             piece_arg = PieceArg()
             
             # 属性输入
             while True:
-                print("为棋子输入属性分配，格式为：力量 敏捷 智力 总和不超过30")
+                print("Enter stats: strength dexterity intelligence (sum <= 30)")
                 user_input = input()
                 if user_input:
                     try:
                         inputs = user_input.split()
                         nums = [int(x) for x in inputs]
                         if len(nums) != 3:
-                            print("输入的整数不是3个")
+                            print("Expected exactly 3 integers")
                             continue
                         
                         strength, dexterity, intelligence = nums
                         
                         if any(n < 0 for n in nums):
-                            print("输入的整数不能为负数！")
+                            print("Stats must be non-negative")
                             continue
                             
                         if sum(nums) > 30:
-                            print("输入的整数之和多于30！")
+                            print("Sum of stats must not exceed 30")
                             continue
                             
                         piece_arg.strength = strength
@@ -64,46 +64,46 @@ class ConsoleInputMethod(IInputMethod):
                         piece_arg.intelligence = intelligence
                         break
                     except ValueError:
-                        print("输入的不是整数")
+                        print("Invalid input: need integers")
                         continue
 
             # 显示武器防具表
-            print("\n武器防具表展示如下：")
-            print("武器:         物伤值      法伤值     范围")
-            print("1~长剑       18           0         5")
-            print("2~短剑       24           0         3")
-            print("3~弓         16           0         9")
-            print("4~法杖        0           22        12")
-            print("防具:         物豁免值      法豁免值   行动力影响")
-            print("1~轻甲         8            10        +3")
-            print("2~中甲         15           13        0")
-            print("3~重甲         23           17        -3")
+            print("\nWeapons / armor table")
+            print("Weapon     phys   magic   range")
+            print("1 longsword 18     0       5")
+            print("2 shortsword 24     0       3")
+            print("3 bow        16     0       9")
+            print("4 staff       0    22      12")
+            print("Armor    phys_res magic_res AP mod")
+            print("1 light       8       10      +3")
+            print("2 medium     15       13       0")
+            print("3 heavy      23       17      -3")
 
             # 装备选择
             while True:
-                print("\n现在输入武器和防具，格式为：武器类型(1-4) 防具类型(1-3)")
+                print("\nEnter weapon (1-4) and armor (1-3), space-separated")
                 user_input = input()
                 if user_input:
                     try:
                         inputs = user_input.split()
                         if len(inputs) != 2:
-                            print("输入的整数不是2个")
+                            print("Expected exactly 2 integers")
                             continue
                             
                         weapon, armor = map(int, inputs)
                         
                         if not (1 <= weapon <= 4 and 1 <= armor <= 3):
-                            print("输入的整数不在范围里！")
+                            print("Weapon or armor type out of range")
                             continue
                             
                         if weapon == 4 and armor != 1:
-                            print("法杖只能配轻甲！")
+                            print("Staff must be paired with light armor (armor 1)")
                             continue
                             
                         piece_arg.equip = Point(weapon, armor)
                         break
                     except ValueError:
-                        print("输入的不是整数")
+                        print("Invalid input: need integers")
                         continue
 
             # 位置选择
@@ -112,38 +112,38 @@ class ConsoleInputMethod(IInputMethod):
                 cols = init_message.board.width
                 boarder = init_message.board.boarder
                 
-                print("\n现在输入棋子初始坐标，格式为：x y")
+                print("\nEnter start cell: x y")
                 user_input = input()
                 if user_input:
                     try:
                         inputs = user_input.split()
                         if len(inputs) != 2:
-                            print("输入的整数不是2个")
+                            print("Expected exactly 2 integers")
                             continue
                             
                         x, y = map(int, inputs)
                         
                         if not (0 <= x < cols and 0 <= y < rows):
-                            print("输入的整数超过范围！")
+                            print("Coordinates out of board bounds")
                             continue
                             
                         if init_message.board.grid[x][y].state != 1:
-                            print("输入的坐标状态为不可占据!")
+                            print("Cell is not walkable")
                             continue
                             
                         # 检查边界条件
                         if init_message.id == 1 and y >= boarder:
-                            print(f"玩家1的棋子必须在边界线{boarder}以下!")
+                            print(f"Player 1 pieces must be below border (y < {boarder})")
                             continue
                         elif init_message.id == 2 and y <= boarder:
-                            print(f"玩家2的棋子必须在边界线{boarder}以上!")
+                            print(f"Player 2 pieces must be above border (y > {boarder})")
                             continue
                             
                         # 检查是否与已添加的棋子位置冲突
                         is_valid = True
                         for existing_arg in policy.piece_args:
                             if x == existing_arg.pos.x and y == existing_arg.pos.y:
-                                print("输入的坐标与已有棋子重合！")
+                                print("Cell already occupied by another of your pieces")
                                 is_valid = False
                                 break
                                 
@@ -153,7 +153,7 @@ class ConsoleInputMethod(IInputMethod):
                         piece_arg.pos = Point(x, y)
                         break
                     except ValueError:
-                        print("输入的不是整数")
+                        print("Invalid input: need integers")
                         continue
                         
             policy.piece_args.append(piece_arg)
@@ -162,11 +162,11 @@ class ConsoleInputMethod(IInputMethod):
         
     def handle_action_input(self, env: 'Environment') -> ActionSet:
         """从控制台获取行动输入"""
-        print(f"\n玩家{env.current_piece.team}的回合 - 棋子ID: {env.current_piece.id}")
-        print(f"位置: ({env.current_piece.position.x}, {env.current_piece.position.y})")
-        print(f"生命: {env.current_piece.health}/{env.current_piece.max_health}")
-        print(f"行动点: {env.current_piece.action_points}")
-        print(f"法术位: {env.current_piece.spell_slots}")
+        print(f"\nTeam {env.current_piece.team} turn — piece id={env.current_piece.id}")
+        print(f"Position: ({env.current_piece.position.x}, {env.current_piece.position.y})")
+        print(f"HP: {env.current_piece.health}/{env.current_piece.max_health}")
+        print(f"Action points: {env.current_piece.action_points}")
+        print(f"Spell slots: {env.current_piece.spell_slots}")
         
         # 显示地图
         env.visualize_board()
@@ -175,12 +175,12 @@ class ConsoleInputMethod(IInputMethod):
         
         # 移动部分
         while True:
-            print("\n请输入目标移动位置（格式：x y, 若不移动，输入-1 -1）：")
+            print("\nMove target: x y (or -1 -1 to skip move)")
             try:
                 user_input = input()
                 inputs = user_input.split()
                 if len(inputs) != 2:
-                    print("输入格式错误，应为两个用空格隔开的整数。")
+                    print("Expected two space-separated integers.")
                     continue
                 
                 x, y = map(int, inputs)
@@ -191,29 +191,29 @@ class ConsoleInputMethod(IInputMethod):
                 
                 # 检查移动目标是否合法
                 if not (0 <= x < env.board.width and 0 <= y < env.board.height):
-                    print("目标位置超出地图范围！")
+                    print("Target out of map bounds")
                     continue
                     
                 if env.board.grid[x][y].state != 1:
-                    print("目标位置不可移动！")
+                    print("Target cell is not walkable")
                     continue
                 
                 # 检查移动力是否足够
                 path, cost = env.board.find_shortest_path(env.current_piece, env.current_piece.position, Point(x, y), env.current_piece.movement)
                 if path is None or cost > env.current_piece.movement:
-                    print("目标位置超出移动范围！")
+                    print("Target beyond movement reach")
                     continue
                 
                 action.move = True
                 action.move_target = Point(x, y)
                 break
             except ValueError:
-                print("输入的不是整数")
+                print("Invalid input: need integers")
                 continue
         
         # 攻击部分
         while True:
-            print("\n请输入要攻击的棋子id编号（若不攻击，输入-1）：")
+            print("\nAttack target piece id (-1 to skip)")
             try:
                 target_id = int(input())
                 if target_id == -1:
@@ -223,16 +223,16 @@ class ConsoleInputMethod(IInputMethod):
                 # 查找目标棋子
                 target = next((p for p in env.action_queue if p.id == target_id and p.is_alive), None)
                 if target is None:
-                    print("未找到指定的棋子。")
+                    print("No such piece.")
                     continue
                     
                 if target.team == env.current_piece.team:
-                    print("不能攻击己方棋子！")
+                    print("Cannot attack friendly piece")
                     continue
                     
                 # 检查攻击范围
                 if not env.is_in_attack_range(env.current_piece, target):
-                    print("目标超出攻击范围！")
+                    print("Target out of attack range")
                     continue
                 
                 action.attack = True
@@ -241,15 +241,15 @@ class ConsoleInputMethod(IInputMethod):
                 action.attack_context.target = target
                 break
             except ValueError:
-                print("输入的不是整数")
+                print("Invalid input: need integers")
                 continue
         
         # 法术部分
-        print("\n是否要施放法术？(1/-1)")
+        print("\nCast a spell? (1 = yes, anything else = no)")
         spell_choice = input()
         if spell_choice and spell_choice.strip() == "1":
             while True:
-                print("\n请输入要施加的法术id（若不施法，输入-1）：")
+                print("\nSpell id (-1 to cancel)")
                 try:
                     spell_id = int(input())
                     if spell_id == -1:
@@ -258,31 +258,31 @@ class ConsoleInputMethod(IInputMethod):
                     
                     # 检查法术位
                     if env.current_piece.spell_slots <= 0:
-                        print("没有剩余法术位！")
+                        print("No spell slots left")
                         action.spell = False
                         break
                     
                     # 获取法术信息
                     spell = SpellFactory.get_spell_by_id(spell_id)
                     if spell is None:
-                        print("未找到指定的法术。")
+                        print("Unknown spell id")
                         continue
                     
-                    print(f"\n已选择法术: {spell.name}")
-                    print(f"效果类型: {spell.effect_type}")
-                    print(f"基础值: {spell.base_value}")
-                    print(f"施法范围: {spell.range}")
+                    print(f"\nSelected spell: {spell.name}")
+                    print(f"Effect type: {spell.effect_type}")
+                    print(f"Base value: {spell.base_value}")
+                    print(f"Range: {spell.range}")
                     
                     # 获取可选目标
                     spell_targets = env.get_spell_targets(spell)
                     if not spell_targets and not spell.is_area_effect:
-                        print("没有可选的目标！")
+                        print("No valid targets")
                         continue
                         
-                    print("\n请输入要施加的法术中心坐标（格式：x y）：")
+                    print("\nSpell center: x y")
                     coords = input().split()
                     if len(coords) != 2:
-                        print("输入格式错误")
+                        print("Expected two integers")
                         continue
                     
                     x, y = map(int, coords)
@@ -290,21 +290,21 @@ class ConsoleInputMethod(IInputMethod):
                     # 检查施法距离
                     distance = abs(env.current_piece.position.x - x) + abs(env.current_piece.position.y - y)
                     if distance > spell.range:
-                        print(f"施法范围超出限制！(最大范围: {spell.range})")
+                        print(f"Out of spell range (max {spell.range})")
                         continue
                     
                     if spell.is_area_effect:
                         target = None
                     else:
-                        print("\n请输入要攻击的棋子id编号：")
+                        print("\nTarget piece id for spell:")
                         try:
                             target_id = int(input())
                             target = next((p for p in spell_targets if p.id == target_id), None)
                             if target is None:
-                                print("无效的目标！")
+                                print("Invalid target")
                                 continue
                         except ValueError:
-                            print("输入的不是整数")
+                            print("Invalid input: need integers")
                             continue
                     
                     action.spell = True
@@ -318,7 +318,7 @@ class ConsoleInputMethod(IInputMethod):
                     action.spell_context.delay_add = False
                     break
                 except ValueError:
-                    print("输入的不是整数")
+                    print("Invalid input: need integers")
                     continue
         else:
             action.spell = False
@@ -335,7 +335,7 @@ class FunctionInputMethod(IInputMethod):
         
     @property
     def name(self) -> str:
-        return "函数式输入"
+        return "function"
         
     def handle_init_input(self, init_message: 'InitGameMessage') -> 'InitPolicyMessage':
         piece_args = self._init_handler(init_message)
@@ -361,13 +361,13 @@ class RemoteInputMethod(IInputMethod):
         
     @property
     def name(self) -> str:
-        return "远程输入"
+        return "remote"
         
     def handle_init_input(self, init_message: 'InitGameMessage') -> 'InitPolicyMessage':
-        raise NotImplementedError("远程输入方法使用 gRPC 客户端处理初始化")
+        raise NotImplementedError("Remote input: use gRPC client for init")
         
     def handle_action_input(self, env: 'Environment') -> ActionSet:
-        raise NotImplementedError("远程输入方法使用 gRPC 客户端处理行动输入")
+        raise NotImplementedError("Remote input: use gRPC client for actions")
 
 
 class InputMethodManager:
@@ -415,21 +415,21 @@ class InputMethodManager:
         input_method = self.get_input_method(player_id)
         
         if isinstance(input_method, RemoteInputMethod):
-            raise ValueError("远程输入方法使用 gRPC 客户端处理初始化")
+            raise ValueError("Remote input: use gRPC client for init")
             
         return input_method.handle_init_input(init_message)
         
     def handle_action_input(self, player_id: int, env: 'Environment') -> ActionSet:
         """处理行动输入"""
         input_method = self.get_input_method(player_id)
-        print(f"[InputManager] 玩家{player_id}的输入方法为: {input_method.name}")
+        print(f"[InputManager] player {player_id} input: {input_method.name}")
         
         if isinstance(input_method, RemoteInputMethod):
-            raise ValueError("远程输入方法使用 gRPC 客户端处理行动输入")
+            raise ValueError("Remote input: use gRPC client for actions")
             
-        print(f"[InputManager] 开始处理玩家{player_id}的行动输入")
+        print(f"[InputManager] handling action input for player {player_id}")
         action = input_method.handle_action_input(env)
-        print(f"[InputManager] 玩家{player_id}的行动输入处理完成")
+        print(f"[InputManager] player {player_id} action input done")
         return action
         
     def is_remote_input(self, player_id: int) -> bool:

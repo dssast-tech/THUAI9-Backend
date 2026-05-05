@@ -19,40 +19,39 @@ class ActionSet:
         self.spell_context = None  # SpellContext
         
     def __str__(self) -> str:
-        """返回动作集的可读字符串表示"""
+        """Human-readable ActionSet summary (English, for logs)."""
         parts = []
         
-        # 移动部分
-        if hasattr(self, 'move_target'):
-            parts.append(f"移动: {'是' if hasattr(self, 'move') and self.move else '否'}")
-            if hasattr(self, 'move') and self.move:
-                parts.append(f"  目标位置: ({self.move_target.x}, {self.move_target.y})")
+        if hasattr(self, "move_target"):
+            parts.append(f"move: {'yes' if hasattr(self, 'move') and self.move else 'no'}")
+            if hasattr(self, "move") and self.move:
+                parts.append(f"  move_target: ({self.move_target.x}, {self.move_target.y})")
         
-        # 攻击部分
-        if hasattr(self, 'attack'):
-            parts.append(f"攻击: {'是' if self.attack else '否'}")
+        if hasattr(self, "attack"):
+            parts.append(f"attack: {'yes' if self.attack else 'no'}")
             if self.attack and self.attack_context:
-                parts.append("  攻击详情:")
-                if hasattr(self.attack_context, 'attacker') and self.attack_context.attacker:
-                    parts.append(f"    攻击者ID: {self.attack_context.attacker.id}")
-                if hasattr(self.attack_context, 'target') and self.attack_context.target:
-                    parts.append(f"    目标ID: {self.attack_context.target.id}")
-                if hasattr(self.attack_context, 'damage_dealt'):
-                    parts.append(f"    伤害值: {self.attack_context.damage_dealt}")
+                parts.append("  attack_context:")
+                if hasattr(self.attack_context, "attacker") and self.attack_context.attacker:
+                    parts.append(f"    attacker_id: {self.attack_context.attacker.id}")
+                if hasattr(self.attack_context, "target") and self.attack_context.target:
+                    parts.append(f"    target_id: {self.attack_context.target.id}")
+                if hasattr(self.attack_context, "damage_dealt"):
+                    parts.append(f"    damage_dealt: {self.attack_context.damage_dealt}")
         
-        # 法术部分
-        if hasattr(self, 'spell'):
-            parts.append(f"法术: {'是' if self.spell else '否'}")
+        if hasattr(self, "spell"):
+            parts.append(f"spell: {'yes' if self.spell else 'no'}")
             if self.spell and self.spell_context:
-                parts.append("  法术详情:")
-                if hasattr(self.spell_context, 'spell') and self.spell_context.spell:
-                    parts.append(f"    名称: {self.spell_context.spell.name}")
-                    parts.append(f"    效果类型: {self.spell_context.spell.effect_type.value if self.spell_context.spell.effect_type else 'Unknown'}")
-                    parts.append(f"    基础值: {self.spell_context.spell.base_value}")
-                if hasattr(self.spell_context, 'target') and self.spell_context.target:
-                    parts.append(f"    目标ID: {self.spell_context.target.id}")
-                if hasattr(self.spell_context, 'target_area') and self.spell_context.target_area:
-                    parts.append(f"    目标区域: ({self.spell_context.target_area.x}, {self.spell_context.target_area.y}), 半径: {self.spell_context.target_area.radius}")
+                parts.append("  spell_context:")
+                if hasattr(self.spell_context, "spell") and self.spell_context.spell:
+                    parts.append(f"    name: {self.spell_context.spell.name}")
+                    parts.append(f"    effect_type: {self.spell_context.spell.effect_type.value if self.spell_context.spell.effect_type else 'Unknown'}")
+                    parts.append(f"    base_value: {self.spell_context.spell.base_value}")
+                if hasattr(self.spell_context, "target") and self.spell_context.target:
+                    parts.append(f"    target_id: {self.spell_context.target.id}")
+                if hasattr(self.spell_context, "target_area") and self.spell_context.target_area:
+                    parts.append(
+                        f"    target_area: ({self.spell_context.target_area.x}, {self.spell_context.target_area.y}), radius: {self.spell_context.target_area.radius}"
+                    )
         
         return "\n".join(parts)
 
@@ -337,7 +336,11 @@ class SpellFactory:
                 or spell.effect_type == SpellEffectType.MOVE
             ])
             
-        # 根据智力值限制法术数量
-        max_spells = piece.intelligence // 5 + 1
+        # 与法术位系统对齐：可用法术列表数量上限按 max_spell_slots 截断
+        #（若 max_spell_slots 未初始化，则回退到旧的 intelligence//5+1）
+        max_spells = getattr(piece, "max_spell_slots", None)
+        if max_spells is None:
+            max_spells = piece.intelligence // 5 + 1
+        max_spells = max(0, int(max_spells))
         return available_spells[:max_spells]
 

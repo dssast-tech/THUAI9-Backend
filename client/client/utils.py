@@ -337,7 +337,11 @@ class SpellFactory:
                 or spell.effect_type == SpellEffectType.MOVE
             ])
             
-        # 根据智力值限制法术数量
-        max_spells = piece.intelligence // 5 + 1
+        # 与法术位系统对齐：可用法术列表数量上限按 max_spell_slots 截断
+        #（若 max_spell_slots 未初始化，则回退到旧的 intelligence//5+1）
+        max_spells = getattr(piece, "max_spell_slots", None)
+        if max_spells is None:
+            max_spells = piece.intelligence // 5 + 1
+        max_spells = max(0, int(max_spells))
         return available_spells[:max_spells]
 

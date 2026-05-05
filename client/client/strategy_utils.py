@@ -92,13 +92,13 @@ def simulate_attack(env: Environment, attacker: Piece, target: Piece) -> float:
     if not env.is_in_attack_range(attacker, target):
         return 0.0
 
-    attack_throw = 10.5 + env.step_modified_func(attacker.strength)
-    defense_value = target.physical_resist + env.step_modified_func(target.dexterity)
-
-    if attack_throw <= defense_value:
-        return 0.0
-
-    return max(0, attacker.physical_damage - target.physical_resist)
+    # 与 env.execute_attack 一致：攻击必定命中。
+    # - 法杖（weapon_type==4）：真实伤害固定 4
+    # - 其他武器：基础伤害 physical_damage + strength，再由 physical_resist 抵消
+    if getattr(attacker, "weapon_type", 0) == 4:
+        return 4.0
+    raw_damage = attacker.physical_damage + attacker.strength
+    return float(max(0, raw_damage - target.physical_resist))
 
 
 def step_with_action(env: Environment, action: ActionSet) -> None:

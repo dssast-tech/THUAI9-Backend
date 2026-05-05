@@ -1,6 +1,5 @@
-from typing import Callable, List
+from typing import Callable, List, Tuple, Set
 import math
-from dataclasses import dataclass
 from env import *
 from utils import *
 from strategy_utils import (
@@ -14,6 +13,50 @@ from strategy_utils import (
 # 控制 MCTS 是否输出调试日志，设为 False 可关闭所有 [MCTS] 输出
 MCTS_VERBOSE: bool = False
 
+
+def _allocate_init_positions(
+    board: "Board",
+    player_id: int,
+    piece_cnt: int,
+    preferred_order: List[Tuple[int, int]],
+) -> List[Point]:
+    """Pick distinct walkable cells on the player's side; prefer scan order then full fallback."""
+    occupied: Set[Tuple[int, int]] = set()
+    out: List[Point] = []
+    bdr = board.boarder
+
+    def cell_ok(x: int, y: int) -> bool:
+        if (x, y) in occupied:
+            return False
+        if not board.is_within_bounds(Point(x, y)):
+            return False
+        if board.grid[x][y].state != 1:
+            return False
+        if player_id == 1:
+            return y < bdr
+        return y > bdr
+
+    for _ in range(piece_cnt):
+        pos = None
+        for x, y in preferred_order:
+            if cell_ok(x, y):
+                pos = Point(x, y)
+                break
+        if pos is None:
+            for y in range(board.height):
+                for x in range(board.width):
+                    if cell_ok(x, y):
+                        pos = Point(x, y)
+                        break
+                if pos is not None:
+                    break
+        if pos is None:
+            raise RuntimeError("init placement: no free cell in player's half")
+        out.append(pos)
+        occupied.add((pos.x, pos.y))
+    return out
+
+
 class StrategyFactory:
     """策略工厂类 - 提供不同的游戏策略"""
     
@@ -26,108 +69,68 @@ class StrategyFactory:
     def get_aggressive_init_strategy() -> Callable[['InitGameMessage'], List[PieceArg]]:
         """获取攻击型初始化策略"""
         def strategy(init_message: 'InitGameMessage') -> List[PieceArg]:
-            piece_args = []
-            
-            # 攻击型配置：高力量，中敏捷，低智力
-            for i in range(init_message.piece_cnt):
+            board = init_message.board
+            pid = init_message.id
+            if pid == 1:
+                order = [
+                    (x, y)
+                    for y in range(5, 0, -1)
+                    for x in range(2, board.width - 2)
+                ]
+            else:
+                order = [
+                    (x, y)
+                    for y in range(board.height - 6, board.height)
+                    for x in range(board.width - 3, 2, -1)
+                ]
+            positions = _allocate_init_positions(
+                board, pid, init_message.piece_cnt, order
+            )
+            piece_args: List[PieceArg] = []
+            for pos in positions:
                 arg = PieceArg()
-                arg.strength = 20      # 高力量
-                arg.dexterity = 8      # 中敏捷
-                arg.intelligence = 2    # 低智力
-                arg.equip = Point(2, 3)  # 短剑+重甲 (高伤害+高防御)
-                
-                # 设置位置 - 偏向前线位置，确保位置有效
-                if init_message.id == 1:  # 第一个玩家
-                    # 从前线开始尝试找到有效位置
-                    for y in range(5, 0, -1):  # 从前线向后尝试
-                        for x in range(2, init_message.board.width - 2):
-                            pos = Point(x, y)
-                            if (init_message.board.is_within_bounds(pos) and 
-                                init_message.board.grid[pos.x][pos.y].state == 1 and  # 确保格子可用
-                                y < init_message.board.boarder):  # 确保在边界线以下
-                                arg.pos = pos
-                                piece_args.append(arg)
-                                break
-                        if len(piece_args) == i + 1:  # 如果已经找到位置就跳出
-                            break
-                else:  # 第二个玩家
-                    # 从前线开始尝试找到有效位置
-                    for y in range(init_message.board.height - 6, init_message.board.height):
-                        for x in range(init_message.board.width - 3, 2, -1):
-                            pos = Point(x, y)
-                            if (init_message.board.is_within_bounds(pos) and 
-                                init_message.board.grid[pos.x][pos.y].state == 1 and  # 确保格子可用
-                                y > init_message.board.boarder):  # 确保在边界线以上
-                                arg.pos = pos
-                                piece_args.append(arg)
-                                break
-                        if len(piece_args) == i + 1:  # 如果已经找到位置就跳出
-                            break
-                
-                # 如果没有找到有效位置，使用默认位置（这种情况不应该发生，因为棋盘应该有足够的空间）
-                if len(piece_args) != i + 1:
-                    if init_message.id == 1:
-                        arg.pos = Point(2 + i * 2, 2)
-                    else:
-                        arg.pos = Point(init_message.board.width - 3 - i * 2, init_message.board.height - 3)
-                    piece_args.append(arg)
-            
+                arg.strength = 20
+                arg.dexterity = 8
+                arg.intelligence = 2
+                arg.equip = Point(2, 3)
+                arg.pos = pos
+                piece_args.append(arg)
             return piece_args
-        
+
         return strategy
 
     @staticmethod
     def get_defensive_init_strategy() -> Callable[['InitGameMessage'], List[PieceArg]]:
         """获取防御型初始化策略"""
         def strategy(init_message: 'InitGameMessage') -> List[PieceArg]:
-            piece_args = []
-            
-            # 防御型配置：中力量，高敏捷，中智力
-            for i in range(init_message.piece_cnt):
+            board = init_message.board
+            pid = init_message.id
+            if pid == 1:
+                order = [
+                    (x, y)
+                    for y in range(3, board.boarder)
+                    for x in range(3, board.width - 3)
+                ]
+            else:
+                order = [
+                    (x, y)
+                    for y in range(board.height - 1, board.boarder, -1)
+                    for x in range(board.width - 4, 3, -1)
+                ]
+            positions = _allocate_init_positions(
+                board, pid, init_message.piece_cnt, order
+            )
+            piece_args: List[PieceArg] = []
+            for pos in positions:
                 arg = PieceArg()
-                arg.strength = 5       # 低力量
-                arg.dexterity = 15     # 高敏捷
-                arg.intelligence = 10   # 中智力
-                arg.equip = Point(3, 1)  # 弓+轻甲 (远程+机动性)
-                
-                # 设置位置 - 偏向后方位置，确保位置有效
-                if init_message.id == 1:  # 第一个玩家
-                    # 从后方开始尝试找到有效位置
-                    for y in range(3, init_message.board.boarder):
-                        for x in range(3, init_message.board.width - 3):
-                            pos = Point(x, y)
-                            if (init_message.board.is_within_bounds(pos) and 
-                                init_message.board.grid[pos.x][pos.y].state == 1 and  # 确保格子可用
-                                y < init_message.board.boarder):  # 确保在边界线以下
-                                arg.pos = pos
-                                piece_args.append(arg)
-                                break
-                        if len(piece_args) == i + 1:  # 如果已经找到位置就跳出
-                            break
-                else:  # 第二个玩家
-                    # 从后方开始尝试找到有效位置
-                    for y in range(init_message.board.height - 4, init_message.board.boarder, -1):
-                        for x in range(init_message.board.width - 4, 3, -1):
-                            pos = Point(x, y)
-                            if (init_message.board.is_within_bounds(pos) and 
-                                init_message.board.grid[pos.x][pos.y].state == 1 and  # 确保格子可用
-                                y > init_message.board.boarder):  # 确保在边界线以上
-                                arg.pos = pos
-                                piece_args.append(arg)
-                                break
-                        if len(piece_args) == i + 1:  # 如果已经找到位置就跳出
-                            break
-                
-                # 如果没有找到有效位置，使用默认位置（这种情况不应该发生，因为棋盘应该有足够的空间）
-                if len(piece_args) != i + 1:
-                    if init_message.id == 1:
-                        arg.pos = Point(3 + i * 3, 2)
-                    else:
-                        arg.pos = Point(init_message.board.width - 4 - i * 3, init_message.board.height - 3)
-                    piece_args.append(arg)
-            
+                arg.strength = 5
+                arg.dexterity = 15
+                arg.intelligence = 10
+                arg.equip = Point(3, 1)
+                arg.pos = pos
+                piece_args.append(arg)
             return piece_args
-        
+
         return strategy
 
     @staticmethod

@@ -242,7 +242,7 @@ class PieceAccessor:
 
 class Player:
     """玩家类"""
-    PIECE_CNT = 1
+    PIECE_CNT = 3
     
     def __init__(self):
         self.id = 0
@@ -332,7 +332,7 @@ class Player:
         pieces_list = []
         
         for i in range(self.PIECE_CNT):
-            print(f"现在为棋手 {player_id} 的第 {i + 1} 个棋子初始化")
+            print(f"Initializing piece {i + 1}/{self.PIECE_CNT} for player {player_id}")
             piece = Piece()
             pieces_list.append(piece)
             
@@ -376,69 +376,69 @@ class Player:
         try:
             # 属性输入
             while True:
-                print(f"为棋子输入属性分配，格式为：力量 敏捷 智力 总和不超过30")
+                print("Enter stats: strength dexterity intelligence (sum <= 30)")
                 user_input = input()
                 if user_input:
                     try:
                         inputs = user_input.split()
                         nums = [int(x) for x in inputs]
                         if len(nums) != 3:
-                            print("输入的整数不是3个")
+                            print("Expected exactly 3 integers")
                             continue
                         
                         strength, dexterity, intelligence = nums
                         
                         if any(n < 0 for n in nums):
-                            print("输入的整数不能为负数！")
+                            print("Stats must be non-negative")
                             continue
                             
                         if sum(nums) > 30:
-                            print("输入的整数之和多于30！")
+                            print("Sum of stats must not exceed 30")
                             continue
                             
                         initialization_set.extend(nums)
                         break
                     except ValueError:
-                        print("输入的不是整数")
+                        print("Invalid input: need integers")
                         continue
 
             # 显示武器防具表
-            print("\n武器防具表展示如下：")
-            print("武器:         物伤值      法伤值     范围")
-            print("1~长剑        8           0         5")
-            print("2~短剑       10           0         3")
-            print("3~弓         16           0         9")
-            print("4~法杖        0           18        12")
-            print("防具:         物豁免值      法豁免值   行动力影响")
-            print("1~轻甲         8             0        +3")
-            print("2~中甲         15            0        0")
-            print("3~重甲         23            0        -3")
+            print("\nWeapons / armor table")
+            print("Weapon     phys   magic   range")
+            print("1 longsword  8      0       5")
+            print("2 shortsword 10     0       3")
+            print("3 bow        16     0       9")
+            print("4 staff      0     18      12")
+            print("Armor    phys_res  magic_res  AP mod")
+            print("1 light     8        0       +3")
+            print("2 medium   15        0        0")
+            print("3 heavy    23        0       -3")
 
             # 装备选择
             while True:
-                print("\n现在输入武器和防具，格式为：武器类型(1-4) 防具类型(1-3)")
+                print("\nEnter weapon (1-4) and armor (1-3), space-separated")
                 user_input = input()
                 if user_input:
                     try:
                         inputs = user_input.split()
                         if len(inputs) != 2:
-                            print("输入的整数不是2个")
+                            print("Expected exactly 2 integers")
                             continue
                             
                         weapon, armor = map(int, inputs)
                         
                         if not (1 <= weapon <= 4 and 1 <= armor <= 3):
-                            print("输入的整数不在范围里！")
+                            print("Weapon or armor type out of range")
                             continue
                             
                         if weapon == 4 and armor != 1:
-                            print("法杖只能配轻甲！")
+                            print("Staff must be paired with light armor (armor 1)")
                             continue
                             
                         initialization_set.extend([weapon, armor])
                         break
                     except ValueError:
-                        print("输入的不是整数")
+                        print("Invalid input: need integers")
                         continue
 
             # 位置选择
@@ -447,38 +447,38 @@ class Player:
                 cols = board.width
                 boarder = board.boarder
                 
-                print("\n现在输入棋子初始坐标，格式为：x y")
+                print("\nEnter start cell: x y")
                 user_input = input()
                 if user_input:
                     try:
                         inputs = user_input.split()
                         if len(inputs) != 2:
-                            print("输入的整数不是2个")
+                            print("Expected exactly 2 integers")
                             continue
                             
                         x, y = map(int, inputs)
                         
                         if not (0 <= x < cols and 0 <= y < rows):
-                            print("输入的整数超过范围！")
+                            print("Coordinates out of board bounds")
                             continue
                             
                         if board.grid[x][y].state != 1:
-                            print("输入的坐标状态为不可占据!")
+                            print("Cell is not walkable")
                             continue
                             
                         # 检查边界条件
                         if player_id == 1 and y >= boarder:
-                            print(f"玩家1的棋子必须在边界线{boarder}以下!")
+                            print(f"Player 1 pieces must be below border line (y < {boarder})")
                             continue
                         elif player_id == 2 and y <= boarder:
-                            print(f"玩家2的棋子必须在边界线{boarder}以上!")
+                            print(f"Player 2 pieces must be above border line (y > {boarder})")
                             continue
                             
                         # 检查是否与已添加的棋子位置冲突
                         is_valid = True
                         for existing_piece in self.pieces:
                             if x == existing_piece.position.x and y == existing_piece.position.y:
-                                print("输入的坐标与已有棋子重合！")
+                                print("Cell already occupied by another of your pieces")
                                 is_valid = False
                                 break
                                 
@@ -488,11 +488,11 @@ class Player:
                         initialization_set.extend([x, y])
                         break
                     except ValueError:
-                        print("输入的不是整数")
+                        print("Invalid input: need integers")
                         continue
 
         except Exception as e:
-            print(f"输入错误：{e}")
+            print(f"Input error: {e}")
             raise
 
         return initialization_set
@@ -586,18 +586,18 @@ class Board:
         """
         if not self.is_within_bounds(to):
             if self.if_log:
-                print(f"目标位置({to.x}, {to.y})超出地图大小")
+                print(f"Target ({to.x}, {to.y}) is out of map bounds")
             return None, False
             
         if self.grid[to.x][to.y].state != 1:
             if self.if_log:
-                print(f"目标位置({to.x}, {to.y})被占据")
+                print(f"Target ({to.x}, {to.y}) is occupied")
             return None, False
 
         path, cost = self.find_shortest_path(piece, piece.position, to, movement)
         if path is None or cost > movement:
             if self.if_log:
-                print(f"目标位置({to.x}, {to.y})不可达或超出移动范围")
+                print(f"Target ({to.x}, {to.y}) unreachable or beyond movement budget")
             return None, False
 
         # 保存原始位置以便回滚
@@ -625,7 +625,7 @@ class Board:
         except Exception as e:
             # 发生错误时回滚
             if self.if_log:
-                print(f"移动过程中发生错误: {e}")
+                print(f"Error during move_piece: {e}")
             self.grid[old_x][old_y].state = 2
             self.grid[old_x][old_y].player_id = piece.team
             self.grid[old_x][old_y].piece_id = piece.id
@@ -925,11 +925,11 @@ class Environment:
         piece_priority = {}
         
         for piece in self.player1.pieces:
-            priority = self.roll_dice(1, 20) + piece.dexterity
+            priority = self.roll_dice(1, 10) + piece.dexterity
             piece_priority[piece] = priority
             
         for piece in self.player2.pieces:
-            priority = self.roll_dice(1, 20) + piece.dexterity
+            priority = self.roll_dice(1, 10) + piece.dexterity
             piece_priority[piece] = priority
 
         # 按优先级排序
@@ -1078,11 +1078,19 @@ class Environment:
         if self.if_log:
             print("[Attack] Auto hit - no roll needed.")
 
-        damage = attack_context.attacker.physical_damage + attack_context.attacker.strength
+        # 法杖（weapon_type==4）：真实伤害，固定 4，不受任何抗性影响
+        if getattr(attack_context.attacker, "weapon_type", 0) == 4:
+            damage = 4
+            if self.if_log:
+                print(f"[Attack] Staff true damage: {damage}")
+            accessor = attack_context.target.get_accessor()
+            accessor.set_health_to(max(attack_context.target.health - damage, 0))
+        else:
+            damage = attack_context.attacker.physical_damage + attack_context.attacker.strength
+            if self.if_log:
+                print(f"[Attack] Dealing {damage} damage to target.")
+            attack_context.target.receive_damage(damage, "physical")
 
-        if self.if_log:
-            print(f"[Attack] Dealing {damage} damage to target.")
-        attack_context.target.receive_damage(damage, "physical")
         attack_context.damage_dealt = damage
 
         if attack_context.target.health <= 0:
@@ -1278,7 +1286,7 @@ class Environment:
         """单回合步进"""
         self.round_number += 1
         if self.if_log:
-            print(f"\n===== 回合 {self.round_number} =====")
+            print(f"\n===== round {self.round_number} =====")
 
         # 重置行动点
         for piece in self.action_queue:
@@ -1290,7 +1298,7 @@ class Environment:
         current_player = self.current_piece.team
 
         if self.if_log:
-            print(f"当前行动棋子: ID={self.current_piece.id}, 玩家={current_player}")
+            print(f"current_piece: id={self.current_piece.id}, team={current_player}")
 
         # 处理延时法术
         for i in range(len(self.delayed_spells) - 1, -1, -1):
@@ -1328,9 +1336,9 @@ class Environment:
         )
         
         if self.is_game_over and self.if_log:
-            print("游戏结束!")
+            print("Game over.")
             winner = 1 if any(p.is_alive for p in self.player1.pieces) else 2
-            print(f"玩家{winner}获胜!")
+            print(f"Winner: player {winner}")
 
         # 更新死亡列表
         self.last_round_dead_pieces = np.array(self.new_dead_this_round, dtype=object)
@@ -1351,9 +1359,9 @@ class Environment:
                 if self.logdata is not None and path:
                     self.logdata.add_move(self.current_piece, path, self.board)
                 if self.if_log:
-                    print(f"移动成功到 ({target.x}, {target.y})")
+                    print(f"Move ok -> ({target.x}, {target.y})")
             elif self.if_log:
-                print("移动失败")
+                print("Move failed")
                 
         # 处理攻击
         if hasattr(action, 'attack') and action.attack and self.current_piece.get_action_points() > 0:
@@ -1362,9 +1370,9 @@ class Environment:
                 if self.logdata is not None:
                     self.logdata.add_attack(action.attack_context)
                 if action.attack_context.damage_dealt > 0 and self.if_log:
-                    print(f"对棋子{action.attack_context.target.id}造成{action.attack_context.damage_dealt}点伤害")
+                    print(f"Dealt {action.attack_context.damage_dealt} damage to piece {action.attack_context.target.id}")
             elif self.if_log:
-                print("无效的攻击目标")
+                print("Invalid attack target")
                 
         # 处理法术
         if (hasattr(action, 'spell') and action.spell and self.current_piece.spell_slots > 0
@@ -1372,11 +1380,11 @@ class Environment:
             if hasattr(action, 'spell_context') and action.spell_context:
                 self.execute_spell(action.spell_context)
             elif self.if_log:
-                print("无效的法术目标")
+                print("Invalid spell target")
 
     def visualize_board(self):
         """可视化棋盘（无颜色，不依赖终端着色库）。"""
-        print("\n当前棋盘:")
+        print("\nBoard:")
         print("   ", end="")
         for x in range(self.board.width):
             print(f"{x:2d} ", end="")
@@ -1427,9 +1435,9 @@ class Environment:
             raise ValueError("玩家2棋子尚未配置")
         piece_priority = {}
         for piece in self.player1.pieces:
-            piece_priority[piece] = self.roll_dice(1, 20) + piece.dexterity
+            piece_priority[piece] = self.roll_dice(1, 10) + piece.dexterity
         for piece in self.player2.pieces:
-            piece_priority[piece] = self.roll_dice(1, 20) + piece.dexterity
+            piece_priority[piece] = self.roll_dice(1, 10) + piece.dexterity
         sorted_pieces = sorted(piece_priority.keys(), key=lambda x: -piece_priority[x])
         self.action_queue = np.array(sorted_pieces, dtype=object)
         for i, piece in enumerate(self.action_queue):
@@ -1497,7 +1505,7 @@ class Environment:
         self.initialize()
 
         if self.if_log:
-            print("游戏初始化完成，开始游戏！")
+            print("Game initialized, starting.")
             self.visualize_board()
         
         while not self.is_game_over:
@@ -1508,7 +1516,7 @@ class Environment:
             # 如果是控制台输入模式，检查是否继续
             if (isinstance(self.input_manager.get_input_method(1), ConsoleInputMethod) or
                 isinstance(self.input_manager.get_input_method(2), ConsoleInputMethod)):
-                if input("\n继续下一回合? (y/n): ").lower() != 'y':
+                if input("\nContinue to next round? (y/n): ").lower() != "y":
                     break
 
 

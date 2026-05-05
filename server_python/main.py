@@ -24,20 +24,20 @@ class GameHost:
         self._proto_round = 0
 
     def initialize(self):
-        print("[INFO] ========== 初始化阶段 ==========", file=sys.stderr)
+        print("[INFO] ========== init phase ==========", file=sys.stderr)
 
         init_msg = SaibloProtocol.read_message()
         if not init_msg:
-            print("[ERROR] 未收到初始化消息", file=sys.stderr)
+            print("[ERROR] no init message from judger", file=sys.stderr)
             sys.exit(1)
 
         init_info = SaibloProtocol.parse_init_message(init_msg)
-        print(f"[INFO] 收到初始化消息: {init_info}", file=sys.stderr)
+        print(f"[INFO] init message: {init_info}", file=sys.stderr)
 
         try:
             self.replay_file = open(init_info["replay"], "w", encoding="utf-8")
         except Exception as e:
-            print(f"[ERROR] 无法打开回放文件: {e}", file=sys.stderr)
+            print(f"[ERROR] cannot open replay file: {e}", file=sys.stderr)
             sys.exit(1)
 
         self.wrapper.initialize(init_info["config"])
@@ -45,7 +45,7 @@ class GameHost:
 
         SaibloProtocol.send_round_config(time=60, length=4096)
 
-        print("[INFO] 初始化完成", file=sys.stderr)
+        print("[INFO] init phase done", file=sys.stderr)
 
     def _run_init_handshake(self) -> None:
         """首回合：向双方 AI 下发其 Saiblo 座位号（JSON 数字串），并收齐初始化回执。"""
@@ -64,30 +64,30 @@ class GameHost:
         while len(received) < 2:
             ai_msg = SaibloProtocol.read_message()
             if not ai_msg:
-                print("[ERROR] 初始化回合未收齐 AI 响应", file=sys.stderr)
+                print("[ERROR] init round: missing AI response", file=sys.stderr)
                 sys.exit(1)
             parsed = SaibloProtocol.parse_ai_message(ai_msg)
             if parsed["is_error"]:
                 print(
-                    f"[ERROR] 初始化回合 AI 异常: type={parsed['error_type']}",
+                    f"[ERROR] init round AI error: type={parsed['error_type']}",
                     file=sys.stderr,
                 )
                 sys.exit(1)
             pid = int(parsed["player"])
             if pid not in (0, 1):
-                print(f"[ERROR] 非法 player: {pid}", file=sys.stderr)
+                print(f"[ERROR] invalid player id: {pid}", file=sys.stderr)
                 sys.exit(1)
             received[pid] = parsed["content"]
             print(
-                f"[INFO] 收到初始化回执 player={pid}, content_bytes={len(parsed['content'].encode('utf-8'))}",
+                f"[INFO] init ack from player={pid}, content_bytes={len(parsed['content'].encode('utf-8'))}",
                 file=sys.stderr,
             )
         for pid in sorted(received.keys()):
             try:
                 pieces = self._parse_init_ack_payload(received[pid], pid)
             except (json.JSONDecodeError, ValueError, TypeError) as e:
-                print(f"[ERROR] 解析玩家{pid}初始化回执失败: {e}", file=sys.stderr)
-                print(f"[ERROR] 玩家{pid}初始化回执原文如下：", file=sys.stderr)
+                print(f"[ERROR] parse init ack for player {pid} failed: {e}", file=sys.stderr)
+                print(f"[ERROR] raw init ack for player {pid}:", file=sys.stderr)
                 print(received[pid], file=sys.stderr)
                 sys.exit(1)
             ok = self.wrapper.set_player_pieces(pid, pieces)
@@ -96,9 +96,9 @@ class GameHost:
                 file=sys.stderr,
             )
             if not ok:
-                print(f"[ERROR] SetPlayerPieces({pid}) 失败", file=sys.stderr)
+                print(f"[ERROR] SetPlayerPieces({pid}) failed", file=sys.stderr)
                 sys.exit(1)
-        print(f"[INFO] 初始化回合完成（布阵已应用）: {list(received.keys())}", file=sys.stderr)
+        print(f"[INFO] init round done (placements applied): {list(received.keys())}", file=sys.stderr)
 
     @staticmethod
     def _unwrap_ai_content(payload: Any) -> Any:
@@ -128,23 +128,23 @@ class GameHost:
         if isinstance(d, str):
             d = json.loads(d)
         if not isinstance(d, dict) or d.get("phase") != "init":
-            raise ValueError(f"玩家{saiblo_id}: 回执需为 JSON 对象且 phase=init")
+            raise ValueError(f"player {saiblo_id}: expected JSON object with phase=init")
         pieces = d.get("pieces")
         if not isinstance(pieces, list) or len(pieces) != Player.PIECE_CNT:
             n = len(pieces) if isinstance(pieces, list) else -1
             raise ValueError(
-                f"玩家{saiblo_id}: pieces 须为长度 {Player.PIECE_CNT} 的数组，实际 len={n}"
+                f"player {saiblo_id}: pieces must be a list of length {Player.PIECE_CNT}, got len={n}"
             )
         for i, p in enumerate(pieces):
             if not isinstance(p, dict):
-                raise ValueError(f"玩家{saiblo_id}: pieces[{i}] 须为对象")
+                raise ValueError(f"player {saiblo_id}: pieces[{i}] must be an object")
             for k in ("strength", "intelligence", "dexterity", "equip", "pos"):
                 if k not in p:
-                    raise ValueError(f"玩家{saiblo_id}: pieces[{i}] 缺少字段 {k}")
+                    raise ValueError(f"player {saiblo_id}: pieces[{i}] missing field {k}")
         return pieces
 
     def game_loop(self):
-        print("[INFO] ========== 游戏开始 ==========", file=sys.stderr)
+        print("[INFO] ========== game loop start ==========", file=sys.stderr)
 
         self._run_init_handshake()
         self._send_watch_init()
@@ -171,7 +171,7 @@ class GameHost:
 
             ai_msg = SaibloProtocol.read_message()
             if not ai_msg:
-                print(f"[WARN] 回合 {self.round_number}: AI 未响应", file=sys.stderr)
+                print(f"[WARN] round {self.round_number}: no AI response", file=sys.stderr)
                 continue
 
             parsed_ai = SaibloProtocol.parse_ai_message(ai_msg)
@@ -179,7 +179,7 @@ class GameHost:
             if parsed_ai["is_error"]:
                 error_type = parsed_ai["error_type"]
                 print(
-                    f"[ERROR] 玩家 {active_saiblo_id} 发生错误: {error_type}",
+                    f"[ERROR] player {active_saiblo_id} error: {error_type}",
                     file=sys.stderr,
                 )
                 continue
@@ -192,7 +192,7 @@ class GameHost:
                 if ok:
                     self._send_watch_round_delta()
 
-        print("[INFO] ========== 游戏结束 ==========", file=sys.stderr)
+        print("[INFO] ========== game over ==========", file=sys.stderr)
         self.finalize()
 
     def _send_watch_init(self) -> None:
@@ -252,7 +252,7 @@ if __name__ == "__main__":
         host.initialize()
         host.game_loop()
     except Exception as e:
-        print(f"[FATAL] 运行时崩溃: {e}", file=sys.stderr)
+        print(f"[FATAL] unhandled exception: {e}", file=sys.stderr)
         import traceback
 
         traceback.print_exc(file=sys.stderr)

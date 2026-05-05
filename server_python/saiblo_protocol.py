@@ -24,7 +24,7 @@ class SaibloProtocol:
             data_bytes = sys.stdin.buffer.read(length)
             if len(data_bytes) < length:
                 print(
-                    f"[ERROR] 期望读取 {length} 字节，实际读取 {len(data_bytes)} 字节",
+                    f"[ERROR] expected {length} bytes, got {len(data_bytes)}",
                     file=sys.stderr,
                 )
                 return None
@@ -33,7 +33,7 @@ class SaibloProtocol:
             return json.loads(data_str)
 
         except Exception as e:
-            print(f"[ERROR] 读取消息失败: {e}", file=sys.stderr)
+            print(f"[ERROR] read_message failed: {e}", file=sys.stderr)
             return None
 
     @staticmethod
@@ -49,13 +49,13 @@ class SaibloProtocol:
             sys.stdout.buffer.flush()
 
         except Exception as e:
-            print(f"[ERROR] 写入消息失败: {e}", file=sys.stderr)
+            print(f"[ERROR] write_message failed: {e}", file=sys.stderr)
 
     @staticmethod
     def send_round_config(time: int, length: int):
         config = {"state": 0, "time": time, "length": length}
         SaibloProtocol.write_message(config, target=-1)
-        print(f"[INFO] 发送回合配置: time={time}s, length={length}bytes", file=sys.stderr)
+        print(f"[INFO] send_round_config: time={time}s, length={length} bytes", file=sys.stderr)
 
     @staticmethod
     def send_round_info(state: int, listen: list, players: list, content: list):
@@ -66,7 +66,7 @@ class SaibloProtocol:
             "content": content,
         }
         SaibloProtocol.write_message(round_info, target=-1)
-        print(f"[INFO] 发送回合 {state}: listen={listen}", file=sys.stderr)
+        print(f"[INFO] send_round_info state={state} listen={listen}", file=sys.stderr)
 
     @staticmethod
     def send_watch_info(watch_content: str):
@@ -81,7 +81,7 @@ class SaibloProtocol:
             "end_state": json.dumps(end_state),
         }
         SaibloProtocol.write_message(game_end, target=-1)
-        print(f"[INFO] 发送游戏结束: {end_info}, {end_state}", file=sys.stderr)
+        print(f"[INFO] send_game_end: {end_info}, {end_state}", file=sys.stderr)
 
     @staticmethod
     def parse_init_message(msg: Dict[str, Any]) -> Dict[str, Any]:

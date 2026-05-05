@@ -84,7 +84,7 @@ class LogConverter:
         red_left: int,
         blue_left: int,
         is_game_over: bool,
-        piece_cnt: int = 1,
+        piece_cnt: int = 3,
     ) -> None:
         assert self.gamedata is not None
         cur = self.gamedata["gameRounds"][-1]
